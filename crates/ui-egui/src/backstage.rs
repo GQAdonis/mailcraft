@@ -508,7 +508,7 @@ fn open(app: &mut MailApp, ui: &mut Ui, t: &Tokens) {
 }
 
 /// A labelled row: the label on the left, the control after it.
-fn row(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui)) {
+pub(crate) fn row(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui)) {
     ui.horizontal(|ui| {
         let t = Tokens::get(ui.ctx());
         // A label longer than the column, as a translation can be, pushes its control along.
@@ -785,6 +785,8 @@ fn options(app: &mut MailApp, ui: &mut Ui, t: &Tokens) {
             }
         });
     });
+    section(ui, tl!("AI assistance"), t);
+    crate::ai::settings_page::options(app, ui, t);
     section(ui, tl!("Security"), t);
     crate::security::options(app, ui, t);
     section(ui, tl!("Calendar"), t);

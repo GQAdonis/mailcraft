@@ -21,6 +21,8 @@ image = { workspace = true }
 # A private scratch directory for the optional local attachment renderer.
 tempfile = { workspace = true }
 mailcraft-host = { workspace = true }
+# Model providers (#ai): the calls the host runs on a thread of its own, and the provider keys it keeps in the credential store.
+mailcraft-ai = { workspace = true }
 mailcraft-ui-egui = { workspace = true }
 # The control key file's location (shared with the MCP bridge).
 mailcraft-control-key = { workspace = true }
@@ -39,6 +41,7 @@ egui = { workspace = true }
 # tree: eframe runs on it; the same version, nothing added to it here (Linux and FreeBSD add their
 # features below).
 winit = { version = "0.30", default-features = false }
+serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 

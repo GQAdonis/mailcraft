@@ -316,8 +316,12 @@ const READS_ITS_OWN: &[(&str, &str)] = &[
 ];
 
 /// Lookups that are an HTTP request's or answer's, not a message's (a file, and what the line says).
-const NOT_A_MESSAGE: &[(&str, &str)] =
-    &[("ews/src/autodiscover.rs", "response.header("), ("apps/mailcraft/src/graph_folders_flow.rs", "asked.header(")];
+const NOT_A_MESSAGE: &[(&str, &str)] = &[
+    ("ews/src/autodiscover.rs", "response.header("),
+    ("apps/mailcraft/src/graph_folders_flow.rs", "asked.header("),
+    // The vectors file's own header (its magic, version and sizes), not a message's.
+    ("engine/src/retrieval/vectors.rs", "self.header("),
+];
 
 #[test]
 fn every_name_the_program_reads_stays_on_the_message() {

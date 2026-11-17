@@ -623,6 +623,35 @@ impl Index {
         })
     }
 
+    /// For retrieval ([`crate::retrieval`]): `f` is called once with each message the index holds
+    /// that has a word that is `word` (folded, [`words::fold`]), or starts with it when `prefix`,
+    /// and the parts of the message those words are in, together. At most `max_words` different
+    /// words are looked at (a short prefix can't make it walk the whole index).
+    pub fn term_parts(&self, word: &str, prefix: bool, max_words: usize, mut f: impl FnMut(Id, u8)) {
+        if word.is_empty() {
+            return;
+        }
+        let mut parts: HashMap<u32, u8> = HashMap::new();
+        let range = self.lookup.range::<str, _>((std::ops::Bound::Included(word), std::ops::Bound::Unbounded));
+        for (w, id) in range.take(max_words) {
+            let found = w.as_ref() == word || (prefix && w.starts_with(word));
+            if !found {
+                break;
+            }
+            if let Some(p) = self.postings.get(*id as usize) {
+                p.each(|slot, mask| {
+                    let at = parts.entry(slot).or_insert(0);
+                    *at |= mask;
+                });
+            }
+        }
+        for (slot, mask) in parts {
+            if let Some(s) = self.slots.get(slot as usize).filter(|s| s.alive) {
+                f(s.id, mask);
+            }
+        }
+    }
+
     // ---- changing ----
 
     /// Put `doc` in, in the place of what the index held of its message; `seen`: the message it

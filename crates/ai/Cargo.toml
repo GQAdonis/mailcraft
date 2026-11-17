@@ -1,0 +1,24 @@
+[package]
+name = "mailcraft-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "MailCraft's model providers: OpenAI-compatible chat (streamed), embeddings and structured output from a server the owner set up, on this computer or, for the accounts the owner allowed, elsewhere (empty of I/O on wasm)"
+
+[lints]
+workspace = true
+
+[dependencies]
+# The one HTTP stack of the program: TLS or loopback only, no redirects, deadlines, a stop flag,
+# and the reader of event streams (`mailcraft_net::sse`).
+mailcraft-net = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+# A model server over TLS on this machine with a certificate made at run time, trusted by its
+# fingerprint alone (tests only).
+rcgen = { workspace = true }
+rustls = { workspace = true }

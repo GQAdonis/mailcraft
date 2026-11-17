@@ -216,6 +216,7 @@ fn params(f: &Fixture, id: &str) -> Value {
         "mail.get" | "mail.viewSource" | "mail.findFromSender" => json!({"id": m}),
         "mail.list" => json!({"folder": f.session.mailbox.message(m).map(|x| x.folder), "query": "", "limit": 500}),
         "mail.findRelated" => json!({}),
+        "ai.retrieve" => json!({"query": "Hostile"}),
         "calendar.get" | "calendar.proposals" => json!({"id": e}),
         "calendar.join" => json!({"id": f.joinable}),
         "calendar.list" => json!({"from": "2026-10-14", "to": "2026-10-15"}),

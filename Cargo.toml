@@ -41,6 +41,8 @@ mailcraft-engine = { path = "crates/engine" }
 mailcraft-mcp = { path = "crates/mcp" }
 mailcraft-control-key = { path = "crates/control-key" }
 mailcraft-host = { path = "crates/host" }
+# Model providers (#ai): OpenAI-compatible chat and embeddings over `mailcraft-net`; desktop and CLI hosts only.
+mailcraft-ai = { path = "crates/ai" }
 mailcraft-ui-egui = { path = "crates/ui-egui" }
 
 # foundation

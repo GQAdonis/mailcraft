@@ -1,0 +1,1 @@
+| 2026-11-16 | minor | `ai.providers`, `ai.setProvider`, `ai.setActive`, `ai.setConsent`, `ai.removeProvider`: the owner's own model-provider methods (control methods, not commands; never for agents, no key in or out) |

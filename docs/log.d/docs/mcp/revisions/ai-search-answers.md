@@ -1,0 +1,1 @@
+| 2026-11-16 | minor | `search_mail`: read-only search over `ai.retrieve` (no model, `limit` at most 50, wrong arguments a JSON-RPC error), every text framed as untrusted; `ai.ask`, `ai.narrow`, `ai.request`, `ai.apply` and `ai.cancel` are never for agents |

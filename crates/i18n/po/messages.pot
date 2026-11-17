@@ -118,6 +118,11 @@ msgstr ""
 msgid "(as the signer says)"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/mod.rs
+msgid "(no address)"
+msgstr ""
+
 #. interface, what a command says
 #: crates/engine/src/cmd/graph_mail.rs crates/ui-egui/src/people_view.rs
 msgid "(no name)"
@@ -141,6 +146,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/signatures.rs
 msgid "(none)"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "(not offered by this server)"
 msgstr ""
 
 #. interface
@@ -334,6 +344,31 @@ msgid "A file dialog is already open."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "A gateway on this computer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "A gateway on this computer needs an address on this computer (127.0.0.1, ::1 or localhost)."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid ""
+"A gateway on this computer passes what it receives to a service on the internet. What you type in Find by Description and your questions go to it.\n"
+"\n"
+"No mail goes there until you allow an account, one at a time, on this page.\n"
+"\n"
+"The service behind the gateway may keep what it receives under its own terms. MailCraft can't see where the gateway sends it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "A key is kept."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/security.rs
 msgid "A key is marked Verified only in the dialog that shows its fingerprint, by you"
 msgstr ""
@@ -414,6 +449,21 @@ msgid "A message asking to unsubscribe goes from {from} to {to}, through your Ou
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "A model on this computer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "A model service on the internet"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "A model service on the internet needs an https address."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/updates.rs
 msgid "A new version is downloaded in the background, kept only when MailCraft's own release signature says it is ours, and installed when you restart to update or quit."
 msgstr ""
@@ -459,6 +509,11 @@ msgid "A port is a number from 1 to 65535"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "A question is at most 2,000 characters"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/import_pst.rs
 msgid "A report is written beside your mailbox."
 msgstr ""
@@ -488,6 +543,18 @@ msgstr ""
 msgid "A series that the account's server keeps can't be moved to another calendar from here: the server has no way of moving one, and days of it that were changed on their own could be lost in making it again."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid ""
+"A server like that may pass what it receives to services on the internet.\n"
+"\n"
+"If it does, MailCraft treats it as a gateway: each account's mail goes to it only after you allow that account.\n"
+"\n"
+"If it doesn't, MailCraft uses it as a model on this computer.\n"
+"\n"
+"You're asked once for this server and this list of models."
+msgstr ""
+
 #. what a command says
 #: crates/engine/src/cmd/auto_replies.rs
 msgid "A shared mailbox's automatic replies are set by whoever manages it; MailCraft sets only your own account's"
@@ -511,6 +578,26 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/dialogs.rs
 msgid "A web address, an email address, a phone number (tel:) or another address such as ms-settings:network-vpn. With nothing selected, the address is put in as it is."
+msgstr ""
+
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "AI Assistance"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "AI assistance"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_device.rs
+msgid "AI assistance is turned off."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "AI assistance is turned off. Nothing is sent anywhere."
 msgstr ""
 
 #. date and time, interface
@@ -822,7 +909,7 @@ msgid "Added by a newer version of MailCraft: send and receive with it there"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/people_view.rs
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/people_view.rs
 msgid "Address"
 msgstr ""
 
@@ -912,7 +999,7 @@ msgid "All the conditions must hold"
 msgstr ""
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt crates/ui-egui/src/agent_gate.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/ai/settings_ask.rs
 msgid "Allow"
 msgstr ""
 
@@ -981,9 +1068,19 @@ msgstr ""
 msgid "Allow Sending from Shared Mailboxes"
 msgstr ""
 
-#. android
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Accounts.kt
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "Allow an Account's Mail to Go to a Model"
+msgstr ""
+
+#. android, interface
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Accounts.kt crates/ui-egui/src/ai/settings_page.rs
 msgid "Allowed"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Allow…"
 msgstr ""
 
 #. interface
@@ -1169,6 +1266,23 @@ msgid "Another window is open: the report wasn't filled in."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Answer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Answer Instead"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Answer ready, with {n} source"
+msgid_plural "Answer ready, with {n} sources"
+msgstr[0] ""
+msgstr[1] ""
+
+#. interface
 #: crates/ui-egui/src/reading/invitation.rs
 msgid "Answer the invitation in your calendar. The organizer can't be written to from this account."
 msgstr ""
@@ -1176,6 +1290,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/invitation.rs
 msgid "Answer the invitation. You are asked whether to tell the organizer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Answered by {model}"
+msgstr ""
+
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "Answers"
 msgstr ""
 
 #. name
@@ -1186,6 +1310,21 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/graph_switch.rs
 msgid "Anything still waiting to go to the server goes first: mail in the Outbox, and flags and moves made while you were offline. If MailCraft can't reach the server, the switch waits until it can."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "Apple's on-device model"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Apple's on-device model at {address} is now the backup. Your mail stays on this computer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Apple's on-device model found"
 msgstr ""
 
 #. interface
@@ -1395,6 +1534,31 @@ msgstr ""
 msgid "As the people you write to see it"
 msgstr ""
 
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Ask About Your Mail"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Ask Again"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Ask a question about your mail in the field below. The answer names the messages it comes from."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Ask a question about your mail with these words, in the Answers pane"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Ask about your mail"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "Ask again"
@@ -1440,6 +1604,11 @@ msgstr ""
 msgid "Ask once more for the pictures that couldn't be downloaded."
 msgstr ""
 
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Ask the Model"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/reading/invitation.rs
 msgid "Ask the account's server for the calendar round this meeting now."
@@ -1458,6 +1627,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/scheduling.rs
 msgid "Asking about other people's time stopped unexpectedly"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Asking the model…"
 msgstr ""
 
 #. interface
@@ -1755,6 +1929,11 @@ msgid "Back to account settings"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_device.rs crates/ui-egui/src/ai/settings_page.rs
+msgid "Backup"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ribbon.rs
 msgid "Bar on the Left"
 msgstr ""
@@ -1980,7 +2159,7 @@ msgid "Can't sign"
 msgstr ""
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/help.rs crates/ui-egui/src/chrome.rs crates/ui-egui/src/close_to_tray.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/import_tree.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/security.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/help.rs crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/chrome.rs crates/ui-egui/src/close_to_tray.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/import_tree.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/security.rs
 msgid "Cancel"
 msgstr ""
 
@@ -2295,6 +2474,11 @@ msgstr ""
 msgid "Checking…"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Choose Apple's on-device model as the backup first"
+msgstr ""
+
 #. command label
 #: crates/engine/src/cmd/signature.rs
 msgid "Choose Default Signature"
@@ -2321,6 +2505,11 @@ msgid "Choose a folder"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Choose a model"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/signatures.rs
 msgid "Choose default signatures"
 msgstr ""
@@ -2328,6 +2517,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "Choose the kind of account"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Choose where the model runs. Until you do, only a backup you confirmed below is used."
 msgstr ""
 
 #. interface
@@ -2425,6 +2619,11 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Close Answer"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 msgid "Close Dialog"
@@ -2453,6 +2652,11 @@ msgstr ""
 #. command label
 #: crates/ui-egui/src/lib.rs
 msgid "Close Window"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_ask.rs
+msgid "Close the dialog that is open first"
 msgstr ""
 
 #. interface
@@ -2580,6 +2784,18 @@ msgstr ""
 msgid "Connect to show your category colours and working hours"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Connected, but {host} offers no models."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Connected. {n} model offered."
+msgid_plural "Connected. {n} models offered."
+msgstr[0] ""
+msgstr[1] ""
+
 #. what a command says
 #: crates/model/src/sync/progress.rs
 msgid "Connecting to the mail server"
@@ -2610,6 +2826,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/dialogs.rs
 msgid "Contacts don't go to Deleted Items."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Context window"
 msgstr ""
 
 #. android, interface
@@ -2799,6 +3020,11 @@ msgstr ""
 msgid "Couldn't find out whether a new version is out: {why}."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Couldn't get the model's key."
+msgstr ""
+
 #. why a mail server couldn't be used
 #: crates/net/src/sync.rs
 msgid "Couldn't keep a copy of \"{subject}\" on the server: {error}"
@@ -2867,6 +3093,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/open_shared.rs
 msgid "Couldn't reach Microsoft to open the calendar of {address}. Try again in a moment."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Couldn't reach the model."
 msgstr ""
 
 #. why a mail server couldn't be used
@@ -2950,7 +3181,7 @@ msgid "Create from details"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/chrome.rs
+#: crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/chrome.rs
 msgid "Current Folder"
 msgstr ""
 
@@ -3224,6 +3455,16 @@ msgid "Department"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Describe what you're looking for"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Describe what you're looking for first"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/signatures.rs
 msgid "Description"
 msgstr ""
@@ -3259,7 +3500,7 @@ msgid "Detail"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/reading/signature.rs crates/ui-egui/src/tasks_view.rs
+#: crates/ui-egui/src/ai/errors.rs crates/ui-egui/src/reading/signature.rs crates/ui-egui/src/tasks_view.rs
 msgid "Details"
 msgstr ""
 
@@ -3378,13 +3619,18 @@ msgstr ""
 msgid "Do"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Does This Server Send Your Mail to the Internet?"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt
 msgid "Doesn't repeat"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/agent_gate.rs
+#: crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/ai/settings_ask.rs
 msgid "Don't Allow"
 msgstr ""
 
@@ -3764,6 +4010,16 @@ msgstr ""
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 msgid "Email the people of this meeting"
+msgstr ""
+
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Embed Passages"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Embeddings model"
 msgstr ""
 
 #. ribbon
@@ -4159,6 +4415,11 @@ msgstr ""
 msgid "Find Duplicate Contacts"
 msgstr ""
 
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Find Messages That Answer"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/find_replace.rs
 msgid "Find Next"
@@ -4172,6 +4433,31 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "Find a Time"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/ai/mod.rs crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/lib.rs
+msgid "Find by Description"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Find by Description sends only what you type, never mail. Questions send what you ask, and messages only from the accounts you allow above, to the gateway, which sends them to the internet."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Find by Description sends only what you type, never mail. Questions send what you ask, and messages only from the accounts you allow above, to {host}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Find by Description sends only what you type, never mail. Questions send what you ask, and messages only from the accounts you allow, to the service at the address above."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Find by Description sends only what you type. Questions send what you ask and the messages that seem to answer it, to the model on this computer and nothing else."
 msgstr ""
 
 #. interface
@@ -4366,7 +4652,12 @@ msgid "For an account that signs in with Microsoft: the folders you keep under F
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/ews_setup.rs
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "For example: invoices from Ada last month with a PDF"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/ews_setup.rs
 msgid "Forget"
 msgstr ""
 
@@ -5058,6 +5349,16 @@ msgid "If MailCraft is still in Google's testing mode, ask its developer to add 
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "If it can't answer, you'll see why. Nothing else is tried."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "If it can't answer: Apple's on-device model on this computer."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/help.rs
 msgid "If no browser opened, check that this computer has a default browser (on Windows: Settings, Apps, Default apps), then press Open the page again."
 msgstr ""
@@ -5075,6 +5376,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/help.rs
 msgid "If that page says you need admin approval"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "If the primary can't answer, you'll see why. Nothing else is tried."
 msgstr ""
 
 #. interface
@@ -5395,6 +5701,11 @@ msgid "Increase Indent"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/lib.rs
+msgid "Indexing mail for search with the model provider stopped: its embeddings can't be used. Choose another embeddings model to try again."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs
 msgid "Indexing mail: {percent}%"
 msgstr ""
@@ -5575,6 +5886,21 @@ msgid "It is the same for an installed and a portable copy. MailCraft quits afte
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "It lists models from several publishers. Answer the question to go on."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "It lists models of services on the internet, so it can't be used as a model on this computer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "It no longer answers as Apple's on-device model, so MailCraft stopped using it. Nothing was sent to it."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs
 msgid "It runs on this computer, while MailCraft is open."
 msgstr ""
@@ -5582,6 +5908,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "It runs there whether MailCraft is open or not, and shows in Outlook on the web and on your phone."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "It took too long to start. Ask again, or choose a faster model in File › Options."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "It took too long. Try again, or choose a faster model in File › Options."
 msgstr ""
 
 #. interface
@@ -5757,6 +6093,11 @@ msgid "Keep MailCraft running for mail and reminders when you close its window. 
 msgstr ""
 
 #. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Keep Passage Vectors"
+msgstr ""
+
+#. command label
 #: crates/engine/src/cmd/rules.rs
 msgid "Keep Rule on Server"
 msgstr ""
@@ -5842,6 +6183,11 @@ msgid "Kept Public key"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Kept in the system's credential store, never in MailCraft's files."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "Kept in the system's credential store, never in the mailbox or its settings. Without it you sign in again each time MailCraft starts."
 msgstr ""
@@ -5862,6 +6208,11 @@ msgid "Kept on this computer only: invitations and repeating events aren't sent 
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Key"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/signature.rs
 msgid "Key made:"
 msgstr ""
@@ -5869,6 +6220,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/security.rs
 msgid "Keychain"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Kind"
 msgstr ""
 
 #. interface
@@ -5961,6 +6317,11 @@ msgstr ""
 msgid "Let people know you're away or can't answer for a while: your mailbox replies by itself"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Let {host} Read Mail from {address}?"
+msgstr ""
+
 #. name
 #: crates/ui-egui/src/theme.rs
 msgid "Light"
@@ -6047,7 +6408,7 @@ msgid "Location"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/reading/invitation.rs
+#: crates/ui-egui/src/ai/settings_device.rs crates/ui-egui/src/reading/invitation.rs
 msgid "Look Again"
 msgstr ""
 
@@ -6067,13 +6428,28 @@ msgid "Look for your certificates and keys again"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "Look on ports"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/warnings.rs
 msgid "Lookalike address."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Looking asks for the list of models and nothing else."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "Looking at the server's certificate…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Looking for a model on this computer…"
 msgstr ""
 
 #. interface
@@ -6084,6 +6460,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "Looking for your Exchange server…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Looking through your mail…"
 msgstr ""
 
 #. interface
@@ -6172,6 +6553,16 @@ msgid "Mail from the shared mailbox waits: {error}"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Mail from {address} may now go to {host} when you ask a question."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Mail from {address} no longer goes to {host}. What was sent before can't be called back."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/dialogs.rs
 msgid "Mail in Junk E-mail still asks first. File › Options turns this off again."
 msgstr ""
@@ -6199,6 +6590,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/help.rs
 msgid "Mail only"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Mail that may go through the gateway at {address}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Mail that may go to {host}"
 msgstr ""
 
 #. command label, interface
@@ -6231,6 +6632,11 @@ msgstr ""
 msgid "MailCraft can now keep {account} in step with Microsoft through Microsoft Graph, the way Outlook on the web does, instead of IMAP. Your folders, flags, categories and drafts then match what you see in Outlook, and your mail keeps coming even where your organisation has turned IMAP off."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "MailCraft can use Apple's on-device model only on a Mac, through apfel."
+msgstr ""
+
 #. name
 #: crates/engine/src/cmd/rules.rs
 msgid "MailCraft can't keep this account's rules on its server"
@@ -6239,6 +6645,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "MailCraft can't sign in to this server this way yet (it wants Kerberos). Ask your administrator whether it can take a user name and password over an encrypted connection."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "MailCraft checks that it is still the same model each time it starts and after any error."
 msgstr ""
 
 #. android
@@ -6254,6 +6665,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/approval.rs
 msgid "MailCraft couldn't open your browser for Microsoft's approval page. Copy the message instead: the link in it opens the same page."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "MailCraft couldn't read which messages this came from"
 msgstr ""
 
 #. android
@@ -6276,6 +6692,11 @@ msgstr ""
 msgid "MailCraft doesn't know the settings for this address. The servers below are only a guess made from its domain: check them with your provider or administrator before you connect."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "MailCraft doesn't look for an on-device model and uses none."
+msgstr ""
+
 #. what a command says
 #: crates/model/src/mailbox.rs
 msgid "MailCraft doesn't rename or move a JMAP account's folders yet: its server wouldn't be told"
@@ -6284,6 +6705,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "MailCraft doesn't support POP yet. Use your provider's IMAP server instead (usually imap.<your domain>, port 993)."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "MailCraft has sent it nothing. Choose Use It to let it answer when the primary can't. Only the address you choose is used."
 msgstr ""
 
 #. interface
@@ -6331,6 +6757,26 @@ msgstr ""
 msgid "MailCraft keeps this account's rules on this computer: the rule runs while MailCraft is open."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "MailCraft kept only its start. Ask a narrower question to get the rest."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "MailCraft looked on port 11434 and found no apfel server."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "MailCraft looked on ports {ports} and found no apfel server."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "MailCraft looks on port 11434 and these, only when this page opens or you ask your first question. Looking sends no mail and no key."
+msgstr ""
+
 #. what a command says
 #: crates/model/src/mailbox.rs crates/model/src/mailbox_bulk.rs
 msgid "MailCraft moves a JMAP account's mail only between the folders its server has: the next Send/Receive would bring it back"
@@ -6364,6 +6810,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/security.rs
 msgid "MailCraft reads the key without its passphrase and keeps the file, still protected by it, in the system's credential store. The key must have a passphrase and sign with Ed25519 or ECDSA; MailCraft asks for the passphrase when you sign."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "MailCraft sends only to the address on this computer, and needs no permission for each account. Your mail still goes to the program at that address, so use one you trust."
 msgstr ""
 
 #. interface
@@ -6851,6 +7302,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "Mobile"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Model"
 msgstr ""
 
 #. date and time, name
@@ -7553,6 +8009,11 @@ msgstr ""
 msgid "No message is being read there"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "No message was named as the source"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/MailListScreen.kt
 msgid "No messages match."
@@ -7564,8 +8025,28 @@ msgid "No messages."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "No model is set up."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "No model is set up. Nothing is sent anywhere."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/updates.rs
 msgid "No new version is ready to install."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "No on-device model found"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "No on-device model on this computer"
 msgstr ""
 
 #. interface
@@ -7606,6 +8087,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "No rules yet. A rule files, flags or deletes mail as it arrives."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs crates/ui-egui/src/ai/narrow.rs
+msgid "No search came back."
 msgstr ""
 
 #. interface
@@ -7654,6 +8140,11 @@ msgid "No window shows a message file"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "No, It Doesn't"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs.rs
 msgid "Nobody has proposed another time."
 msgstr ""
@@ -7684,13 +8175,18 @@ msgid "Nobody, or more than one of your contacts, matches: {names}"
 msgstr ""
 
 #. interface, what a command says
-#: crates/engine/src/cmd/tasks/status.rs crates/ui-egui/src/account_setup.rs crates/ui-egui/src/backstage.rs crates/ui-egui/src/date_picker.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/tasks_view.rs
+#: crates/engine/src/cmd/tasks/status.rs crates/ui-egui/src/account_setup.rs crates/ui-egui/src/ai/settings_device.rs crates/ui-egui/src/backstage.rs crates/ui-egui/src/date_picker.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/tasks_view.rs
 msgid "None"
 msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "None yet."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "None: turn off AI assistance"
 msgstr ""
 
 #. interface, what a command says
@@ -7703,6 +8199,11 @@ msgstr ""
 msgid "Not Junk"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_ask.rs
+msgid "Not Now"
+msgstr ""
+
 #. what a command says
 #: crates/engine/src/cmd/tasks/status.rs
 msgid "Not Started"
@@ -7711,6 +8212,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/advanced_search.rs
 msgid "Not a date"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Not allowed"
 msgstr ""
 
 #. interface
@@ -7799,8 +8305,23 @@ msgid "Not saved"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Not set up"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/unsubscribe.rs
 msgid "Not unsubscribed."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Not used: {address} lists models of services on the internet, so it isn't a model on this computer. Nothing was sent. Choose \"A gateway on this computer\" if it is one."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Not used: {address} lists models of services on the internet, such as {id}, so it isn't a model on this computer. Nothing was sent. Choose \"A gateway on this computer\" if it is one."
 msgstr ""
 
 #. interface
@@ -7811,6 +8332,21 @@ msgstr ""
 #. android, interface, ribbon location
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/engine/src/cmd/notes.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/people_view.rs crates/ui-egui/src/tasks_view.rs
 msgid "Notes"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Nothing answered at {address}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Nothing answered at {address}. Check that it is running, then ask again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Nothing answered at {address}. Check that it is running, then try again."
 msgstr ""
 
 #. interface
@@ -7834,6 +8370,11 @@ msgid "Nothing came back from the sign-in page in time."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Nothing came for too long."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/invitation.rs
 msgid "Nothing else is on your calendar at that time."
 msgstr ""
@@ -7854,6 +8395,16 @@ msgid "Nothing in it: replaces what is open here"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Nothing in your mail seems to answer this."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Nothing in your mail seems to answer this. Nothing was sent."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/import_tree.rs
 msgid "Nothing is added to your mail until it has all been read."
 msgstr ""
@@ -7864,8 +8415,18 @@ msgid "Nothing is scheduled on these days."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Nothing is sent anywhere, and the backup isn't used either."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs
 msgid "Nothing is sent or received. Click to connect again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Nothing is sent. Choose a model to describe searches in words and ask questions about your mail."
 msgstr ""
 
 #. interface
@@ -7886,6 +8447,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/mail_view/server_rows.rs
 msgid "Nothing more was found on the server"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Nothing more will come for it."
 msgstr ""
 
 #. interface
@@ -7916,6 +8482,21 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "Nothing was sent to Microsoft, and your password isn't kept."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Nothing was sent to the model. Try other words."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Nothing was sent to {address}. Check the address and the key in File › Options › AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Nothing was sent."
 msgstr ""
 
 #. interface
@@ -7994,6 +8575,16 @@ msgid "On Wayland, restart MailCraft after enabling this option. A reachable X11
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "On port 11434"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "On ports {ports}"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs
 msgid "On the"
 msgstr ""
@@ -8036,6 +8627,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "On this computer for now"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "On this computer, an http address must be this computer (127.0.0.1, ::1 or localhost). Use https for anything else."
 msgstr ""
 
 #. interface
@@ -8106,6 +8702,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/windows.rs
 msgid "Only a meeting you organize has Find a Time"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Only a model service on the internet, or a gateway to one, needs your permission for an account's mail, and none is in use"
 msgstr ""
 
 #. what a command says
@@ -8209,6 +8810,16 @@ msgid "Only used to fill in Microsoft's page for you."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Only what you type here goes to the model at {address}. No mail is sent."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Only what you type here goes to {host}, encrypted. No mail is sent."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "Only when I ask"
 msgstr ""
@@ -8268,6 +8879,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "Open Mailbox File"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs crates/ui-egui/src/ai/narrow.rs
+msgid "Open Options"
 msgstr ""
 
 #. interface
@@ -8426,7 +9042,7 @@ msgid "Opens it by their address, on this computer only: it won't appear in Outl
 msgstr ""
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/forms.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/reading/invitation.rs crates/ui-egui/src/scheduling.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/reading/invitation.rs crates/ui-egui/src/scheduling.rs
 msgid "Optional"
 msgstr ""
 
@@ -8790,6 +9406,11 @@ msgstr ""
 msgid "Pinned"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Pinned certificate (SHA-256 fingerprint):"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 msgid ""
@@ -8905,7 +9526,7 @@ msgid "Previous Page"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/nav.rs
 msgid "Primary"
 msgstr ""
 
@@ -9029,6 +9650,11 @@ msgstr ""
 msgid "Puts the days you choose of your calendar into the message, where the cursor is."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Questions about mail from an account you haven't allowed are answered by the backup on this computer instead."
+msgstr ""
+
 #. ribbon location
 #: crates/engine/src/cmd/edit.rs
 msgid "Quick Access"
@@ -9064,9 +9690,19 @@ msgstr ""
 msgid "Read status"
 msgstr ""
 
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Read the Answer's Sources"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/nav.rs
 msgid "Read the Favorites from Outlook again now"
+msgstr ""
+
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Read the Suggested Search"
 msgstr ""
 
 #. interface
@@ -9278,6 +9914,11 @@ msgstr ""
 #. command label, interface
 #: crates/engine/src/cmd/imported_dupes.rs crates/ui-egui/src/dialogs.rs
 msgid "Remove Imported Duplicates"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Remove Key"
 msgstr ""
 
 #. interface
@@ -10070,7 +10711,7 @@ msgid "Scripts and agents"
 msgstr ""
 
 #. command label, interface, ribbon, ribbon location
-#: crates/engine/src/cmd/search_server.rs crates/engine/src/cmd/view.rs crates/engine/src/cmd/view/display.rs crates/ui-egui/src/advanced_search.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/ribbon.rs
+#: crates/engine/src/cmd/ai/mod.rs crates/engine/src/cmd/search_server.rs crates/engine/src/cmd/view.rs crates/engine/src/cmd/view/display.rs crates/ui-egui/src/advanced_search.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/ribbon.rs
 msgid "Search"
 msgstr ""
 
@@ -10111,6 +10752,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "Search again"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Search applied."
 msgstr ""
 
 #. interface
@@ -10622,6 +11268,11 @@ msgid "Set importance"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Set to {n}: MailCraft uses from 256 to 1,048,576 tokens."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/help.rs
 msgid "Set up manually"
 msgstr ""
@@ -10843,6 +11494,11 @@ msgid "Show signature as it is sent"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/answer_text.rs
+msgid "Show source {n}"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/calendar_view.rs
 msgid "Show the Copy under Shared Calendars"
 msgstr ""
@@ -10880,6 +11536,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/warnings.rs
 msgid "Show this message's warning"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Show this message. Double-click to open it in its own window."
 msgstr ""
 
 #. interface
@@ -11250,6 +11911,11 @@ msgid "Some of the search was checked on this computer"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Some services need none"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/reading/invitation.rs
 msgid "Somebody"
 msgstr ""
@@ -11277,6 +11943,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/dialogs.rs
 msgid "Source of {subject}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Source {n}: {sender}, {subject}, {date}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Sources"
 msgstr ""
 
 #. command label
@@ -11365,8 +12041,13 @@ msgid "Still indexing: some older mail is searched more slowly"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/sync_panel.rs
+#: crates/ui-egui/src/ai/answers.rs crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/sync_panel.rs
 msgid "Stop"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "Stop Using It"
 msgstr ""
 
 #. interface
@@ -11382,6 +12063,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "Stop processing more rules"
+msgstr ""
+
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Stop the Model"
 msgstr ""
 
 #. interface
@@ -11407,6 +12093,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/import_pst.rs
 msgid "Stopped before the end. Import the file again to bring the rest."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Stopped. The answer above is incomplete."
 msgstr ""
 
 #. what a command says
@@ -11467,6 +12158,21 @@ msgstr ""
 #. command label
 #: crates/engine/src/cmd/compose.rs
 msgid "Suggest Recipients"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Suggest Search"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Suggested a search."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Suggested search, in {scope}"
 msgstr ""
 
 #. date and time, name
@@ -11567,6 +12273,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/data_removal.rs
 msgid "Take everything MailCraft keeps here with you when you are done: for a shared or work computer, or before deleting a portable copy."
+msgstr ""
+
+#. command label
+#: crates/engine/src/cmd/ai/mod.rs
+msgid "Take the Model's Answer"
 msgstr ""
 
 #. interface
@@ -11699,9 +12410,29 @@ msgstr ""
 msgid "Tentatively accepted on {when}"
 msgstr ""
 
+#. command label, interface
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/lib.rs
+msgid "Test Connection"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Test the connection to choose from its list"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/credits.rs
 msgid "Testers are credited when they say so; see docs/contributors.md."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Testing asks {address} for its list of models, with the key if there is one. No mail is sent."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/ai/settings_state.rs
+msgid "Testing…"
 msgstr ""
 
 #. ribbon, ribbon location
@@ -11830,6 +12561,11 @@ msgid "That isn't a shared mailbox"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "That isn't an address: write it as http://127.0.0.1:11434/v1 or https://…"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/import_pst.rs
 msgid "That isn't the password of this file."
 msgstr ""
@@ -11955,6 +12691,31 @@ msgid "The account's server makes it when the meeting is sent; the link to join 
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "The address can't be used yet"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "The answer above is incomplete."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The answer broke off."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "The answer couldn't be kept. You'll be asked again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The answer was too long."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/approval.rs
 msgid "The approval didn't go through."
 msgstr ""
@@ -11967,6 +12728,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/attachment_preview.rs
 msgid "The attachment preview timed out."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The backup couldn't be changed."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "The backup is turned off"
 msgstr ""
 
 #. interface
@@ -12278,6 +13049,11 @@ msgid "The full report is in:"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The gateway runs on this computer but sends your mail on to a service on the internet. Each account's mail goes only after you allow it below."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "The greys the dark theme is drawn in: neutral, or tinted blue. The light theme stays as it is."
 msgstr ""
@@ -12318,8 +13094,33 @@ msgid "The kept contact is always merged"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "The key can't be kept: the system's credential store isn't available."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The key couldn't be kept: the system's credential store isn't available."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "The key couldn't be read from the system's credential store. Try again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The key couldn't be removed from the credential store."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/security.rs
 msgid "The key couldn't be removed from the system's credential store."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The key is kept in the system's credential store."
 msgstr ""
 
 #. interface
@@ -12335,6 +13136,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/signature.rs
 msgid "The key that made it isn't one that may sign."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "The key the gateway asks for, if any"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The key was removed from the credential store."
 msgstr ""
 
 #. interface
@@ -12468,6 +13279,71 @@ msgid "The messages of the folder in view, as .mbox"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The messages that answer this are in an account whose mail isn't allowed to go to {address}. Allow it in File › Options › AI assistance, then ask again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "The model at {address} has changed"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "The model at {address} no longer answers as Apple's on-device model, so MailCraft stopped using it. Nothing was sent to it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The model couldn't be turned off"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model didn't answer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model provider said:"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model request failed."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model stopped answering."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model turned the request down."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model's answer was too long to be a search. Try again, describe it another way, or write the search yourself."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model's answer wasn't a search MailCraft can read. Try again, describe it another way, or write the search yourself."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model's certificate wasn't accepted."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The model's settings can't be used."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/warnings.rs
 msgid "The name hides another address."
 msgstr ""
@@ -12485,6 +13361,21 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/warnings.rs
 msgid "The name of someone you know."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The on-device model couldn't be let go of."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The on-device model couldn't be made the backup. Nothing was sent to it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "The on-device model is no longer the backup."
 msgstr ""
 
 #. interface
@@ -12523,8 +13414,23 @@ msgid "The owner hasn't allowed update checks."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "The permission couldn't be kept"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "The permission couldn't be taken back"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/signatures.rs
 msgid "The picture was too big, so it was made smaller ({w} px wide)."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "The pinned certificate couldn't be forgotten."
 msgstr ""
 
 #. interface
@@ -12540,6 +13446,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/meeting_dialogs.rs
 msgid "The proposed end has to be after the proposed start."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "The question changed before your answer. Nothing was sent; you'll be asked again."
 msgstr ""
 
 #. interface
@@ -12580,6 +13491,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/report_problem.rs
 msgid "The report service's answer wasn't one MailCraft understands, so the report may have arrived. Try again later, or open it on GitHub."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The request was stopped."
 msgstr ""
 
 #. interface
@@ -12710,6 +13626,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "The server or the organisation wouldn't give its settings. Ask your administrator for the server's address and type it in Server settings."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "The server said:"
 msgstr ""
 
 #. interface
@@ -12918,6 +13839,11 @@ msgid "The space the folder's own messages take on this computer"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "The suggested search is empty"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/graph_switch.rs
 msgid "The switch of {account} to Microsoft Graph waits until MailCraft can reach the server."
 msgstr ""
@@ -12925,6 +13851,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/data_removal.rs
 msgid "The system's credential store"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "The system's credential store didn't give MailCraft the key for {address}, so nothing was sent. Unlock the store, or enter the key again in File › Options › AI assistance."
 msgstr ""
 
 #. interface
@@ -12945,6 +13876,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/calendar_sync.rs
 msgid "The test appointment is gone again. Nothing else in the calendar was read or changed."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "The test of {address} didn't work. Try again."
 msgstr ""
 
 #. interface
@@ -12998,6 +13934,11 @@ msgid "Then run it over the mail already in {folder}"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "There are no accounts yet."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/data_removal.rs
 msgid "There is no data folder to open here"
 msgstr ""
@@ -13020,6 +13961,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/lib.rs
 msgid "There is no such account"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "There is no suggested search to use"
 msgstr ""
 
 #. interface
@@ -13055,6 +14001,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/data_removal.rs
 msgid "These could not be removed. Remove them yourself:"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "These settings can't be used. Check the address and the model's name."
 msgstr ""
 
 #. interface
@@ -13280,6 +14231,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/unsubscribe.rs
 msgid "This build can't unsubscribe in one click."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_ask.rs
+msgid "This build can't use a model"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "This build can't use a model. Nothing is sent anywhere."
 msgstr ""
 
 #. interface
@@ -13912,11 +14873,21 @@ msgid ""
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "To ask about your mail, set one up in File › Options › AI assistance. Until then nothing is sent anywhere."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/auto_replies.rs
 msgid ""
 "To change the automatic replies of {address}, MailCraft needs your permission to change your mailbox settings. Microsoft's page opens in your browser to ask you, once.\n"
 "\n"
 "MailCraft changes only your automatic replies and the rules of your Inbox with it, never your categories or working hours. Reading your automatic replies doesn't need it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "To describe searches in words, set one up in File › Options › AI assistance. Until then nothing is sent anywhere."
 msgstr ""
 
 #. interface
@@ -14064,6 +15035,11 @@ msgstr ""
 msgid "Trusted certificate (SHA-256 fingerprint):"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Try Again"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 msgid "Try Downloading Pictures Again"
@@ -14077,6 +15053,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup/help.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/reading/remote.rs crates/ui-egui/src/reading/unsubscribe.rs crates/ui-egui/src/report_problem.rs
 msgid "Try again"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "Try again in a moment."
 msgstr ""
 
 #. date and time, name
@@ -14097,6 +15078,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/updates.rs
 msgid "Turned off by your organisation"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Turned off. Nothing is sent anywhere."
 msgstr ""
 
 #. interface
@@ -14127,6 +15113,16 @@ msgstr ""
 #. command label, interface
 #: crates/engine/src/cmd/format.rs crates/ui-egui/src/folder_properties.rs
 msgid "Type"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Type a name…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Type a question first"
 msgstr ""
 
 #. interface
@@ -14313,8 +15309,23 @@ msgid "Use Google sign-in instead"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_device.rs
+msgid "Use It"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "Use It: {what}"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs crates/ui-egui/src/shared_mailboxes.rs
 msgid "Use Send/Receive to sign in to {address}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Use This Search"
 msgstr ""
 
 #. interface
@@ -14328,8 +15339,18 @@ msgid "Use a 12-hour clock (3:05 PM)"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Use a Gateway That Sends Mail to the Internet?"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "Use a Google app password, not your everyday Google account password."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Use a Model Service on the Internet?"
 msgstr ""
 
 #. interface
@@ -14340,6 +15361,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "Use an app password instead"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Use it again only if you know why it changed."
 msgstr ""
 
 #. interface
@@ -14357,9 +15383,19 @@ msgstr ""
 msgid "Use system setting follows Animation effects in Windows' settings. Where MailCraft can't read the system's setting yet, animations play until you choose Never play."
 msgstr ""
 
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "Use the On-Device Model"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "Use {address}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_device.rs
+msgid "Used only when the primary can't be reached or refuses, before any of its answer arrives. It runs on this computer, so your mail stays here and no account needs your permission."
 msgstr ""
 
 #. interface
@@ -14375,6 +15411,31 @@ msgstr ""
 #. name
 #: crates/ui-egui/src/credits.rs
 msgid "Username"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Using Apple's on-device model as the backup"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Using Apple's on-device model on this computer. Your mail stays here."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Using {model} at {host}. Mail goes there only from the accounts you allow below."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Using {model} on this computer. Your mail stays here."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Using {model} through a gateway on this computer that sends your mail to the internet. Mail goes there only from the accounts you allow below."
 msgstr ""
 
 #. interface
@@ -14483,6 +15544,16 @@ msgid "Waiting for the approval stopped unexpectedly"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Waiting for your answer about {address}. Nothing was sent to it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "Waiting for your answer: does {address} send your mail to the internet? Nothing is sent to it until you answer."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/credits.rs
 msgid "Want to be one? Sign up in #11"
 msgstr ""
@@ -14538,6 +15609,26 @@ msgid "What happens to mail as it arrives"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid ""
+"What is sent. In the background, every message of {address} has its subject and its visible text sent to {host}, to prepare searching by meaning. When you ask a question, MailCraft picks up to {n} messages from {address} that seem to answer it, and sends {host} your question with each one's subject, its sender's name and address, its date and the passage of its text that seems to answer. Attachments, pictures, hidden text, passwords and sign-in tokens are never sent, and neither is mail from your other accounts.\n"
+"\n"
+"Who receives it. {host}, over an encrypted connection. It may keep what it receives under its own terms; MailCraft can't see what it does with it.\n"
+"\n"
+"How to stop. Choose Stop beside {address} in File › Options › AI assistance, or set Model to None. Anything already sent can't be called back."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid ""
+"What is sent. When you ask a question, MailCraft picks up to {n} messages from {address} that seem to answer it, and sends {host} your question with each one's subject, its sender's name and address, its date and the passage of its text that seems to answer. Attachments, pictures, hidden text, passwords and sign-in tokens are never sent, and neither is mail from your other accounts.\n"
+"\n"
+"Who receives it. {host}, over an encrypted connection. It may keep what it receives under its own terms; MailCraft can't see what it does with it.\n"
+"\n"
+"How to stop. Choose Stop beside {address} in File › Options › AI assistance, or set Model to None. Anything already sent can't be called back."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "What it is made of"
 msgstr ""
@@ -14545,6 +15636,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/sync_panel.rs
 msgid "What the Send/Receive before came to: the last one brought nothing new"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "What the model sent stopped making sense, so MailCraft stopped reading it. The part above may be incomplete."
 msgstr ""
 
 #. what a command says
@@ -14580,6 +15676,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/signature.rs
 msgid "What you see isn't what was signed: treat it with care."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid ""
+"What you type in Find by Description and your questions will go to the address you enter next, over an encrypted connection.\n"
+"\n"
+"No mail goes there until you allow an account, one at a time, on this page.\n"
+"\n"
+"The service may keep what it receives under its own terms. MailCraft can't see what it does with it."
 msgstr ""
 
 #. interface
@@ -14775,6 +15881,26 @@ msgstr ""
 msgid "Working offline: mail you send waits in the Outbox"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Write It Myself"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "Write a number of tokens from 256 to 1,048,576."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Write port numbers from 1 to 65535, separated by commas."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_page.rs
+msgid "Write the address first"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 msgid "Write to the organizer without answering"
@@ -14796,6 +15922,32 @@ msgid "Write your signature"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Writing…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Written by a model, from {n} message in your mailbox. It can be wrong: check the sources."
+msgid_plural "Written by a model, from {n} messages in your mailbox. It can be wrong: check the sources."
+msgstr[0] ""
+msgstr[1] ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Written by {model} at {host}, from {n} message in your mailbox. It can be wrong: check the sources."
+msgid_plural "Written by {model} at {host}, from {n} messages in your mailbox. It can be wrong: check the sources."
+msgstr[0] ""
+msgstr[1] ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Written by {model} on this computer, from {n} message in your mailbox. It can be wrong: check the sources."
+msgid_plural "Written by {model} on this computer, from {n} messages in your mailbox. It can be wrong: check the sources."
+msgstr[0] ""
+msgstr[1] ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs
 msgid "YYYY-MM-DD"
 msgstr ""
@@ -14813,6 +15965,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/advanced_search.rs crates/ui-egui/src/updates.rs
 msgid "Yes"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "Yes, It Does"
 msgstr ""
 
 #. name
@@ -14833,6 +15990,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/reading/remote.rs
 msgid "You always download this sender's pictures, but the mail server didn't confirm that this message came from them, so it is asked first."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "You asked"
 msgstr ""
 
 #. interface
@@ -14906,6 +16068,11 @@ msgid "You replied to this message."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "You set {n} tokens."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 msgid "You signed in as {signedIn}, but this account is {account}. Sign in again as {account}."
 msgstr ""
@@ -14968,6 +16135,11 @@ msgstr ""
 #. what a command says
 #: crates/mobile/src/sync.rs
 msgid "Your mail couldn't be saved first, so nothing was sent."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings.rs
+msgid "Your mail goes to the address below over an encrypted connection, and only from the accounts you allow."
 msgstr ""
 
 #. interface
@@ -15340,6 +16512,16 @@ msgstr ""
 msgid "a message that isn't on the server has no flags there"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "a model"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/call.rs
+msgid "a model request has at least one message"
+msgstr ""
+
 #. what a command says
 #: crates/model/src/mailbox.rs
 msgid "a personal Microsoft account (Outlook.com) has no shared mailboxes: they are Microsoft 365's"
@@ -15431,8 +16613,23 @@ msgid "a signature's pictures are PNG, JPEG or GIF (many mail programs can't sho
 msgstr ""
 
 #. what a command says
+#: crates/model/src/ai/call.rs
+msgid "a source is a message id above 0"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs
 msgid "a task needs a title"
+msgstr ""
+
+#. what a command says
+#: crates/engine/src/retrieval/vectors.rs
+msgid "a vector has no length"
+msgstr ""
+
+#. what a command says
+#: crates/engine/src/retrieval/vectors.rs
+msgid "a vector holds a number that isn't finite"
 msgstr ""
 
 #. what a command says
@@ -15486,8 +16683,18 @@ msgid "an account can't be put before itself"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/ai/prompt.rs
+msgid "an answer needs at least one message"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/calendar.rs
 msgid "an event needs a title"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/retrieval.rs
+msgid "an id is a whole number above 0"
 msgstr ""
 
 #. interface
@@ -15515,6 +16722,31 @@ msgid "and {n} more, not merged now"
 msgid_plural "and {n} more, not merged now"
 msgstr[0] ""
 msgstr[1] ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "apfel at {address}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "apfel at {address} · {model}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "apfel at {address} · {model} · {n} tokens"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "apfel at {address} · {n} tokens"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "apfel serves Apple's on-device model on macOS. Start it, or add the port it uses below, then choose Look Again."
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/compose.rs
@@ -15579,6 +16811,11 @@ msgstr ""
 #. name
 #: crates/model/src/calendar.rs
 msgid "day"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/narrow.rs
+msgid "describe what to look for"
 msgstr ""
 
 #. why a mail server couldn't be used
@@ -16035,6 +17272,11 @@ msgid "no message with id {id} in {name}"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/ai/call.rs
+msgid "no more model requests can be numbered"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/notes.rs
 msgid "no note with id {id}"
 msgstr ""
@@ -16187,6 +17429,11 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/cmd/compose.rs
 msgid "only a message you sent can be sent again"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/call.rs
+msgid "only an answer request carries passages"
 msgstr ""
 
 #. why a command can't run
@@ -16450,6 +17697,31 @@ msgid "the account's server has no usable name"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/ai/answer.rs
+msgid "the answer has no text"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/narrow.rs
+msgid "the answer holds no {\"query\": \"…\"}"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/answer.rs
+msgid "the answer isn't JSON"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/answer.rs
+msgid "the answer isn't a JSON object"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/answer.rs
+msgid "the answer's citations aren't a list"
+msgstr ""
+
+#. what a command says
 #: crates/mobile/src/error.rs
 msgid "the app's own code failed"
 msgstr ""
@@ -16635,6 +17907,11 @@ msgid "the last calendar can't be deleted"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/ai/retrieval.rs
+msgid "the limit is at least 1"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/file.rs
 msgid "the mailbox couldn't be saved first, so it stays open ({e})"
 msgstr ""
@@ -16652,6 +17929,11 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/session.rs
 msgid "the mailbox isn't kept in a file, so content outside memory can't be read"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/prompt.rs
+msgid "the marker is empty"
 msgstr ""
 
 #. what a command says
@@ -16699,6 +17981,16 @@ msgstr ""
 msgid "the messages to forward are larger than {mb} MB together"
 msgstr ""
 
+#. what a command says
+#: crates/model/src/ai/prompt.rs
+msgid "the model's context window has no room for any message"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/prompt.rs
+msgid "the model's context window has no room for the question"
+msgstr ""
+
 #. why a mail server couldn't be used
 #: crates/net/src/transport.rs
 msgid "the name couldn't be looked up"
@@ -16737,6 +18029,31 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/cmd/calendar/meeting.rs
 msgid "the proposed end is not after the proposed start"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/narrow.rs
+msgid "the proposed search asks for nothing"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/narrow.rs
+msgid "the proposed search is empty"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/narrow.rs
+msgid "the proposed search isn't one line of text"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/prompt.rs
+msgid "the question is empty"
+msgstr ""
+
+#. what a command says
+#: crates/engine/src/retrieval/vectors.rs
+msgid "the question's vector has no length"
 msgstr ""
 
 #. interface
@@ -17315,6 +18632,11 @@ msgid "this message isn't downloaded: open it once you're online, then send it a
 msgstr ""
 
 #. what a command says
+#: crates/model/src/ai/call.rs
+msgid "this request carries no passages to make its prompt from"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar/invitation.rs
 msgid "this series has too many cancelled days"
 msgstr ""
@@ -17330,6 +18652,11 @@ msgid "time"
 msgid_plural "times"
 msgstr[0] ""
 msgstr[1] ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "tokens"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/tasks.rs
@@ -17534,6 +18861,11 @@ msgid "{address} and the mail kept for it on this device will be removed. The sh
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "{address} answered with error {status}."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/shared_mailboxes.rs
 msgid "{address} couldn't be opened."
 msgstr ""
@@ -17563,9 +18895,39 @@ msgstr ""
 msgid "{address} is set up"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "{address} is used as a gateway. No account's mail goes to it until you allow it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_ask.rs
+msgid "{address} is used as a model on this computer."
+msgstr ""
+
 #. what a command says
 #: crates/engine/src/cmd/calendar_opened.rs
 msgid "{address} isn't a shared mailbox open here."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{address} lists models from several publishers, such as {a} and {b}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{address} lists models from several publishers, such as {a}, {b} and {c}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{address} lists models from several publishers."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/errors.rs
+msgid "{address} showed a certificate MailCraft doesn't trust for it. Nothing was sent."
 msgstr ""
 
 #. interface
@@ -17669,6 +19031,26 @@ msgid "{host} (not encrypted)"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{host} answered with an error ({status})."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{host} answered, but not with a list of models."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{host} didn't answer in time."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "{host} doesn't say, so MailCraft uses {n} tokens. Change it if you know the model's size."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "{host} is in your address's own domain, but it isn't the Autodiscover server your domain names. It may be a web site rather than your organisation's mail server."
 msgstr ""
@@ -17689,8 +19071,23 @@ msgid "{host} is what {domain} publishes for mail programs (its autoconfig docum
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{host} refused the key."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_page.rs
+msgid "{host} says {n} tokens."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "{host} was found in the DNS records of {domain} (its SRV records)."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_state.rs
+msgid "{host}'s certificate isn't trusted. Nothing was sent."
 msgstr ""
 
 #. date and time
@@ -18725,6 +20122,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/sync_panel.rs
 msgid "{phase}: {detail}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "{provider} didn't answer; this answer comes from {model}"
 msgstr ""
 
 #. interface

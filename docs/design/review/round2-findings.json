@@ -1,0 +1,114 @@
+{
+  "mode": "artifact",
+  "verdict": "PASS",
+  "judge_model": "mimo-v2.6-pro",
+  "producer_model": "claude-opus-5-5",
+  "isolation_mode": "rest-gateway (local, OpenAI-compatible)",
+  "cross_model_check": "unverified-producer-unknown",
+  "findings": [
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "Gate G4's recommended option still tells the owner to raise the global `Small` rung to 11 while §5.1 forbids exactly that, so the gate and the change spec give contradictory scope for the same decision.",
+      "evidence": "§3 G4(a): \"floor only: Small 10.5→11, no rung below 11, touched surfaces only\". §5.1: \"Add a **new** `TypeRung` at 11 pt (e.g. `TypeRung::Note`) and use it only on touched surfaces. **Do not raise the global `Small` style** — that would change every module this phase cuts out of scope.\" §1 records `TypeRung` \"used ~11×\" across those modules. Choosing (a) as written either raises `Small` everywhere (violating its own \"touched surfaces only\") or leaves a 10.5 rung in place, making \"no rung below 11\" false. Prior-round finding #8 is only half fixed: the alternative is gone from §5.1, but the gate wording the owner answers contradicts it.",
+      "suggested_fix": "Reword G4(a) to \"`Small` stays 10.5 for modules this phase does not touch; add an 11 pt rung and use it on touched surfaces\" so it matches §4's goal (\"no text below 11 pt on touched surfaces\")."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "§4.1's claim that every proposal item has a home or an explicit cut is still false: sub-requirements of design items 1, 2 and 4 are neither implemented nor cut.",
+      "evidence": "§4.1 header: \"every item has a home or an explicit cut\". design item 1 requires \"Header and attachments share the same column\", but §5.2 caps \"flowing text blocks only\" and says \"**Keep `@media` evaluation and tables/pictures on the full width**\" — header/attachment placement is never decided or cut. design item 2 requires \"address after a gap in the dim colour at 12 px; \\\"To\\\" on its own line, truncated with an ellipsis\", but §5.2 says only \"raise `ADDRESS_GAP` to 8; verify the semibold face actually loads…; keep the existing wrap rule\" (address stays 11.5 per §1) and never mentions the To line. design item 4 says \"Selection (fill + 3 px accent edge) always wins\", while §1 records the current \"1 px edge\" and §5.3's acceptance drops only the `gamma_multiply(0.72)` blend, with no edge change and no cut.",
+      "suggested_fix": "Give each of the three sub-requirements an explicit home in 5.2/5.3 or an explicit cut row in §4.1 (e.g. \"To line: cut\", \"3 px selection edge: cut, keep 1 px\")."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "§4.1 marks proposal 2.2 \"already built\", but the plan's own inventory of `ai/narrow.rs` contains none of 2.2's accepted-query pill bar, Clear control or AI-off notice, and no change implements them.",
+      "evidence": "§4.1: \"2.2 Narrowing popover | 5.7 (badge) | already built; names per G2\". §1's `ai/narrow.rs` row lists only \"Suggest Search → editable proposal with pills → Use This Search / Try Again / Answer Instead / Write Your Own / Stop / Options\", and §5.7 adds only a badge plus optional label alignment. design_proposal 2.2 also requires \"The accepted query stays visible as pills above the list, with **Clear**\" and \"With AI off, the words are searched as typed and a short message says so\" — neither appears in §1, in the cut list, nor in any §5 change.",
+      "suggested_fix": "Either add a small change (accepted-query pill bar + Clear + AI-off message) and give it a §4.1 row, or change the row's note from \"already built\" to an explicit cut of those sub-items."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "G5's recommended answer contains work that no change implements, and that work would edit the in-flight AI-phase file the plan forbids touching early.",
+      "evidence": "§3 G5(a): \"keep built model; adopt only the status chip and **a per-account summary row**\". §4.1 marks \"2.5 Settings + consent | **cut** (keep built)\", and no §5 change covers a summary row: 5.4 draws the status chip, 5.5 the ribbon group, 5.6 answers, 5.7 the badge, 5.8 the console. §1 says the settings surface is `ai/settings_page.rs`, \"being written in child wave 3\", and §0 says \"editing the same files (`chrome.rs`, `lib.rs`, `ai/*.rs`, `backstage.rs`) in parallel guarantees conflicts\". The gate therefore adds scope that the coverage table denies and that touches AI-phase-owned code.",
+      "suggested_fix": "Drop the per-account summary row from G5(a), or add a post-AI-commit change with its own §4.1 row and an explicit note that `ai/settings_page.rs` is edited only after the AI phase's commit."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The 11 pt type-floor goal is still untested for one touched surface (the reading pane), and the new shared helper's mechanism is asserted without anything establishing it is expressible.",
+      "evidence": "§5.3's helper covers \"a named region (list, status bar, chip, answer pane, narrowing popover, agents panel)\" — the reading pane, which 5.2 touches and where the sender header lives, is absent; §5.2's tests are \"a long paragraph wraps at ≤ measure; a wide table still gets full width; `@media` result unchanged…; text selection/copy unaffected\", with no font-size assertion. The helper must \"walk the frame's text shapes for a named region… and assert no glyph is smaller than 11 pt\", but nothing in the packet establishes how a test reads per-glyph point size in egui 0.37, how a text shape is attributed to a \"named region\", or how the assertion behaves at `pixels_per_point` 2 (the 200 % check in §5.9). This is the same defect class as the prior-round `ui.aiSettings` finding: an acceptance criterion built on an unverified mechanism.",
+      "suggested_fix": "Add \"reading pane\" to the region list (5.2 registers it) and have 5.3's design note name the egui API that yields font size and state the scaling rule before W3 depends on the helper."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The revision's shared type-floor helper is a file that W3's parallel changes both edit, and no file-ownership grant covers it.",
+      "evidence": "§5.3: \"Each change adds its region to the helper.\" The helper is a new shared artefact of this revision, yet §6's grants cover only `lib.rs`, `agent.rs`, `theme.rs`/`theme/*` and `icons.rs`. §6 W3 runs \"5.4+5.7 together\", and §5.3's type-floor rule applies to \"5.3, 5.4, 5.6, 5.7, 5.8\" — so 5.4 and 5.7 both extend the same helper concurrently. §2 also requires \"Tests in their own files (`*_tests.rs`, `tests.rs`, `tests/`)\" and lists `chrome.rs`, `theme.rs`, `mail_view.rs` on `xtask/inline-tests.txt`, so the helper cannot be parked in the files those changes touch.",
+      "suggested_fix": "Name the helper's file (e.g. `tests/type_floor.rs` or `ui-egui/src/tests_support.rs`) in the §6 grants, or have each change contribute its region in its own test file and register it through a small API so parallel agents never edit one file."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The activity log's \"Agent-visible: no\" rule has no mechanism and no test, while the plan itself records that window state already reaches agent requests through `ui.inspect`.",
+      "evidence": "§5.8(b): \"Agent-visible: no — the log is owner-only; exposing it to agents would leak what other agents did.\" §1 records \"exposed in `ui.inspect` as `agentQuestion` (`control.rs:157`)\" — i.e. window state is already surfaced to the control channel. §5.8's test list checks only that entries hold no message text (\"activity entries never contain fixture message text\"), plus a set of modal and refusal cases; nothing asserts the log is absent from `ui.inspect` output, MCP tool output, or control-channel replies.",
+      "suggested_fix": "State where the ring buffer lives so that inspected state cannot include it, and add a test: an agent-classified `ui.inspect` response contains no activity-log entry (and no reported client name)."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "Three owner decisions appear inside §5 but not in §3's single batch of decision gates, contradicting §3's instruction to settle all gates at assess and §9's definition of done.",
+      "evidence": "§3: \"Present them to the owner in one batch (question form, recommended answer pre-selected)\" and §9: \"Every gate answered and recorded.\" But §5.2 says \"Option to switch it off (File › Options › Mail › \\\"Limit line length\\\", default on) — owner decides\"; §5.3 says \"Implement as a general rule (\\\"a disabled Big item that has no menu demotes to Small\\\") only if the owner agrees; otherwise special-case `sync`\"; §5.8 says of the kill switch \"It must survive only for the session unless the owner asks for persistence (decide at assess)\". None of these is a G-row, so a lead who presents only §3 leaves implementers with undecided options mid-wave.",
+      "suggested_fix": "Add them to the gate table (e.g. G13 line-length setting, G14 ribbon demotion rule, G15 kill-switch persistence) or fix them as stated defaults in the changes so no owner answer is needed."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The accessibility acceptance criterion depends on a harness API cited only from a different crate version than the repository pins.",
+      "evidence": "§5.9: \"for every new interactive element, a kittest test that finds it **by its accessible label** (`harness.get_by_label`) — this proves the AccessKit name exists. Keyboard: Tab reaches the chip, ribbon AI group and Agents button; Esc closes the panel.\" §10 cites \"`egui_kittest` (docs.rs 0.33.1 crate docs; repo pins 0.37)\" and §1 pins \"egui / eframe / egui_extras / egui_kittest **0.37.0** (workspace `Cargo.toml:147-152`)\". Nothing in the packet verifies `get_by_label` (or the Tab/Esc assertions) on the pinned version, yet the boundary gate turns them into pass/fail evidence.",
+      "suggested_fix": "Verify the query and keyboard APIs against egui_kittest 0.37 and add them to §1's verified list, as was done for the command ids."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The entry criteria's re-plan contingency names 5.4/5.6 but omits 5.5, which also depends on the AI-phase settings work it guards.",
+      "evidence": "§4 entry criteria: \"Specifically confirmed done in the child phase's `tasks.md` (5.6 and 5.4 build on them): 6.4, 6.6 …, 7.2–7.6 (AI settings page, `answerText` in `ui.inspect`, host side, context window). If the child closed with any of these cut, re-plan 5.4/5.6 before starting them.\" §5.5's ribbon group includes \"*AI Settings* (`ui.aiSettings`)\" and §5.4's chip click target is the same surface; if 7.2 was cut, the ribbon button and the chip both point at a surface that does not exist and 5.5 is not on the re-plan list.",
+      "suggested_fix": "Change the contingency to \"re-plan 5.4, 5.5 and 5.6\" (or name the specific task each of 5.4/5.5/5.6 consumes)."
+    },
+    {
+      "severity": "SUGGESTION",
+      "file": "plan.md",
+      "claim": "5.2's measure definition is not reproducible: \"average glyph advance\" names no character set, and the font API it cites is not among the identifiers the plan verified.",
+      "evidence": "§5.2: \"`measure = min(width, 72 × average glyph advance of the body font at BASE_SIZE)`; compute the advance from the loaded font (`ui.fonts(|f| f.glyph_width(...))`) rather than hard-coding pt\". \"Average\" over which glyphs is undefined (the 72ch convention is the width of \"0\"), the value changes under font fallback and for non-Latin scripts, and `glyph_width` is not in §1's verified list — so the acceptance test \"a long paragraph wraps at ≤ measure\" has no fixed expected value that two implementers would compute the same way.",
+      "suggested_fix": "Define the measure as 72 × the advance of a stated glyph or sample string at `BASE_SIZE`, record the exact egui API after checking it, and state how fallback fonts are handled."
+    }
+  ],
+  "judge_identity": {
+    "providerId": "xiaomi",
+    "modelId": "mimo-v2.6-pro"
+  },
+  "checked_classes": [
+    "ROUND 2 ledger — prior-round 1 (dropped design-proposal requirements): largely resolved by the new §4.1 coverage table (focus ring / empty states / list keys → \"assess check\" rows run in 5.0; <768 responsive → explicit cut; `cite`/`suggest_*`/`danger_soft` → explicit cuts with reasons; 5.9 now verifies 1024/1280/1440). Residual sub-item gaps are findings 2 and 3.",
+    "ROUND 2 ledger — prior-round 2 (unverified command ids, W3 ordering): resolved. §1 now has a \"Command ids this plan relies on — all verified to exist (2026-11-17)\" paragraph naming `ui.findByDescription` (lib.rs:1238), `ui.answers` (1244), `ui.aiSettings` (1250), `ui.openWindow` (1488), `mail.select`, `ui.copyDiagnostics`, `ui.reportProblem`, and states that the only new ids are `ui.agents` and `ui.agentAccess`; 5.4 and 5.5 both consume an existing `ui.aiSettings`. No finding.",
+    "ROUND 2 ledger — prior-round 3 (`flagged_row` owned by two changes): resolved. §5.1 now states \"this change owns every token *value*, including `flagged_row`\" and §5.3 is \"rendering only (the value comes from 5.1)\". No finding.",
+    "ROUND 2 ledger — prior-round 4 (Waiting section vs 50 s modal): resolved. New gate G11 asks the owner directly and recommends (a); §5.8(c) says \"**No \\\"Waiting\\\" section (G11a)**\" and explains why a waiting list could never be acted on. No finding.",
+    "ROUND 2 ledger — prior-round 5 (`--allow` undefined, verdict conflation): resolved. §1 now defines `--allow` from `docs/mcp.md` (send|delete|accounts|mailbox|settings|input, `input` never asked about) and §5.8(b) separates \"ran — allowed in advance (--allow <class>)\" from \"ran — you said yes\". No finding.",
+    "ROUND 2 ledger — prior-round 6 (log content narrowing ungated): resolved. New gate G12 offers (a) ids+counts memory-only, (b) subjects/queries, (c) persist to disk, with a recommendation and a PRIVACY.md consequence. No finding.",
+    "ROUND 2 ledger — prior-round 7 (type floor untested): partially resolved. §5.3 adds a shared type-floor helper covering 5.3/5.4/5.6/5.7/5.8 and requires new surfaces to use existing rungs. Remaining gaps: reading pane excluded and unverified helper mechanism (finding 5); helper file has no owner (finding 6).",
+    "ROUND 2 ledger — prior-round 8 (G4a alternatives): partially resolved. §5.1 fixes the implementation to a new 11 pt rung and forbids raising `Small`, but gate G4(a) still says \"Small 10.5→11, no rung below 11\" (finding 1).",
+    "ROUND 2 ledger — prior-round 9 (child task 6.6 not in entry criteria): resolved in substance. §4 entry criteria now name 6.4, 6.6 and 7.2–7.6 with a re-plan contingency; the contingency's omission of 5.5 is finding 10.",
+    "ROUND 2 ledger — prior-round 10 (reviewer scheduling contradiction): resolved. §5.8's owner line ends \"reviewed only at 5.9\" and no reviewer is listed as a wave owner; §5.9 keeps one batched read-only review. No finding.",
+    "ROUND 2 ledger — prior-round 11 (G2 privacy test only for the rejected option): resolved. §5.5 now carries \"Privacy test for G2a\" asserting the search box issues only `view.search` and that Find by Description sends only its own field's text, with a recording fake `AiProviders`. No finding.",
+    "ROUND 2 ledger — prior-round 12 (`lib.rs` grant vs wave contents): resolved. §6 makes `lib.rs` integrator-owned with one integration task per wave covering UI_COMMANDS, dispatch, `enabled` and panel placement, explicitly including 5.2's optional setting and its `backstage.rs` row; the 5.4/5.5 `icons.rs` clash is addressed by sequencing or a separate `icons/ai.rs`. No finding.",
+    "ROUND 2 ledger — prior-round 13 (5.3 \"verify visually\" as acceptance): resolved. §5.3 now states an acceptance criterion (selected fill equals `selection`/`selection_unfocused` for all four selected×flagged combinations) plus unit and harness tests. No finding.",
+    "ROUND 2 ledger — prior-round 14 (W0 as an OpenSpec change inside assess/analyze): resolved. §5.0 is titled \"Assess/analyze deliverables (not an OpenSpec change)\" and §6 lists assess/analyze as \"no wave\". No finding.",
+    "Adopted contract (VLBV) scenarioMatrix / boundaryPacket vs AT 01–22, weak-oracle and negative-control checks — not applicable to this packet: no adopted contract is included. §7 only proposes scenario IDs (SCN-MEASURE-001, SCN-CHIP-001, SCN-AGENT-001..003, SCN-A11Y-001, SCN-CONTRAST-001) for a contract to be written later, so there are no oracles, no negative-control commands and no declared nondeterminism to interrogate yet; the executing lead must submit that contract for review when it exists.",
+    "Ordering / forward-dependency sweep — W1 tokens → 5.3/5.4/5.7, 5.1 → 5.3/5.4/5.7, child tasks 6.4/6.6/7.2–7.6 → 5.4/5.5/5.6, 5.8 (a)→(b)→(c), W2 before W3's ribbon work: no remaining forward dependency besides the entry-criteria re-plan list (finding 10)."
+  ],
+  "sycophancy_screen": {
+    "reject_cap": 2,
+    "cap_overridden": false,
+    "cap_default": 2
+  }
+}

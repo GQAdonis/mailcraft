@@ -30,6 +30,7 @@ pub mod corpus;
 mod data;
 mod entities;
 mod look;
+mod markdown;
 mod media;
 mod preview;
 mod quote;
@@ -44,6 +45,7 @@ use std::sync::Arc;
 pub use blocks::{MAX_HIDDEN_TEXT, Read, parse, parse_in, parse_text, parse_text_own};
 pub use data::{MAX_DATA_PICTURE_BYTES, MAX_DATA_PICTURES, MAX_DATA_PICTURES_BYTES, Picture};
 pub use entities::{escape, unescape};
+pub use markdown::{MAX_MARKDOWN_BLOCKS, MAX_MARKDOWN_EVENTS, MAX_MARKDOWN_INPUT, markdown_blocks};
 pub use media::{Env, MAX_ENVS as MAX_MEDIA_ENVS, envs as media_envs, verdicts as media_verdicts};
 
 /// The media lists of a message's style sheets and `<style media>` attributes, each once, in the
@@ -598,6 +600,8 @@ mod data_tests;
 mod float_tests;
 #[cfg(test)]
 mod inline_tests;
+#[cfg(test)]
+mod markdown_tests;
 #[cfg(test)]
 mod nested_align_tests;
 #[cfg(test)]

@@ -134,7 +134,10 @@ fn search_box(app: &mut MailApp, ui: &mut Ui, rect: Rect) {
     // Advanced Search's button, at the right of the text as in Outlook: Mail's alone.
     let in_mail = app.session.view.module == Module::Mail;
     let advanced_w = if in_mail { 28.0 } else { 0.0 };
-    let edit_rect = Rect::from_min_max(pos2(rect.min.x + 28.0, rect.min.y + 1.0), pos2(rect.max.x - scope_w - advanced_w - 4.0, rect.max.y - 1.0));
+    // Find by Description's button (#ai), just left of it: Mail's alone too.
+    let describe_w = if in_mail { 26.0 } else { 0.0 };
+    let edit_rect =
+        Rect::from_min_max(pos2(rect.min.x + 28.0, rect.min.y + 1.0), pos2(rect.max.x - scope_w - advanced_w - describe_w - 4.0, rect.max.y - 1.0));
     app.hit.add("searchBox", 0, rect);
     let advanced = Rect::from_center_size(pos2(rect.max.x - scope_w - advanced_w / 2.0 - 2.0, rect.center().y), vec2(24.0, 22.0));
     if in_mail {
@@ -153,7 +156,11 @@ fn search_box(app: &mut MailApp, ui: &mut Ui, rect: Rect) {
             app.say_refused("ui.advancedSearch", e);
         }
     }
-    let panel = app.advanced_search.is_some();
+    let describe = advanced.translate(vec2(-describe_w, 0.0));
+    if in_mail {
+        crate::ai::narrow::button(app, ui, describe);
+    }
+    let panel = app.advanced_search.is_some() || app.ai.narrow.is_some();
     let hint = match app.session.view.module {
         Module::People => tl!("Search people"),
         // Calendar and Tasks have no search of their own yet: what is typed looks in the mail.
@@ -259,6 +266,7 @@ fn search_box(app: &mut MailApp, ui: &mut Ui, rect: Rect) {
     suggesting.store(ui.ctx());
     if in_mail {
         crate::advanced_search::show(app, ui.ctx(), rect, advanced);
+        crate::ai::narrow::show(app, ui.ctx(), rect, describe);
     }
     if !mail_search {
         return;

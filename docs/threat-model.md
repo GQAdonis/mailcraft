@@ -278,7 +278,9 @@ Watches or changes traffic between MailCraft and its servers.
   the system's certificate store is read and the chain checked against it, and a server that
   leaves out its intermediate is refused. There is no built-in root set to fall back on: where the
   system's verifier can't be set up, every secure connection is refused. An unencrypted connection
-  is allowed only to loopback, for tests.
+  is allowed only to loopback: for tests, and to a model server the owner configured whose address
+  resolves to loopback (127.0.0.0/8, `::1`, IPv4-mapped loopback), checked on the address actually
+  connected to, with no redirect followed (decision D7, phase agentic-ai-integration).
 - **No silent downgrade:** a server that doesn't offer STARTTLS when it was asked for is an error
   ("the server doesn't offer STARTTLS", `crates/net/src/sync.rs`, `crates/net/src/send.rs`).
 - **Provider discovery** asks a DNS-over-HTTPS resolver about the domain alone, never the mailbox
@@ -300,6 +302,52 @@ Watches or changes traffic between MailCraft and its servers.
   associated it). A forged or stale alias costs a question, never the password.
 - The one thing fetched over plain `http` is a picture the owner asked for, when that is the address
   the message gives; nothing of the owner's travels with it.
+
+### A model provider and what a model writes
+
+Applies only once the owner configures a model server (none is configured by default).
+
+- **The provider sees what is sent.** For narrowing, only the owner's typed request and the query
+  format; for a question, the request and passages retrieved from accounts the owner allowed. A
+  remote provider is used for an account only after per-account consent; plaintext is allowed only
+  to a resolved loopback peer, no redirects; a remote certificate may be pinned by fingerprint.
+  Keys live in the OS credential store only, redacted from `Debug` and errors.
+- **Mail tries to instruct the model (prompt injection).** Message text is data: it is placed in a
+  structured prompt between fresh random markers per request, hidden text is never sent, and the
+  answer mode exposes no tools. Whatever the model writes cannot act: model output is never run as
+  a command, never rendered as HTML, never used to fetch anything, never used as an address list
+  without the owner acting on it.
+- **The model invents or misattributes.** Citations are accepted only for message ids actually sent
+  in that request, at most three; others are dropped. The answer is labelled as a model's and can be
+  wrong.
+- **Hostile provider answers.** Streamed (SSE) answers are parsed with caps on line, event and total
+  size, fuzzed (`fuzz/fuzz_targets/sse.rs`); the markdown of an answer becomes display blocks with
+  raw HTML and images dropped (`fuzz/fuzz_targets/markdown.rs`); timeouts are set per request and
+  a failure is an error in the window, never a crash or a freeze.
+- **A local server that is really a gateway.** A program on loopback may forward everything to the
+  internet. A "this computer" provider's `/v1/models` list is read (no mail, no key) before first
+  use each session. Route names of known hosted providers are refused, and an ambiguous list is
+  put to the owner once, remembered by address and list fingerprint. A declared Gateway needs
+  per-account consent like a remote provider. Residual risk: a gateway that lists plain model
+  names and lies about them, or gives no readable model list, looks local. MailCraft can't see past the loopback hop, so the owner's
+  setup is the last line here.
+- **A look-alike on-device model.** Discovery probes loopback ports only, sends no body or key,
+  and never uses a candidate unconfirmed. A confirmation binds the address and the identity
+  (`/v1/models` lists exactly `apple-foundationmodel`, `/health` in apfel's shape), which is
+  re-checked on first use each run and after an error; a change stops its use and asks again.
+  Residual risk: another local program that answers exactly as apfel does, on the confirmed port,
+  after the owner confirmed it, would be used. The probes are local-only and can't reveal anything
+  beyond loopback.
+- **DNS rebinding of a model address.** A model server's name is resolved once, every answer must
+  be loopback (IPv4-mapped loopback included; `0.0.0.0` and link-local refused), and the
+  connection goes to the checked address itself, never the name again (`crates/net/src/resolve.rs`
+  and its tests).
+- **Credential stores that hang.** Keys are read on one credential thread with a 5-second wait. A
+  store that doesn't answer fails the request as `credential_store` instead of freezing it, and a
+  key is read only for a provider whose key MailCraft noted, after consent.
+- **Agents.** External agents may search (`search_mail`, read-only, framed as untrusted) but cannot
+  run `ai.ask`, `ai.narrow`, `ai.request` or `ai.apply` (Never for agents), so no agent can spend the
+  owner's model or act through it.
 
 ### A hostile mailbox or import file
 

@@ -1,0 +1,105 @@
+{
+  "mode": "artifact",
+  "verdict": "BLOCK",
+  "judge_model": "mimo-v2.6-pro",
+  "producer_model": "claude-opus-5-5",
+  "isolation_mode": "rest-gateway (local, OpenAI-compatible)",
+  "cross_model_check": "unverified-producer-unknown",
+  "findings": [
+    {
+      "severity": "CRITICAL",
+      "file": "plan.md",
+      "claim": "The plan silently drops several design-proposal requirements that appear in neither §4's goals nor its explicit out-of-scope cuts, so the phase would ship as 'the design implemented' while missing them.",
+      "evidence": "design_proposal Part 1 adds 'one focus ring for every control (2 px accent, 2 px offset), honest empty states (\"Nothing in Sent Items…\", \"No mail matches…\"), and keyboard movement through the list with ↑/↓ and Enter' plus a four-breakpoint Responsive behaviour section (≥1280 / 1024–1279 overlay folder pane / 768–1023 / <768 two-screen with Back control). §4 Out of scope lists only 'AI-drafted replies (G10); full type-scale/spacing migration (G4); in-box auto-detected Ask (G2c); redesign of AI settings (G5b); Calendar/People/Tasks restyling; Android/iOS' — none of the above. §5.9 verifies only '1024 px and 1440 px widths'. Part 3's `cite` and `danger_soft` tokens are likewise never added (5.1 adds only ai_local/ai_local_soft/ai_remote/ai_remote_soft) and never cut."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "plan.md",
+      "claim": "W3 orders 5.4 before 5.5, but 5.4's behaviour depends on a `ui.aiSettings` command the plan never establishes as existing and that 5.5 appears to introduce.",
+      "evidence": "§5.4: 'Click → `ui.aiSettings`.' §5.5 lists '*AI Settings* (`ui.aiSettings`)' as part of the new ribbon AI group. But §1's 'verified in code' inventory describes AI settings only as 'File › Options › **\"AI assistance\"** (`backstage.rs:788-789` → `ai/settings_page.rs`, being written in child wave 3)' and lists no `ui.aiSettings` entry in `UI_COMMANDS`. §6 W3 runs '5.4+5.7 together, 5.5 and 5.6 separately', i.e. 5.4 first. The same class of unverified identifiers recurs: `ui.findByDescription`, `ui.openWindow`, `mail.select` (§5.5, §5.6) are never confirmed against `UI_COMMANDS` (`lib.rs:1179`)."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "plan.md",
+      "claim": "The `flagged_row` token change is assigned to two different changes in two different waves while the file-ownership grant forbids the later one from touching the file that holds it.",
+      "evidence": "§5.1 (W1): '…and adjust `flagged_row` (if G3a).' §5.3 (W2): 'Flag treatment (G3): lighter `flagged_row`…'. §6 grants: '`theme.rs`/`theme/*` only in W1 (later changes request token additions from the W1 owner rather than editing)'. A W2 implementer must either edit `theme.rs` (violating the grant) or be blocked, and the two changes give no split of responsibility (value vs. rendering)."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The Agents panel's 'Waiting' section is incoherent with the approval mechanics §5.8(d) freezes, so the change either ships dead UI or silently weakens the safety model it claims to preserve.",
+      "evidence": "§5.8(c): '*Waiting* (read-only list of queued questions; the decision still happens in the existing modal)'. §5.8(d) freezes 'its 50 s timeout, default-No… the queue limit of 8'. §1 records 'queue ≤ 8 (`:29`), 50 s timeout = no (`:26`)'. A question can therefore exist in the Waiting list for at most 50 s and only while the modal is already blocking the window. The design proposal 2.7 that this panel is meant to implement shows durable per-request cards with 'Send it / Delete it / Decline' and the note 'it allows this one request only' — i.e. the proposal requires removing or lengthening the timeout, which G7 never asks about."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The activity log's verdict vocabulary conflates owner approval, classification-allowed commands and headless auto-approval, and `--allow` is used without ever being defined.",
+      "evidence": "§5.8(b): 'verdict (allowed / asked→yes / asked→no / refused / timed out)'. §5.8(a): 'Headless (`--allow`) connections show \"Command-line client\".' Nothing in §1, §2, constraints or product states what `--allow` does; if it auto-allows agent commands, the log cannot distinguish 'owner said yes' from 'nobody was asked because --allow', which is exactly the audit the panel exists to give the owner."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The activity log's content is narrowed relative to the design proposal with no decision gate covering it, so the owner is never asked which behaviour they wanted.",
+      "evidence": "design_proposal 2.7: 'Activity: a timestamped log of what agents searched, read and asked for, and what you decided.' §5.8(b): '**No message text, no subjects, no addresses, no query strings** — only ids and counts (e.g. \"search_mail: 7 results\")'. The tighter rule is defensible, but §3's gate table (G1–G10) contains no gate for log content, and §4's goals say only 'an activity log' without either formulation."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The goal criterion 'no text below 11 pt on touched surfaces' names no surface list and is backed by no test in any change, and the new AI surfaces get no type floor at all.",
+      "evidence": "§4 goal: '…no text below 11 pt on touched surfaces.' §5.3 applies it to 'the list/status bar' and its test list is 'title_bar_tests.rs, nav_tests.rs, module_foot_tests.rs, ribbon fit tests; harness test that the disabled sync item's rect height' — no assertion about font size anywhere. §5.4 (status chip), §5.6 (sources list, provenance line), §5.7 (badge), §5.8 (panel) state no type rung, yet DESIGN.md's rule quoted in G4 is 'New surfaces add no new sizes'."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "§5.1 offers two alternative implementations of G4a with different blast radii, and one of them violates the gate's own scope limit.",
+      "evidence": "§5.1: 'Add a `TypeRung::Small11` (or raise `Small` to 11 per G4a)'. G4a is defined as 'floor only: Small 10.5→11, no rung below 11, **touched surfaces only**'. §1 records '`TypeRung` (`theme.rs:1232-1276`) used ~11×' across modules this phase cuts out of scope. Raising `Small` changes all of them; `Small11` does not. The choice is not deferred to `design.md` as §5.2 does for its alternative."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "5.6's hard dependency on in-flight AI-phase child task 6.6 is not reflected in the phase's entry criteria, which could be satisfied while 6.6 is still pending.",
+      "evidence": "§5.6: '**Depends on child task 6.6** (Answered by + fallback notice) having landed; extend, don't duplicate.' §4 entry criteria: '`agentic-ai-integration::agentic-ai-scenario-repair` passed B4c and the owner accepted it; the parent reflected; AI code committed…; `cargo xtask ci` green on that commit.' §1 describes 6.6 as 'pending'. Nothing in §4 or §6 W3 says to check 6.6 specifically before starting 5.6."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "Reviewer scheduling contradicts itself: security-privacy-reviewer is named as an owner inside W4 but §5.9 says reviewers are dormant until the whole implementation is done.",
+      "evidence": "§5.8 owner list: 'agent-surface-engineer (control channel), engine-engineer (classes), ui-engineer (panel), **security-privacy-reviewer (review)**'. §5.9: '**Reviews:** security-privacy-reviewer and rust-quality-reviewer, read-only, once after implementation (team rule: reviewers dormant until the whole implementation is done, one batched correction cycle).'"
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "G2's recommendation is asserted to preserve the recorded privacy rule, but the plan never states what text the retained Find by Description button sends to a model, and the protecting test is only specified for the rejected option.",
+      "evidence": "§3 G2: recorded rule is '**the search box's own text is never sent to a model**', and recommendation (a) claims 'It preserves the privacy rule and the live filter with zero ambiguity'. §1: 'the AI **Find by Description** button (`ai::narrow::button`, `chrome.rs:161/269`)'; §5.5 specifies the no-send test only in the G2b branch: 'If G2b… include a test that asserts no `ai.*` command is issued from Search mode.' Under (a) no test at all asserts the search-box text is not sent."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The one-writer-per-wave grant for `lib.rs` does not survive the wave contents it is attached to, and W2's 'disjoint files' claim is conditional on an undecided option.",
+      "evidence": "§6: W2 is parallel with 'disjoint files: `reading*` vs `mail_view.rs`/`chrome.rs`/`ribbon*`/`nav.rs`', but §5.2 adds 'File › Options › Mail › \"Limit line length\"… if added, it's a `ui.*` setting command' — i.e. `lib.rs` (and `backstage.rs`) from the 5.2 agent. §6 grant: 'only one agent writes `lib.rs` per wave'. W3 (5.4/5.5/5.6) and W4 (5.8 sub-steps a→b→c) likewise have multiple agents adding `UI_COMMANDS` entries and dispatch."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The non-colour-signal requirement for the AI chip lives in the theme change, not in the change that draws the chip, and the icons it needs are absent from the icon task.",
+      "evidence": "§5.1: 'Do not encode meaning in colour alone: the chip also carries an icon and words.' §5.4, which creates the chip, specifies only text ('States… None → \"AI off\"…', 'Accessible name equals the visible text') and no icon per state. §5.5's icon list is 'spark, find-by-description, shield' — no status icons. design_proposal 2.6: 'Colour is never the only signal: each state has its own icon and words.' No test in §5.4 asserts the states differ in more than colour."
+    },
+    {
+      "severity": "SUGGESTION",
+      "file": "plan.md",
+      "claim": "5.3's central visual decision is expressed as an instruction to look rather than as an acceptance criterion, and its test list omits the rendering it changes.",
+      "evidence": "§5.3: 'selection on a flagged row draws selection fill unmodified (drop the `gamma_multiply(0.72)` blend if the lighter tint makes it unnecessary — **verify visually**)'. The listed tests are title_bar/nav/module_foot/ribbon fit; `mail_view.rs:1788-1817` covers token distinctness but nothing covers selection-over-flagged composition, which is exactly what the dropped blend changes."
+    },
+    {
+      "severity": "SUGGESTION",
+      "file": "plan.md",
+      "claim": "W0 places an OpenSpec change inside the assess/analyze stages, which conflicts with §5's change shape and with §4's stated KBD ordering and can be misread by the executing agent.",
+      "evidence": "§6 W0: '5.0 … assess/analyze'. §5 header: 'Each change: `openspec/changes/<id>/{proposal.md, design.md, tasks.md, specs/<capability>/spec.md}`, validated with `openspec validate --strict`.' §4 goal: 'Follow the KBD process in order: assess → analyze → plan → execute → reflect.' §5.0 produces no code and records gate answers and screenshots; whether it is an archived OpenSpec change or an assessment artifact is left unstated."
+    }
+  ],
+  "judge_identity": {
+    "providerId": "xiaomi",
+    "modelId": "mimo-v2.6-pro"
+  },
+  "checked_classes": []
+}

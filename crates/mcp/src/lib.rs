@@ -13,6 +13,7 @@
 
 pub mod backend;
 pub mod files;
+pub mod search;
 pub mod server;
 pub mod tools;
 
@@ -110,6 +111,8 @@ mod framing_tests;
 mod gate_tests;
 #[cfg(test)]
 mod hidden_text_tests;
+#[cfg(test)]
+mod search_tests;
 #[cfg(test)]
 mod server_tests;
 #[cfg(test)]

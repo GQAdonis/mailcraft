@@ -699,6 +699,10 @@ fn escape_and_enter_are_read_through_the_gate_only() {
         // A text's menu in a drop-down: the list's Escape, asked of the gate, closes the menu only
         // (egui would close the drop-down on it too).
         ("text_menu.rs", "if crate::keys::list_escape(ctx) && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {"),
+        // Find by Description's field has the keyboard: a held Enter is one press in it, Enter
+        // suggests a search, Ctrl+Enter answers instead, and Shift+Enter is a new line.
+        ("ai/narrow.rs", "crate::keys::drop_repeats(i, &[Key::Enter]);"),
+        ("ai/narrow.rs", "egui::Event::Key { key: Key::Enter, pressed: true, modifiers, .. } if !modifiers.shift => {"),
         // Ctrl+Enter.
         ("windows.rs", "if take_key(i, Modifiers::COMMAND, Key::Enter) | take_key(i, Modifiers::ALT, Key::S) {"),
         // The names of the keys in the shortcuts, and the key loop, which leaves Escape alone to

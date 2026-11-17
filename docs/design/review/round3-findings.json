@@ -1,0 +1,125 @@
+{
+  "mode": "artifact",
+  "verdict": "BLOCK",
+  "judge_model": "mimo-v2.6-pro",
+  "producer_model": "claude-opus-5-5",
+  "isolation_mode": "rest-gateway (local, OpenAI-compatible)",
+  "cross_model_check": "unverified-producer-unknown",
+  "findings": [
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The plan's stated mitigation 'prompts and keys never on argv' is contradicted by its own invocation recipes, putting prompt (and in the OpenCode fallback, mail) content on a command line readable by other local processes.",
+      "evidence": "PLAN.md B8 risk row: 'Secrets leak through env inheritance or argv … Mitigation: … prompts and keys never on argv'. Spec §7.2: 'claude -p … --system-prompt <instructions>' (instructions on argv) and §7.4: 'otherwise pass the message as a single argument after a -- guard. Note this exposes the prompt on argv'. §7.1 says the prompt is MailCraft's structured prompt with 'mail as delimited data'.",
+      "suggested_fix": "Make stdin the only prompt channel (add `--system-prompt-file`/config-file equivalent, or drop the OpenCode argv fallback and require `opencode serve`), or correct B8 and PRIVACY.md to state that argv exposure of prompt/mail text is an accepted residual risk with `ps`/procfs implications."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "`Where` is never defined for the `claude_code`, `codex` and `opencode` runtimes, so the consent gate that decides whether mail may leave has no rule for three of the seven runtimes.",
+      "evidence": "§2 `Where` row defines only 'for `compat`, from the provider kind. Gateway counts as `leaves`. UAR is `leaves` unless it reports a local model' — no rule for `claude_code`/`codex`/`opencode`. §9.2 then relies on it: 'entries where *where* = `leaves` and **any** account in the request lacks consent for that runtime' are skipped, and §8 says 'No runtime that leaves the computer is ever enabled without the owner'.",
+      "suggested_fix": "State explicitly that `chatgpt`, `claude_code`, `codex` and `opencode` are always `leaves` (or define the exact test, e.g. `opencode` is `local` only when its configured model endpoint resolves to loopback), and add a scenario asserting the derived `Where` per runtime."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "UAR's `Where` is taken from the sidecar's own self-report, so a sidecar that relays to a cloud model can claim 'local' and bypass per-account consent.",
+      "evidence": "§2: 'UAR is `leaves` unless it reports a local model.' §7.6 step 4 only says 'Check the required capabilities'; nothing verifies that a reported local model's peer resolves to loopback, which operator decision D7 (constraints) requires: 'to an owner-configured model server whose resolved peer is loopback (127.0.0.1/::1); remote model providers TLS-only'. External instances already 'count as `leaves`', so the hole is specific to the self-reported local claim.",
+      "suggested_fix": "Derive `Where` for UAR from a MailCraft check (model endpoint resolved peer is loopback, or the config names a local model the host itself verified), never from a capability string the sidecar supplies; treat an unverifiable claim as `leaves`."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "Kill-on-tool-event is detective, not preventive, and nothing stops a contained runtime from reading owner-readable secrets and returning them as text, which the spec explicitly uses.",
+      "evidence": "§7.1 env allow-list includes `HOME`, and the process runs as the owner in an empty cwd only: nothing restricts filesystem read access, so `~/.ssh`, `~/.codex/auth.json`, `~/.config/opencode` and `~/.claude` are reachable. §7.1: 'Only text deltas and the final text are used' and the kill triggers only on 'Any tool-use, command, file or MCP event'. §12's threat-model section lists only 'tool containment, kill-on-tool-event, environment allow-list, empty cwd, the Codex residual risk' — no non-tool exfiltration path, while B8's risk table frames the threat solely as 'Prompt injection makes a coding agent run a command'.",
+      "suggested_fix": "Record this residual risk in the threat model and PRIVACY.md, and add a real boundary where it matters (per-run sandbox/seatbelt profile or `CODEX_HOME`-style isolated HOME for every runtime), or accept and document that text-output exfiltration is out of scope and cannot be called 'containment'."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The scenario list only exercises two tool-event kinds although the spec and the risk table require killing on file, MCP, web and unknown non-text events, so a parser that misses those passes every listed scenario while the goal is unmet.",
+      "evidence": "§7.1: 'Any tool-use, command, file or MCP event kills the run'; PLAN.md B8: 'parsers tolerate unknown events but never unknown *tool* events (unknown event kinds that aren't text ⇒ kill)'. But SCN-RT-CONTAIN-001 covers only 'a tool-use / `command_execution` event mid-stream' — no file-change, MCP, web-search or unknown-kind negative control, which is exactly the weekly-vendor-change risk B8 calls 'High'.",
+      "suggested_fix": "Extend SCN-RT-CONTAIN-001 (or add 002/003) with one fixture per tool class and one unknown event kind per stream format, asserting kill + no answer + visible notice; fail the scenario if any fixture class is absent."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "Storing the SIWC access token in the credential store contradicts the blocking constraint `secrets-never-persisted-or-logged`, which says access tokens are never stored.",
+      "evidence": "Constraints: 'Passwords/tokens live in memory or the OS credential store only; never in … ; access tokens never stored'. Spec §6.2 step 5: 'Store `{access_token, refresh_token, expires_at, account_id, plan?}` as one credential entry `ai.chatgpt`' and §3.2: 'SIWC access token, refresh token, expiry, account id | One credential-store entry `ai.chatgpt` holding JSON'.",
+      "suggested_fix": "Decide and record which reading governs (store only the refresh token and re-derive short-lived access tokens, or amend/clarify the constraint in CLAUDE.md/AGENTS.md and regenerate `constraints.md`); the blocking rule as written would stop archiving."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "B5.4 is tasked with fuzz targets for stream parsers that do not exist until wave W3, so the deliverable cannot be produced in its own wave.",
+      "evidence": "B5.4 (W2): 'tool-event detector interface; fuzz targets for every stream parser'; W3 is where B5.5–B5.9 land ('one file set per adapter under `crates/ai/src/runtime/<name>.rs`'), and the stream parsers (stream-json, Codex `--json`, OpenCode `--format json`, AG-UI) belong to those adapters.",
+      "suggested_fix": "Move 'fuzz targets for every stream parser' to each adapter change (B5.5–B5.9) with B5.4 owning only the harness/interface, or move the fuzz deliverable to a W3/W4 item owned by the integrator."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "B10's third effect on Part A — A 5.7's narrowing badge naming the runtime — is assigned to no change, unlike the other two Part A updates.",
+      "evidence": "B10 assigns A 5.4 to 'B5.11 owns this update' and A 5.6 to '(B5.10)', but the third bullet, 'A 5.7's narrowing badge names the runtime (\"On this computer\" / \"ChatGPT plan\" / \"Claude Code\" …)' names no owner; B5.11's row lists only the settings page and 'status chip update (Part A 5.4)'.",
+      "suggested_fix": "Add the A 5.7 badge to B5.11's scope (or B5.10's) and add a scenario asserting the badge text per runtime, otherwise the change will be forgotten at execute time."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The v2→v3 migration table covers settings fields only, omitting credential-store entries and the v2 backup provider, so keys can be orphaned and a backup provider silently disappears.",
+      "evidence": "§3.2 keys API keys under 'service `mailcraft`, entry `ai.<runtime-id>`' while §3.1 rewrites provider ids to `compat:<id>` ('chain[0] = compat:<id>') without any row moving/renaming credential entries; §6.5 then deletes 'every `ai.*` credential entry named in `keys_kept_for`'. §3.1 also maps 'primary explicitly None' to 'chain with every entry disabled', dropping whatever `backup:` held, while the rollback story depends on `ai.v2.json` alone ('a rollback still works').",
+      "suggested_fix": "Add migration rows: credential entries `ai.<id>` → `ai.compat:<id>` (copy then delete only after a successful write), and `backup: <provider>` with primary None → an enabled `compat:<id>` entry; cover both in SCN-RT-MIGRATE-001."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "`CODEX_HOME` is described as a MailCraft-owned empty directory while Codex credentials are also treated as runtime-owned and never removed by MailCraft, leaving the persistence, location and deletion of those secrets undefined.",
+      "evidence": "§7.3: '`CODEX_HOME` set to a MailCraft-owned empty directory'; §6.1 codex row: credential owner 'MailCraft **or** runtime', sign-in 'or owner-run `codex login --with-api-key`'; §6.5: removal 'never touches CLI-owned stores'; PLAN.md G-RT6 (a) 'MailCraft-owned (API key via `CODEX_API_KEY`)'. Whether the directory is fresh per run (like the §7.1 cwd) or persistent is never stated.",
+      "suggested_fix": "Specify: persistent vs per-run, where an owner-run `codex login` writes when MailCraft overrides CODEX_HOME, and that 'Remove MailCraft's data' deletes the MailCraft-owned CODEX_HOME (a secret file in a MailCraft-created directory needs an explicit carve-out in `secrets-never-persisted-or-logged`)."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "SCN-RT-CONTAIN-001's core claims — 'process group killed' and 'no fallback without notice' — have no stated oracle, so a test that only checks the parent process exits would pass a wrong result.",
+      "evidence": "SCN-RT-CONTAIN-001: 'Fake runtime emits a tool-use / `command_execution` event mid-stream → process group killed, answer discarded, owner told, no fallback without notice' — no grandchild/sentinel is specified, and 'no fallback without notice' is a UI behaviour with no observable assertion, while §7.1 promises 'Cancel kills the **whole process group** (Unix `setsid` + `killpg`; Windows job object)'.",
+      "suggested_fix": "Have the fake runtime spawn a grandchild that writes a heartbeat file; assert the heartbeat stops within a bound and that the answer pane shows the kill message before any fallback run starts."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "SCN-RT-PRIV-001 is an undefined 'live' packet-capture scenario that B9 nevertheless requires to pass, with no owner-gating or run-record escape like SCN-RT-LIVE-001 has.",
+      "evidence": "Spec §13: 'SCN-RT-PRIV-001 | Packet capture: with only `on_device` + compat-local enabled, no non-loopback traffic from MailCraft or children | live (as AI phase's PRIVACY-001)'; PLAN.md B9: 'Scenarios SCN-RT-* (spec §13) pass; SCN-RT-LIVE-001 run by the owner … or recorded as not run' — only LIVE-001 has the 'recorded as not run' escape, and nothing says who captures the traffic or on what platform.",
+      "suggested_fix": "Give SCN-RT-PRIV-001 the same owner-run/record-or-skip treatment, and state the capture method (e.g. `tcpdump`/`pf` on the loopback-excluded interface) and the assertion (zero non-loopback packets from MailCraft and its process group)."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The owner's requested deliverable 'KBD prompts guiding a different Claude Code (Opus 5.5) agent' is not covered by any change or by the definition of done.",
+      "evidence": "goals: 'Deliver research, configuration/settings artifacts, an updated PLAN.md and KBD prompts guiding a different Claude Code (Opus 5.5) agent.' B5 lists 13 changes ending at `ai-runtimes-boundary`, and B9 lists gates, openspec/cargo, scenarios, screenshots, PRIVACY.md/threat-model and release notes — `prompts/` appears only in the Part B header as an input ('**Prompts:** `prompts/`').",
+      "suggested_fix": "Add a change or DoD line that updates `prompts/` for the agent-runtimes phase (assess/analyze/plan/execute/reflect), or state that Part A owns it and reference the exact prompt files."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The phase goal 'starts each CLI's own sign-in' and the owner's request for automated OAuth/token management for Codex are not delivered for Codex, and no gate records this as a departure from the request.",
+      "evidence": "B4 goal: 'MailCraft runs Sign in with ChatGPT itself and starts each CLI's own sign-in'; spec §6.4: '**Codex:** prefer MailCraft-held keys (`CODEX_API_KEY`), so no Codex login is needed. \"Use Codex's own sign-in\" just re-probes status.' Combined with G-RT6 (a) (MailCraft-owned empty `CODEX_HOME`), Codex sign-in is actively prevented; goals ask for 'automated OAuth authentication and token management for Codex and Claude Code, modelled on … the-boss', and B0 flags the boss pattern only as 'Do not port it'.",
+      "suggested_fix": "Rewrite the B4 goal to match (e.g. 'starts each CLI's own sign-in where the policy allows: Claude Code'), and add a gate or decision-log entry stating verbatim that Codex OAuth is out and why, so the owner sees the narrowing."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The writable-binary and regular-file checks are stated only for detection, while `ai.setRuntimeOption {path}` accepts a path override from the hostile `ai.json` with unspecified validation before MailCraft spawns it.",
+      "evidence": "§5.2: 'The executable must be a regular file. On Unix, MailCraft warns (and doesn't run it) if it is group- or world-writable' (under Detection); §10 `ai.setRuntimeOption {runtime, model?, path?, auth?}` says only 'validated per runtime'; §3 states `ai.json` 'stays hostile input … every field checked'.",
+      "suggested_fix": "State that the §5.2 executable checks are re-applied at spawn time for both detected and overridden paths (absolute path, regular file, not group/world-writable, owner matches), and add a hostile-`ai.json` scenario covering a symlinked or world-writable `path`."
+    },
+    {
+      "severity": "SUGGESTION",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "§1 promises 'Six runtime types' and then enumerates seven, which will mislead whoever writes the acceptance criteria and the settings page copy.",
+      "evidence": "§1: 'Six runtime types behind one settings page and one request path:' followed by numbered items 1–7 ending '7. Universal Agent Runtime (UAR).'; PLAN.md B0 lists six modes with the ChatGPT plan added afterwards by the research, so the count in the normative spec is stale."
+    }
+  ],
+  "judge_identity": {
+    "providerId": "xiaomi",
+    "modelId": "mimo-v2.6-pro"
+  }
+}

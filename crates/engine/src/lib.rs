@@ -58,6 +58,7 @@ pub mod private_keys;
 mod private_keys_fixtures_tests;
 #[cfg(test)]
 mod private_keys_tests;
+pub mod retrieval;
 pub mod sample;
 pub mod sender_warnings;
 mod session;

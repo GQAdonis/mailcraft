@@ -11,6 +11,7 @@ workspace = true
 [dependencies]
 mailcraft-link = { workspace = true }
 mailcraft-names = { workspace = true }
+pulldown-cmark = { version = "0.13.6", default-features = false }
 serde = { workspace = true }
 
 [dev-dependencies]

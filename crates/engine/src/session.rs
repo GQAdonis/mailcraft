@@ -1238,10 +1238,19 @@ pub struct Session {
     /// is disabled, the window offers nothing, and no move is put in a request for Gmail's API.
     /// Never saved.
     pub gmail_category_moves: bool,
+    /// The model requests under way and the last finished ones (`ai.request`, `ai.apply`,
+    /// `ai.cancel`): what a host is to send to a model and what came back, for the window to
+    /// show. Never saved.
+    pub ai: mailcraft_model::ai::Requests,
     /// The word index of the mailbox file, while [`Session::index_words`] is on and the mailbox
     /// is kept in a file ([`crate::words`]).
     #[cfg(not(target_arch = "wasm32"))]
     words: Option<crate::words::Words>,
+    /// The vectors of the mailbox's passages, kept beside the mailbox file when it is kept in one
+    /// (`ai.embedRequest`, `ai.embedApply`; [`crate::retrieval::vectors`]); opened when first
+    /// wanted.
+    #[cfg(not(target_arch = "wasm32"))]
+    vectors: Option<crate::retrieval::vectors::VectorIndex>,
 }
 
 /// Message `id` was `old` and is `new`, the same message with more or less of it in memory.
@@ -1358,8 +1367,11 @@ impl Session {
             interface_language: mailcraft_i18n::Lang::English,
             date_region: None,
             gmail_category_moves: crate::gmail::GMAIL_CATEGORY_MOVES,
+            ai: Default::default(),
             #[cfg(not(target_arch = "wasm32"))]
             words: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            vectors: None,
         };
         s.view.date = s.today();
         s.normalize();
@@ -2158,9 +2170,41 @@ impl Session {
     }
 
     /// The word index this session keeps, if any.
-    #[cfg(all(test, not(target_arch = "wasm32")))]
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn words(&self) -> Option<&crate::words::Words> {
         self.words.as_ref()
+    }
+
+    /// The vectors of the mailbox's passages: those kept beside the mailbox file it is kept in
+    /// now (opened, or made, when another file or none was open), else in memory only.
+    // Known limitation: opening, flushing and compacting the vectors' file run on the thread that
+    // runs the command (the window's, on the desktop); at 200,000 messages the file is some
+    // 150 MB. Accepted for this phase; a host thread would take them over.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn vectors_mut(&mut self) -> &mut crate::retrieval::vectors::VectorIndex {
+        use crate::retrieval::vectors::{VectorIndex, vectors_file};
+        let file = self.path.as_deref().map(vectors_file);
+        let stale = self.vectors.as_ref().is_some_and(|v| v.file() != file.as_deref());
+        if stale {
+            self.vectors = None;
+        }
+        self.vectors.get_or_insert_with(|| match &file {
+            Some(f) => VectorIndex::open(f),
+            None => VectorIndex::new(None),
+        })
+    }
+
+    /// The vectors of the mailbox's passages, when they were opened ([`Session::vectors_mut`]).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn vectors(&self) -> Option<&crate::retrieval::vectors::VectorIndex> {
+        self.vectors.as_ref()
+    }
+
+    /// The word index brought in step with the mailbox, as before a search, for a retrieval
+    /// (`ai.retrieve`) to read it ([`Session::words`]).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn words_for_retrieval(&mut self) {
+        self.words_in_step(true);
     }
 
     /// The text of message `m` that is kept outside memory, read from where it is kept (also when
@@ -3165,6 +3209,14 @@ impl Session {
         self.graph_listed_short.clear();
         self.jmap_read.clear();
         self.auto_replies.clear();
+        // The model requests carry the old mailbox's text: none is kept, and what comes for them
+        // later is refused.
+        self.ai.clear();
+        // The vectors are the old mailbox's: those of the new one are opened when wanted.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.vectors = None;
+        }
         // The background fetch's waits and offline flag were the old mailbox's.
         self.driver.fetch.forget();
         self.openings = self.openings.wrapping_add(1);

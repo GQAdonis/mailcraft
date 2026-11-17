@@ -18,6 +18,7 @@ use mailcraft_model::{Security, Server};
 use mailcraft_proto::ProtoError;
 
 use crate::NetError;
+use crate::resolve::{self, Resolve, SystemResolver};
 use crate::transport::{self, Service};
 
 /// Largest answer body taken, unless the one who asks says otherwise ([`Request::max_body`]).
@@ -45,6 +46,8 @@ const USER_AGENT: &str = "MailCraft";
 const MAX_INTERRUPTS: u32 = 1_000;
 /// Longest text taken from a server into an error message.
 const MAX_SHOWN: usize = 300;
+/// Longest `Content-Type` kept of an answer.
+const MAX_CONTENT_TYPE: usize = 200;
 
 /// Where a request goes.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -642,6 +645,8 @@ struct Head {
     challenges: Vec<String>,
     policy_reason: Option<String>,
     content_range: Option<String>,
+    /// Its `Content-Type`, made fit for showing and cut short (a streamed answer is read by it).
+    content_type: Option<String>,
     /// The server closes the connection after this answer: it said so, it speaks HTTP/1.0, or
     /// the way the body ends is not one that leaves the connection fit for more (a coding
     /// other than chunked last, or both a length and chunks, which a server never sends).
@@ -748,6 +753,8 @@ fn read_head<R: Read>(reader: &mut Reader<'_, R>) -> Result<Head, NetError> {
             head.policy_reason = Some(tidy(value).chars().take(MAX_REASON).collect());
         } else if name.eq_ignore_ascii_case("content-range") {
             head.content_range = Some(value.to_string());
+        } else if name.eq_ignore_ascii_case("content-type") {
+            head.content_type = Some(tidy(value).chars().take(MAX_CONTENT_TYPE).collect());
         }
         // A length beside chunks: the chunks are read, and the connection is not trusted after.
         head.close |= head.chunked && head.length.is_some();
@@ -791,6 +798,445 @@ fn read_chunks<R: Read>(reader: &mut Reader<'_, R>, max: usize) -> Result<Vec<u8
         }
     }
     Err(too_long(max))
+}
+
+// A request whose answer is read as it comes: a model server's answer, streamed (Server-Sent
+// Events, `crate::sse`). Its deadlines are the caller's (connecting, the first byte, a silence,
+// the whole), within ceilings of this crate's; a flag of the caller's stops it between two reads;
+// the answer goes to the caller piece by piece. Plain HTTP is spoken only when every address the
+// name stands for is this machine's, and then to such an address itself: the name is looked up
+// once, so what is connected to is what was checked. No redirect is followed.
+
+/// How long one read waits while an answer streams in: how soon a stop or a deadline is seen.
+const POLL: Duration = Duration::from_millis(200);
+/// Most reads in a row that bring nothing: the deadlines end a stream long before, this guards
+/// against a socket that says "not yet" without waiting.
+const MAX_EMPTY_POLLS: u32 = 100_000;
+/// The longest a streamed request may take, connecting included, whatever its caller asks.
+const MAX_STREAM_TOTAL: Duration = Duration::from_secs(300);
+/// The longest connecting to a streamed request's server may take.
+const MAX_STREAM_CONNECT: Duration = Duration::from_secs(20);
+/// Most addresses of a name that are tried (at most [`resolve::MAX_RESOLVED`] are looked at).
+const MAX_LOOPBACK_ADDRESSES: usize = 8;
+/// What a request stopped by its caller's flag fails with.
+pub(crate) const STOPPED: &str = "the request was stopped";
+/// What a request whose server didn't begin to answer in time fails with.
+const FIRST_BYTE_LATE: &str = "the server didn't begin to answer in time";
+/// What a request whose server fell silent in the middle of its answer fails with.
+const IDLE_LATE: &str = "the server stopped answering";
+/// What a plain address that is not (or not only) this machine's is refused with.
+const NOT_LOOPBACK: &str = "a server spoken to without encryption must be on this computer";
+
+/// How long a streamed request may take.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Deadlines {
+    /// For connecting and the TLS handshake (at most 20 seconds).
+    pub connect: Duration,
+    /// From the request having gone to the first byte of the answer.
+    pub first_byte: Duration,
+    /// For a silence between two pieces of the answer.
+    pub idle: Duration,
+    /// For all of it, connecting included (at most five minutes).
+    pub total: Duration,
+}
+
+impl Default for Deadlines {
+    fn default() -> Self {
+        Deadlines {
+            connect: Duration::from_secs(10),
+            first_byte: Duration::from_secs(60),
+            idle: Duration::from_secs(60),
+            total: Duration::from_secs(300),
+        }
+    }
+}
+
+impl Deadlines {
+    /// Within the ceilings, none of them zero (which would mean "wait for ever"), and none longer
+    /// than the whole.
+    fn clamped(self) -> Deadlines {
+        let floor = Duration::from_millis(1);
+        let total = self.total.max(floor).min(MAX_STREAM_TOTAL);
+        Deadlines {
+            connect: self.connect.max(floor).min(MAX_STREAM_CONNECT).min(total),
+            first_byte: self.first_byte.max(floor).min(total),
+            idle: self.idle.max(floor).min(total),
+            total,
+        }
+    }
+}
+
+/// What the head of a streamed answer said.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct StreamHead {
+    /// The status code.
+    pub status: u16,
+    /// Its `Content-Type`, tidied and cut short.
+    pub content_type: Option<String>,
+    /// Its `Retry-After`, tidied.
+    pub retry_after: Option<String>,
+    /// Its `Content-Length`, when it gave one.
+    pub length: Option<u64>,
+}
+
+/// What a streamed answer hands its caller: its head, once, then its body in pieces as they come.
+#[derive(Debug)]
+pub enum Piece<'a> {
+    Head(&'a StreamHead),
+    Body(&'a [u8]),
+}
+
+/// Whether the caller wants more of the answer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Flow {
+    Go,
+    Stop,
+}
+
+/// How a streamed answer ended.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct StreamOutcome {
+    pub head: StreamHead,
+    /// Bytes of the body handed to the caller.
+    pub received: u64,
+    /// The body was longer than was taken of it (an answer that isn't a success, cut short).
+    pub truncated: bool,
+    /// The caller said [`Flow::Stop`]; the connection was closed then.
+    pub stopped: bool,
+}
+
+/// One streamed request, as [`post_stream`] takes it.
+#[derive(Clone, Copy)]
+pub(crate) struct StreamCall<'a> {
+    pub(crate) method: &'a str,
+    pub(crate) headers: &'a [(&'a str, &'a str)],
+    pub(crate) body: &'a [u8],
+    pub(crate) deadlines: Deadlines,
+    /// The most body bytes taken of a success: more is an error.
+    pub(crate) max_body: u64,
+    /// The most body bytes taken of any other answer: more is cut off.
+    pub(crate) max_error_body: u64,
+    /// Once it is set, the request stops at the next read (within [`POLL`]).
+    pub(crate) cancel: Option<&'a std::sync::atomic::AtomicBool>,
+}
+
+/// Whether an error of [`post_stream`] says that its caller's flag stopped it.
+pub(crate) fn is_stopped(error: &NetError) -> bool {
+    matches!(error, NetError::Proto(ProtoError::Io(why)) if why.to_string() == STOPPED)
+}
+
+/// Whether an error of [`post_stream`] says that the answer didn't come in its time.
+pub(crate) fn is_late(error: &NetError) -> bool {
+    if is_too_slow(error) {
+        return true;
+    }
+    match error {
+        NetError::Proto(ProtoError::Io(why)) => {
+            let why = why.to_string();
+            why == FIRST_BYTE_LATE || why == IDLE_LATE
+        }
+        _ => false,
+    }
+}
+
+/// `text` with an IPv6 host that is an IPv4 address in disguise (`[::ffff:127.0.0.1]`) written
+/// as that IPv4 address, which is what is connected to; anything else as it is.
+pub(crate) fn unmapped(text: &str) -> String {
+    let text = text.trim();
+    let Some((scheme, rest)) = text.split_once("://") else { return text.to_string() };
+    let Some(inside) = rest.strip_prefix('[') else { return text.to_string() };
+    let Some((host, after)) = inside.split_once(']') else { return text.to_string() };
+    match host.parse::<std::net::Ipv6Addr>().ok().and_then(|v6| v6.to_ipv4_mapped()) {
+        Some(v4) => format!("{scheme}://{v4}{after}"),
+        None => text.to_string(),
+    }
+}
+
+/// `ip` when it is this machine's (127.0.0.0/8, `::1`, or an IPv4 loopback address mapped into
+/// IPv6, given back as IPv4); none otherwise.
+pub(crate) fn loopback_ip(ip: std::net::IpAddr) -> Option<std::net::IpAddr> {
+    use std::net::IpAddr;
+    match ip {
+        IpAddr::V4(v4) => v4.is_loopback().then_some(IpAddr::V4(v4)),
+        IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
+            Some(v4) => v4.is_loopback().then_some(IpAddr::V4(v4)),
+            None => v6.is_loopback().then_some(IpAddr::V6(v6)),
+        },
+    }
+}
+
+/// The addresses to connect to when every one of `resolved` is this machine's; none when there
+/// are none or any one is not.
+pub(crate) fn loopback_peers(resolved: &[std::net::SocketAddr]) -> Option<Vec<std::net::IpAddr>> {
+    if resolved.is_empty() {
+        return None;
+    }
+    resolved.iter().map(|address| loopback_ip(address.ip())).collect()
+}
+
+/// A plain connection to `url`'s server, which must be this machine: the name is looked up once,
+/// through `resolver`, every address it stands for must be a loopback address (else nothing is
+/// sent), and the connection is made to such an address itself, written as the address and not
+/// the name, so no second look-up can lead elsewhere (D-rebind).
+fn connect_loopback(url: &Url, patience: &transport::Patience, resolver: &dyn Resolve) -> Result<transport::Stream<'static>, NetError> {
+    let port = if url.port == 0 { 80 } else { url.port };
+    let resolved: Vec<std::net::SocketAddr> = resolver
+        .resolve(url.host.as_str(), port)
+        .map_err(|_| NetError::Connect { host: url.host.clone(), reason: "the name couldn't be looked up".into() })?
+        .into_iter()
+        .take(resolve::MAX_RESOLVED)
+        .collect();
+    let peers = loopback_peers(&resolved).ok_or_else(|| NetError::Config(NOT_LOOPBACK.into()))?;
+    let started = Instant::now();
+    let count = peers.len().min(MAX_LOOPBACK_ADDRESSES);
+    let mut failure = None;
+    for (index, ip) in peers.iter().take(count).enumerate() {
+        let left = patience.connect.saturating_sub(started.elapsed());
+        if left.is_zero() {
+            break;
+        }
+        let remaining = u32::try_from(count.saturating_sub(index)).unwrap_or(1).max(1);
+        let share = (left / remaining).max(Duration::from_millis(1));
+        let server = Server { host: ip.to_string(), port, security: Security::None };
+        match transport::open_with(&server, Service::Http, &transport::Patience { connect: share, ..*patience }, None) {
+            Ok((stream, _)) => return Ok(stream),
+            Err(error) => failure = Some(error),
+        }
+    }
+    Err(failure.unwrap_or_else(|| NetError::Connect { host: url.host.clone(), reason: "the server didn't answer".into() }))
+}
+
+/// Send `call` to `url` and hand its answer to `deliver` as it comes: the head, then the body in
+/// pieces. A success's body may be [`StreamCall::max_body`] long (longer is an error); any other
+/// answer's is cut at [`StreamCall::max_error_body`]. Redirects are given back, never followed.
+/// `tls` are the TLS settings for an `https://` address (`None`: the usual ones).
+pub(crate) fn post_stream(
+    url: &Url,
+    call: &StreamCall<'_>,
+    tls: Option<std::sync::Arc<rustls::ClientConfig>>,
+    deliver: &mut dyn FnMut(Piece<'_>) -> Flow,
+) -> Result<StreamOutcome, NetError> {
+    post_stream_via(url, call, tls, &SystemResolver, deliver)
+}
+
+/// [`post_stream`] with the name of a plain (`http://`) server looked up by `resolver`: the
+/// system's in the program, a test's own to show that what was checked is what is connected to.
+pub(crate) fn post_stream_via(
+    url: &Url,
+    call: &StreamCall<'_>,
+    tls: Option<std::sync::Arc<rustls::ClientConfig>>,
+    resolver: &dyn Resolve,
+    deliver: &mut dyn FnMut(Piece<'_>) -> Flow,
+) -> Result<StreamOutcome, NetError> {
+    use std::sync::atomic::Ordering;
+    check_method(call.method)?;
+    let deadlines = call.deadlines.clamped();
+    let begun = Instant::now();
+    let cancelled = || call.cancel.is_some_and(|flag| flag.load(Ordering::Relaxed));
+    if cancelled() {
+        return Err(problem(STOPPED));
+    }
+    let patience = transport::Patience { connect: deadlines.connect, io: deadlines.idle, command: MAX_STREAM_TOTAL };
+    let mut stream = if url.secure {
+        let server = Server { host: url.host.clone(), port: url.port, security: Security::Tls };
+        transport::open_with(&server, Service::Http, &patience, tls)?.0
+    } else {
+        connect_loopback(url, &patience, resolver)?
+    };
+    // A header or a body may carry secrets: nothing of the request is logged.
+    let head = head_of(call.method, url, call.headers, Some(call.body.len()), false);
+    if call.body.len() <= UPLOAD_CHUNK {
+        let mut all = head.into_bytes();
+        all.extend_from_slice(call.body);
+        write_all(&mut stream, &all)?;
+    } else {
+        write_all(&mut stream, head.as_bytes())?;
+        for piece in call.body.chunks(UPLOAD_CHUNK) {
+            if cancelled() {
+                return Err(problem(STOPPED));
+            }
+            if begun.elapsed() >= deadlines.total {
+                return Err(too_slow());
+            }
+            write_all(&mut stream, piece)?;
+        }
+    }
+    stream.flush().map_err(|e| io_problem(&e))?;
+    stream.wait_for(POLL).map_err(|e| io_problem(&e))?;
+    let mut polled = Polled { inner: &mut stream, cancel: call.cancel, begun, sent: Instant::now(), deadlines, heard: None, empty: 0 };
+    let mut reader = Reader { stream: &mut polled, buf: Vec::new(), start: 0, ended: false, started: begun, patience: deadlines.total };
+    let mut head = read_head(&mut reader)?;
+    for _ in 0..4 {
+        if !(100..200).contains(&head.status) {
+            break;
+        }
+        head = read_head(&mut reader)?;
+    }
+    if (100..200).contains(&head.status) {
+        return Err(nonsense("the server didn't answer"));
+    }
+    let said =
+        StreamHead { status: head.status, content_type: head.content_type.clone(), retry_after: head.retry_after.clone(), length: head.length };
+    if deliver(Piece::Head(&said)) == Flow::Stop {
+        return Ok(StreamOutcome { head: said, stopped: true, ..StreamOutcome::default() });
+    }
+    let success = (200..300).contains(&head.status);
+    let max = if success { call.max_body } else { call.max_error_body.min(call.max_body) };
+    let mut sink = Pieces { deliver, stopped: false, delivered: 0 };
+    let poured = pour_body(&mut reader, &head, max, !success, &mut sink);
+    log::debug!("{} answered {} ({} bytes, streamed)", url.host, said.status, sink.delivered);
+    match poured {
+        _ if sink.stopped => Ok(StreamOutcome { head: said, received: sink.delivered, truncated: false, stopped: true }),
+        Ok((received, truncated)) => Ok(StreamOutcome { head: said, received, truncated, stopped: false }),
+        Err(error) => Err(error),
+    }
+}
+
+/// The body of an answer whose head is `head`, into `sink`, at most `max` bytes of it: by its
+/// chunks, its length, or up to the end of the stream. With `truncate` an answer longer than
+/// that is cut there (and says so); without, it is an error. How many bytes went, and whether it
+/// was cut.
+fn pour_body<R: Read>(reader: &mut Reader<'_, R>, head: &Head, max: u64, truncate: bool, sink: &mut dyn Write) -> Result<(u64, bool), NetError> {
+    let too_long = || nonsense(&format!("{TOO_LONG} {} KB", max / 1024));
+    let garbled = || nonsense("the server's answer is garbled");
+    if matches!(head.status, 204 | 304) {
+        return Ok((0, false));
+    }
+    if head.chunked {
+        let mut written = 0u64;
+        // Every chunk but the last has at least one byte, so the limit also limits the rounds.
+        for _ in 0..=max {
+            let line = reader.line(256)?.ok_or_else(closed)?;
+            let line = String::from_utf8_lossy(&line);
+            let digits = line.split(';').next().unwrap_or("").trim();
+            if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_hexdigit()) {
+                return Err(garbled());
+            }
+            let size = u64::from_str_radix(digits, 16).unwrap_or(u64::MAX);
+            if size == 0 {
+                return Ok((written, false));
+            }
+            let room = max.saturating_sub(written);
+            if size > room {
+                if !truncate {
+                    return Err(too_long());
+                }
+                written = written.saturating_add(reader.pour(room, sink)?);
+                return Ok((written, true));
+            }
+            let poured = reader.pour(size, sink)?;
+            written = written.saturating_add(poured);
+            if poured < size {
+                return Err(closed());
+            }
+            match reader.line(2)? {
+                Some(rest) if rest.is_empty() => {}
+                Some(_) => return Err(garbled()),
+                None => return Err(closed()),
+            }
+        }
+        Err(too_long())
+    } else if let Some(length) = head.length {
+        if length > max && !truncate {
+            return Err(too_long());
+        }
+        let wanted = length.min(max);
+        let written = reader.pour(wanted, sink)?;
+        if written < wanted {
+            return Err(closed());
+        }
+        Ok((written, length > max))
+    } else {
+        let written = reader.pour(max, sink)?;
+        if !reader.pending().is_empty() || reader.fill()? {
+            return if truncate { Ok((written, true)) } else { Err(too_long()) };
+        }
+        Ok((written, false))
+    }
+}
+
+/// The pieces of a body, handed to the caller of [`post_stream`] as they are written.
+struct Pieces<'f, F: ?Sized> {
+    deliver: &'f mut F,
+    /// The caller said [`Flow::Stop`].
+    stopped: bool,
+    delivered: u64,
+}
+
+impl<F: FnMut(Piece<'_>) -> Flow + ?Sized> Write for Pieces<'_, F> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        if self.stopped {
+            return Err(std::io::Error::other(STOPPED));
+        }
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        match (self.deliver)(Piece::Body(buf)) {
+            Flow::Go => {
+                self.delivered = self.delivered.saturating_add(u64::try_from(buf.len()).unwrap_or(u64::MAX));
+                Ok(buf.len())
+            }
+            Flow::Stop => {
+                self.stopped = true;
+                Err(std::io::Error::other(STOPPED))
+            }
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// A connection read while an answer streams in: each read of the connection waits [`POLL`] at
+/// most, and between them the caller's flag and the deadlines are looked at. What it fails with
+/// says which: [`STOPPED`], [`FIRST_BYTE_LATE`], [`IDLE_LATE`], or a time-out for the whole.
+struct Polled<'s, S> {
+    inner: &'s mut S,
+    cancel: Option<&'s std::sync::atomic::AtomicBool>,
+    /// When the request began (before connecting), and when it had gone.
+    begun: Instant,
+    sent: Instant,
+    deadlines: Deadlines,
+    /// When the last byte came.
+    heard: Option<Instant>,
+    /// Reads in a row that brought nothing.
+    empty: u32,
+}
+
+impl<S: Read> Read for Polled<'_, S> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        use std::sync::atomic::Ordering;
+        loop {
+            if self.cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                return Err(std::io::Error::other(STOPPED));
+            }
+            if self.begun.elapsed() >= self.deadlines.total {
+                return Err(ErrorKind::TimedOut.into());
+            }
+            match self.heard {
+                None if self.sent.elapsed() >= self.deadlines.first_byte => return Err(std::io::Error::other(FIRST_BYTE_LATE)),
+                Some(at) if at.elapsed() >= self.deadlines.idle => return Err(std::io::Error::other(IDLE_LATE)),
+                _ => {}
+            }
+            match self.inner.read(buf) {
+                Ok(n) => {
+                    if n > 0 {
+                        self.heard = Some(Instant::now());
+                        self.empty = 0;
+                    }
+                    return Ok(n);
+                }
+                Err(e) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut | ErrorKind::Interrupted) => {
+                    self.empty = self.empty.saturating_add(1);
+                    if self.empty > MAX_EMPTY_POLLS {
+                        return Err(ErrorKind::TimedOut.into());
+                    }
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    }
 }
 
 #[cfg(test)]

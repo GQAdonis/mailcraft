@@ -1954,8 +1954,13 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
         Dialog::Confirm { command, params, ask } => {
             // The way of going ahead that was picked: what it adds to the parameters.
             let mut picked: Option<Value> = None;
+            // The gateway question (#ai) is found by its text, so that a script can tell it is open.
+            let gateway = command.as_str() == "ui.aiSettings" && params.get("gatewayProvider").is_some();
             let open = window(ctx, &ask.title, if ask.more.is_empty() { 420.0 } else { 480.0 }, |ui| {
-                ui.label(ask.text.as_str());
+                let said = ui.label(ask.text.as_str());
+                if gateway {
+                    app.hit.add("aiGatewayQuestion", 0, said.rect);
+                }
                 if let Some((_, note, hint)) = &mut ask.note {
                     let field = ui
                         .add(egui::TextEdit::multiline(note).hint_text(hint.as_str()).desired_rows(2).desired_width(f32::INFINITY).char_limit(2_000));
@@ -1987,8 +1992,10 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
                         if cancel.clicked() {
                             close = true;
                         }
-                        for (label, with) in ask.more.iter().rev() {
-                            if ui.add(egui::Button::new(label.as_str()).min_size(vec2(72.0, 26.0))).clicked() {
+                        for (i, (label, with)) in ask.more.iter().enumerate().rev() {
+                            let more = ui.add(egui::Button::new(label.as_str()).min_size(vec2(72.0, 26.0)));
+                            app.hit.add("questionMore", u64::try_from(i).unwrap_or(0), more.rect);
+                            if more.clicked() {
                                 picked = Some(with.clone());
                             }
                         }

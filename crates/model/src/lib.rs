@@ -9,6 +9,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 mod address;
+pub mod ai;
 pub mod auth_results;
 pub mod auto_replies;
 pub mod brands;

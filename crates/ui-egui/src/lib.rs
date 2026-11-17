@@ -49,6 +49,7 @@ mod agent_leaves_tests;
 mod agent_names_tests;
 #[cfg(test)]
 mod agent_undo_tests;
+mod ai;
 pub mod alerts;
 pub mod approval;
 #[cfg(test)]
@@ -272,6 +273,137 @@ pub use idle_watch::IdleWatch;
 pub use scheduling::{FreeBusyRequest, FreeBusyResult};
 pub use settings_notice::SettingsUnread;
 pub use unconfirmed::ConfirmedMailbox;
+
+// ── Model requests (#ai, ai-provider-layer 2.6): what the host is handed and what it offers ──
+
+/// A model request handed to the host (#ai): the engine's request (`ai.request`, `ai.ask`,
+/// `ai.narrow`), the accounts whose mail is in it, and the flag that stops it. The host sends it
+/// to the provider the owner set up, on a thread of its own, and hands back what comes
+/// ([`mailcraft_model::ai::ModelEvent`]) through the channel; the window takes each piece in with
+/// `ai.apply`, never the host's thread.
+pub struct ModelJob {
+    pub request: mailcraft_model::ai::ModelRequest,
+    /// The addresses (lower case) of the accounts its source messages are in, each once: a
+    /// remote provider is sent nothing unless the owner allowed it for every one of them.
+    /// [`LOCAL_MAIL`] for mail in no account; an empty string for a source no longer found
+    /// (which no provider elsewhere is ever allowed).
+    pub accounts: Vec<String>,
+    /// Set when the request is called off (`ai.cancel`, or the request is gone): the host
+    /// closes the connection at its next read.
+    pub cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+/// What [`ModelJob::accounts`] names mail in no account (local folders) by.
+pub const LOCAL_MAIL: &str = "local";
+
+/// Where the passages of the mailbox are embedded (#ai, `ai.embedRequest`): the active provider,
+/// its embeddings model, and the accounts whose mail may go to it (`None`: every account, a
+/// provider on this computer). The loop starts again whenever this changes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EmbedTarget {
+    pub provider: String,
+    pub model: String,
+    pub accounts: Option<Vec<String>>,
+}
+
+/// One batch of passages for the host to embed: their texts, in the batch's order, the accounts
+/// whose mail they are (a remote provider is sent nothing unless the owner allowed every one),
+/// and the flag that stops it.
+pub struct EmbedJob {
+    pub provider: String,
+    pub model: String,
+    pub texts: Vec<String>,
+    pub accounts: Vec<String>,
+    pub cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+/// Desktop: the model providers the owner set up (#ai), kept by the host in the settings folder
+/// (`ai.json`) without their keys, which go to the credential store alone. Every provider is
+/// handed over as JSON (`id`, `kind` "local"|"gateway"|"remote", `base_url`, `model`, `embedding_model`,
+/// `pinned_sha256`, `consented_accounts`, `timeouts`, `context_window`), never with a key.
+/// What touches the credential store runs on a background thread and answers through a channel;
+/// the rest answers at once. The window's settings screens, and an owner's script through the
+/// control channel, call these; an agent never does.
+pub trait AiProviders {
+    /// `{"active": provider id or "", "providers": [provider]}`.
+    fn providers(&self) -> Value;
+    /// Add a provider, or replace the one with its id. The consents are never taken from here
+    /// ([`AiProviders::set_consent`]); a provider whose address changes loses its consents and
+    /// its trusted certificate.
+    fn set_provider(&self, provider: &Value) -> Result<(), String>;
+    /// Remove a provider, its key with it.
+    fn remove_provider(&self, id: &str) -> Result<(), String>;
+    /// The provider requests go to ("" for none: nothing is sent).
+    fn set_active(&self, id: &str) -> Result<(), String>;
+    /// Allow (or no longer allow) a remote provider to be sent the mail of `account` (an address).
+    fn set_consent(&self, id: &str, account: &str, allowed: bool) -> Result<(), String>;
+    /// Keep `key` for provider `id` in the credential store.
+    fn save_key(&self, id: &str, key: String) -> Receiver<Result<(), String>>;
+    /// Take provider `id`'s key out of the credential store.
+    fn forget_key(&self, id: &str) -> Receiver<Result<(), String>>;
+    /// Whether the credential store keeps a key for provider `id`.
+    fn has_key(&self, id: &str) -> Receiver<Result<bool, String>>;
+
+    // ai-settings-ux (wave 3). Every one has a body here, so a host that doesn't carry them (the
+    // browser, the tests) still builds and offers nothing of them.
+
+    /// The pending level-2 gateway question, if any:
+    /// `{"provider": id, "address": url, "models": fingerprint of the list of models,
+    /// "publishers": [name…]}`.
+    fn gateway_question(&self) -> Option<Value> {
+        None
+    }
+    /// Answer the pending question for `provider` about the list of models whose fingerprint is
+    /// `models` (the string value of [`AiProviders::gateway_question`]'s `"models"`): an answer
+    /// for another provider or another list is refused. true: "Yes, It Does" (the provider
+    /// becomes a gateway with no consents). false: "No, It Doesn't" (remembered for that address
+    /// and model list).
+    fn answer_gateway(&self, _provider: &str, _models: &str, _sends_to_internet: bool) -> Result<(), String> {
+        Err(String::new())
+    }
+    /// Close the question unanswered (Not Now, Escape): nothing is sent, and it is asked again
+    /// next time.
+    fn dismiss_gateway_question(&self) {}
+    /// Choose the backup: "" (none) or "apple-on-device". Choosing a primary of None also clears
+    /// the backup.
+    fn set_backup(&self, _backup: &str) -> Result<(), String> {
+        Err(String::new())
+    }
+    /// Test the connection of a provider as typed in Options (its JSON, as
+    /// [`AiProviders::set_provider`] takes it; the key is the one kept for its id). Ok:
+    /// `{"models": [{"id", "contextWindow"?}], "contextWindow"?}`. Err: `{"kind": ErrorKind JSON,
+    /// "message", "providerText"?, "refusedModel"?}` written as a string: `message` is the host's
+    /// own words and never shown as the server's; `providerText` is what the provider itself
+    /// said, shown as data in the result's tooltip.
+    fn test_provider(&self, _provider: &Value) -> Receiver<Result<Value, String>> {
+        std::sync::mpsc::channel().1
+    }
+    /// The on-device model card's state: `{"state": "looking"|"found"|"using"|"changed"|
+    /// "notFound"|"off"|"unavailable", "candidates": [{"address", "model", "contextWindow"?}],
+    /// "confirmed": address or null}`. Nothing is probed while the backup is None.
+    fn on_device(&self) -> Value {
+        serde_json::json!({"state": "unavailable", "candidates": [], "confirmed": null})
+    }
+    /// Look for the on-device model now (when Options opens, or on a first question); answers
+    /// with the new state.
+    fn discover_on_device(&self) -> Receiver<Result<Value, String>> {
+        std::sync::mpsc::channel().1
+    }
+    /// Confirm one specific discovered address (Use It). Only a confirmed address is ever sent
+    /// anything.
+    fn confirm_on_device(&self, _address: &str) -> Receiver<Result<(), String>> {
+        std::sync::mpsc::channel().1
+    }
+    /// The "Look on ports" field: the owner's typed list, such as "11437, 8080". Err: the list
+    /// isn't one (the window says so in its own words).
+    fn set_device_ports(&self, _typed: &str) -> Result<(), String> {
+        Err(String::new())
+    }
+    /// "Stop Using It": forget the confirmed on-device address.
+    fn stop_using_on_device(&self) -> Result<(), String> {
+        Err(String::new())
+    }
+}
 
 /// Platform services injected by the host (file dialogs, downloads, servers, storage).
 #[derive(Default)]
@@ -585,6 +717,39 @@ pub struct Services {
     /// Web: told the interface language's code (`en`) whenever it changes, for the page's
     /// `<html lang>`.
     pub on_language: Option<Box<dyn Fn(&str)>>,
+    /// Desktop: send a model request (#ai) to the provider the owner set up, on a thread of the
+    /// host's ([`ModelJob`]), streaming what comes back through the channel and waking the UI.
+    /// The window hands every request of the session that is waiting to it, and takes what comes
+    /// in with `ai.apply`. Absent in the browser and the tests: requests then wait, and nothing
+    /// is sent ([`Services::can_ask_models`]).
+    pub model_request: Option<Box<dyn Fn(ModelJob) -> Receiver<mailcraft_model::ai::ModelEvent>>>,
+    /// Desktop: the model providers' settings, keys and consents ([`AiProviders`]). Absent in the
+    /// browser and the tests: no provider.
+    pub ai_providers: Option<Box<dyn AiProviders>>,
+    /// Desktop: where the mailbox's passages are embedded now ([`EmbedTarget`]), asked every frame
+    /// on the window's thread (it reads the settings, never the credential store); `None` when
+    /// the active provider has no embeddings model, or is elsewhere and allowed no account.
+    pub embed_target: Option<Box<dyn Fn() -> Option<EmbedTarget>>>,
+    /// Desktop: embed one batch ([`EmbedJob`]) on a thread of the host's: one vector a text, in
+    /// order, or why not (in our words). The window takes them in with `ai.embedApply`; a batch
+    /// that failed is not applied, and is offered again later.
+    pub embed_batch: Option<Box<dyn Fn(EmbedJob) -> Receiver<Result<Vec<Vec<f32>>, String>>>>,
+    /// Desktop: the vector of the owner's question (their own words, nothing of any message) and
+    /// the name of the model that made it, for `ai.ask`'s and `ai.retrieve`'s `queryVector` and
+    /// `embedder`; `None` when the active provider has no embeddings model or it failed. It
+    /// never blocks: the window waits a moment for the answer at most, else asks without it.
+    pub embed_query: Option<Box<dyn Fn(String) -> Receiver<Option<(Vec<f32>, String)>>>>,
+    /// Desktop: a number from the system's own random source (for `ai.ask`'s nonce): never
+    /// guessable from what came before. 0 only if the system's source failed. Absent in the
+    /// browser and the tests.
+    pub nonce: Option<Box<dyn Fn() -> u64>>,
+}
+
+impl Services {
+    /// Whether this build sends model requests at all (#ai).
+    pub fn can_ask_models(&self) -> bool {
+        self.model_request.is_some()
+    }
 }
 
 impl Services {
@@ -1075,6 +1240,42 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         r#"{"open"?: bool (open it, or close it; left out: open it when closed, close it when open), "search"?: bool (true: search with what the open panel says, and close it)}"#,
     ),
     (
+        "ui.findByDescription",
+        "Find by Description",
+        "Search",
+        r#"{"open"?: bool (left out: open it when closed, close it when open), "text"?: string (the description, at most 500 characters), "suggest"?: true (ask the model for a search: only the description goes, never mail), "query"?: string (a proposal put in the panel, as if it had come), "accept"?: true (run the proposal with `view.search`, in place of the search there was)} — the panel under the search box; the list changes only on "accept". Answers {"open", "stage": "ready"|"asking"|"proposal"|"trouble", "request", "text", "proposal"}. Never for agents"#,
+    ),
+    (
+        "ui.answers",
+        "Answers",
+        "Search",
+        r#"{"open"?: bool (left out: open it when closed, close it when open), "question"?: string (ask it, 1–2000 characters: the messages that seem to answer it go to the model; none found, nothing is sent), "stop"?: true (stop the answer being written)} — the Answers pane at the right of Mail, which starts clean each time it opens. Answers {"open", "stage": "idle"|"looking"|"writing"|"done"|"stopped"|"nothingFound"|"trouble", "request", "question", "sources": [{"number", "id"}]}. Never for agents"#,
+    ),
+    (
+        "ui.aiSettings",
+        "AI Assistance",
+        "File › Options",
+        r#"{"kind"?: "none"|"local"|"gateway"|"remote" (gateway and remote ask the owner first unless "confirmed": true; none also turns the backup off), "address"?: string, "model"?: string, "embeddingModel"?: string, "contextWindow"?: string|number (tokens, 256–1048576: a number outside is clamped, anything else is refused and not saved), "backup"?: "none"|"onDevice" (the backup that answers when the primary can't), "lookAgain"?: true (look for the on-device model now), "ports"?: string (the ports besides 11434 to look on, such as "11437, 8080"), "stopUsing"?: true (forget the confirmed on-device address), "gatewayAnswer"?: bool with "gatewayProvider": id, "gatewayAddress"?: string and "gatewayModels"?: string (the answer to the gateway question the host asks now: Yes, It Does or No, It Doesn't; refused when the question changed, its list of models' fingerprint being the current question's unless given)} — File › Options at AI assistance, with what is given typed in and used (an http address only for this computer; remote https only; a gateway on this computer only). Never a key. Answers {"kind", "primaryKind": "none"|"local"|"gateway"|"remote"|"never", "id", "address", "model", "embeddingModel", "problem", "active", "keyKept", "backup": "onDevice"|"none", "test": {"state": "idle"|"testing"|"ok"|"failed", "kind"?, "count"?}, "models": [id], "contextWindow", "contextWindowSource": "server"|"default"|"owner", "device": {"state": "looking"|"found"|"using"|"changed"|"none"|"off"|"na", "candidates": [address], "confirmed"?}, "asking": "remote"|"gateway"|"gatewayQuestion"|null}. The legacy hit kind `aiModel` stays on the Kind control. Never for agents"#,
+    ),
+    (
+        "ui.testProvider",
+        "Test Connection",
+        "File › Options",
+        r#"{"provider"?: string (a provider's id; left out: the one typed in File › Options)} — asks the provider for its list of models, with its kept key and nothing else; no mail is sent. The result shows on the page and in `ui.aiSettings`'s "test" and "models". Answers {"test": {"state"}}. Never for agents"#,
+    ),
+    (
+        "ui.confirmOnDevice",
+        "Use the On-Device Model",
+        "File › Options",
+        r#"{"address": string (one address the on-device model card found)} — makes that one address the backup: only a confirmed address is ever sent anything. Answers {"device"}. Never for agents"#,
+    ),
+    (
+        "ui.aiConsent",
+        "Allow an Account's Mail to Go to a Model",
+        "File › Options",
+        r#"{"account": string (an account's address), "allowed"?: bool (false: stop at once, calling off a question under way; true with "confirmed": true: allow it), "confirmed"?: bool} — whether a model service on the internet may be sent that account's mail with a question; without "allowed" (or without "confirmed") it asks the owner, whose default answer is no. Answers {"account", "allowed"}. Never for agents"#,
+    ),
+    (
         "ui.removeAllData",
         "Remove MailCraft's Data from This Computer",
         "File › Info",
@@ -1477,6 +1678,8 @@ pub struct MailApp {
     pub(crate) search_focus: bool,
     /// Advanced Search, while its panel is open under the search box (#329).
     pub(crate) advanced_search: Option<advanced_search::Panel>,
+    /// Find by Description, the Answers pane and File › Options › AI assistance (#ai).
+    pub(crate) ai: ai::AiUi,
     /// Whether the title bar had room for the search box when it was last drawn.
     pub(crate) search_box_shown: bool,
     /// The messages being written whose Bcc line is shown, by their ids (#286).
@@ -1759,6 +1962,11 @@ pub struct MailApp {
     pub(crate) remote_pictures: reading::RemotePictures,
     /// The one-click unsubscribe on its way, and what came of the last one (#1207).
     pub(crate) unsubscribing: reading::unsubscribe::Unsubscribing,
+    /// The model requests handed to the host (#ai), and the rest of the model work: the ids of
+    /// every request ever handed that the session still keeps, and the embedding loop
+    /// ([`MailApp::model_tick`]).
+    pub(crate) model_runs: Vec<ModelRun>,
+    pub(crate) model_handed: ModelBook,
     /// The pictures of the senders in the message list, as far as they have come.
     pub(crate) sender_images: sender_images::SenderImages,
     /// Letting go of memory while the main window is out of sight ([`out_of_sight`]).
@@ -1821,6 +2029,7 @@ impl MailApp {
             search_text: String::new(),
             search_focus: false,
             advanced_search: None,
+            ai: Default::default(),
             search_box_shown: false,
             compose_bcc: Default::default(),
             body_focus_wanted: None,
@@ -1939,6 +2148,8 @@ impl MailApp {
             windows: Default::default(),
             remote_pictures: Default::default(),
             unsubscribing: Default::default(),
+            model_runs: Vec::new(),
+            model_handed: Default::default(),
             sender_images: Default::default(),
             out_of_sight: Default::default(),
             text_selection: Default::default(),
@@ -2551,6 +2762,9 @@ impl MailApp {
                 None => Err("`value` is a percentage from 80 to 200".into()),
             },
             "ui.advancedSearch" => advanced_search::command(self, p),
+            "ui.findByDescription" | "ui.answers" | "ui.aiSettings" | "ui.aiConsent" | "ui.testProvider" | "ui.confirmOnDevice" => {
+                return ai::command(self, id, p);
+            }
             "ui.previewAttachment" => attachment_preview::command(self, p),
             "ui.focusSearch" => {
                 self.search_focus = true;
@@ -4696,6 +4910,8 @@ impl MailApp {
         self.poll_calendar_check();
         self.poll_free_busy();
         self.poll_sync();
+        // Model requests (#ai): handed to the host, their answers taken in.
+        self.model_tick(ctx);
         // (Before any other run can start: a shared mailbox being added goes first.)
         // Once MailCraft's data is removed nothing starts by itself any more: no Send/Receive,
         // no calendar run, no check for a new version (#177).
@@ -5161,6 +5377,9 @@ impl MailApp {
         // window's Escape ends the search (#329).
         advanced_search::follow(self);
         advanced_search::escape(self, &ctx);
+        // Find by Description and the Answers pane likewise, and what came for them (#ai).
+        ai::follow(self);
+        ai::escape(self, &ctx);
         // Shortcuts first, so the frame shows what the key did.
         keys::global_shortcuts(self, &ctx);
         if self.ui.backstage {
@@ -5179,7 +5398,11 @@ impl MailApp {
             nav::module_bar(self, ui);
             ribbon::show(self, ui);
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| match self.session.view.module {
-                mailcraft_engine::Module::Mail => mail_view::show(self, ui),
+                mailcraft_engine::Module::Mail => {
+                    // The Answers pane (#ai) at the right, before the rest takes the room.
+                    ai::answers::pane(self, ui);
+                    mail_view::show(self, ui)
+                }
                 mailcraft_engine::Module::Calendar => calendar_view::show(self, ui),
                 mailcraft_engine::Module::People => people_view::show(self, ui),
                 mailcraft_engine::Module::Tasks => tasks_view::show(self, ui),
@@ -5639,6 +5862,324 @@ pub fn now_ms() -> f64 {
     {
         let ms = js_sys::Date::now();
         if ms.is_finite() && ms > 0.0 { ms } else { 0.0 }
+    }
+}
+
+// ── Model requests (#ai, ai-provider-layer 2.6): handed to the host, answers taken in ──
+
+/// Most pieces of one request's answer taken in a frame: a fast model can't hold the window.
+const MODEL_EVENTS_A_FRAME: usize = 256;
+
+/// The embedding loop's waits: nothing left to embed (look again in a minute), between batches
+/// (the engine's walk runs on the window's thread), and after a failure, five seconds doubled
+/// each time up to ten minutes; after so many failures in a row it stops for that provider and
+/// model. One batch at a time, of 16 passages.
+const EMBED_IDLE_MS: f64 = 60_000.0;
+const EMBED_SPACING_MS: f64 = 300.0;
+const EMBED_MAX_FAILURES: u32 = 8;
+const EMBED_BACKOFF_MS: f64 = 5_000.0;
+const EMBED_MAX_BACKOFF_MS: f64 = 600_000.0;
+const EMBED_BATCH: u64 = 16;
+
+/// The model work besides the requests under way: the requests ever handed (that the session
+/// still keeps), and the embedding loop.
+#[derive(Default)]
+pub(crate) struct ModelBook {
+    handed: std::collections::BTreeSet<u64>,
+    embedding: Embedding,
+}
+
+/// The embedding loop: what it runs for (the target and the mailbox opening), the batch on its
+/// way, and when to ask again.
+#[derive(Default)]
+struct Embedding {
+    target: Option<(EmbedTarget, u64)>,
+    run: Option<EmbedRun>,
+    /// Not before this (`now_ms`).
+    next: f64,
+    failures: u32,
+    /// Given up on for this target (vectors that can never be taken in): until it changes.
+    stopped: bool,
+}
+
+impl Embedding {
+    /// The batch on its way is let go of, and its host told to stop.
+    fn stop(&mut self) {
+        if let Some(run) = self.run.take() {
+            run.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
+
+/// A batch handed to the host, and the channel its vectors come through.
+struct EmbedRun {
+    batch: u64,
+    model: String,
+    cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    vectors: Receiver<Result<Vec<Vec<f32>>, String>>,
+}
+
+/// A model request handed to the host, and the channel its answer comes through.
+pub(crate) struct ModelRun {
+    id: u64,
+    cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    events: Receiver<mailcraft_model::ai::ModelEvent>,
+}
+
+impl MailApp {
+    /// Every frame: requests called off (or gone with the mailbox) are stopped, the session's
+    /// waiting requests are handed to the host, and what came back is taken in with `ai.apply`,
+    /// here on the window's thread.
+    pub fn model_tick(&mut self, ctx: &egui::Context) {
+        self.model_calls_off();
+        self.model_start();
+        let mut runs = std::mem::take(&mut self.model_runs);
+        runs.retain(|run| self.model_drain(run));
+        // (Anything started while draining is kept too.)
+        runs.append(&mut self.model_runs);
+        self.model_runs = runs;
+        if !self.model_runs.is_empty() {
+            crate::software::repaint_after(ctx, std::time::Duration::from_millis(250));
+        }
+        self.embed_tick(ctx);
+    }
+
+    /// The runs whose request is no longer under way (`ai.cancel`, another mailbox) are told to stop.
+    fn model_calls_off(&mut self) {
+        let requests = &self.session.ai;
+        self.model_runs.retain(|run| {
+            let live = requests.get(run.id).is_some_and(|t| t.state.live());
+            if !live {
+                run.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+            live
+        });
+        self.model_handed.handed.retain(|id| requests.get(*id).is_some());
+    }
+
+    /// The requests waiting that the host hasn't been handed yet, handed to it.
+    fn model_start(&mut self) {
+        if self.services.model_request.is_none() {
+            return;
+        }
+        let waiting: Vec<mailcraft_model::ai::ModelRequest> = self
+            .session
+            .ai
+            .all()
+            .iter()
+            .filter(|t| t.state == mailcraft_model::ai::RequestState::Pending && !self.model_handed.handed.contains(&t.request.id))
+            .map(|t| t.request.clone())
+            .collect();
+        for request in waiting {
+            let (id, accounts) = (request.id, self.model_accounts(&request));
+            let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            let job = ModelJob { request, accounts, cancel: cancel.clone() };
+            let Some(start) = self.services.model_request.as_ref() else { return };
+            let events = start(job);
+            self.model_handed.handed.insert(id);
+            self.model_runs.push(ModelRun { id, cancel, events });
+        }
+    }
+
+    /// The accounts (by address, lower case, each once) of the messages `request` carries.
+    fn model_accounts(&self, request: &mailcraft_model::ai::ModelRequest) -> Vec<String> {
+        let mailbox = &self.session.mailbox;
+        let mut accounts: Vec<String> = Vec::new();
+        for id in &request.sources {
+            let address = match mailbox.message(*id) {
+                Some(message) => match mailbox.account(message.account) {
+                    Some(account) => account.email.trim().to_lowercase(),
+                    None => LOCAL_MAIL.to_string(),
+                },
+                None => String::new(),
+            };
+            if !accounts.contains(&address) {
+                accounts.push(address);
+            }
+        }
+        accounts
+    }
+
+    /// What came for `run` so far, taken in; whether it is still under way.
+    fn model_drain(&mut self, run: &ModelRun) -> bool {
+        use mailcraft_model::ai::ModelEvent;
+        for _ in 0..MODEL_EVENTS_A_FRAME {
+            match run.events.try_recv() {
+                Ok(event) => {
+                    let last = !matches!(event, ModelEvent::Delta { .. });
+                    self.model_apply(run.id, &event);
+                    if last {
+                        return false;
+                    }
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => return true,
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    if let Some(state) = self.session.ai.get(run.id).map(|t| t.state).filter(|s| s.live()) {
+                        // The host's thread went away without a word: nothing came, so the model
+                        // wasn't reached; or the answer broke off part-way, and what came stays.
+                        let kind = match state {
+                            mailcraft_model::ai::RequestState::Streaming => mailcraft_model::ai::ErrorKind::Malformed,
+                            _ => mailcraft_model::ai::ErrorKind::Unreachable,
+                        };
+                        let ended =
+                            ModelEvent::Error { kind, message: "The model request stopped before it was finished.".into(), provider_text: None };
+                        self.model_apply(run.id, &ended);
+                    }
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// `event` taken in for request `id` through `ai.apply`, as any host's would be.
+    fn model_apply(&mut self, id: u64, event: &mailcraft_model::ai::ModelEvent) {
+        let Ok(event) = serde_json::to_value(event) else { return };
+        if let Err(e) = self.session.run("ai.apply", &json!({"requestId": id, "event": event})) {
+            log::debug!("model request {id}: a piece of its answer wasn't taken in: {e}");
+        }
+    }
+}
+
+impl MailApp {
+    /// The embedding loop, every frame: while the active provider has an embeddings model, the
+    /// next batch of passages is asked of the engine (`ai.embedRequest`, only of the accounts the
+    /// provider may be sent), embedded on a host thread, and taken in (`ai.embedApply`). A change
+    /// of provider, model, consents or mailbox stops what is under way and starts again; a
+    /// failure is not applied (the batch comes again) and waits longer each time.
+    fn embed_tick(&mut self, ctx: &egui::Context) {
+        let target = if self.data_removed { None } else { self.services.embed_target.as_ref().and_then(|target| target()) };
+        let Some(target) = target else {
+            self.model_handed.embedding.stop();
+            self.model_handed.embedding = Embedding::default();
+            return;
+        };
+        let current = (target, self.session.openings());
+        if self.model_handed.embedding.target.as_ref() != Some(&current) {
+            self.model_handed.embedding.stop();
+            self.model_handed.embedding = Embedding { target: Some(current.clone()), ..Embedding::default() };
+        }
+        if self.model_handed.embedding.stopped {
+            return;
+        }
+        if self.model_handed.embedding.run.is_some() {
+            self.embed_take();
+            return;
+        }
+        let wait = self.model_handed.embedding.next - now_ms();
+        if wait > 0.0 {
+            // (Within the waits above, so the cast can't go wrong.)
+            crate::software::repaint_after(ctx, std::time::Duration::from_millis(wait.min(EMBED_MAX_BACKOFF_MS) as u64));
+            return;
+        }
+        self.embed_ask(&current.0);
+    }
+
+    /// The next batch asked of the engine and handed to the host.
+    fn embed_ask(&mut self, target: &EmbedTarget) {
+        if self.services.embed_batch.is_none() {
+            return;
+        }
+        let mut params = json!({"model": target.model, "max": EMBED_BATCH});
+        if let (Some(accounts), Some(object)) = (&target.accounts, params.as_object_mut()) {
+            object.insert("accounts".into(), json!(accounts));
+        }
+        let answer = match self.session.run("ai.embedRequest", &params) {
+            Ok(answer) => answer,
+            Err(e) => {
+                log::debug!("no batch to embed: {e}");
+                self.embed_after(false, false);
+                return;
+            }
+        };
+        let Some(batch) = answer.get("batch").and_then(Value::as_u64) else {
+            self.embed_after(true, true);
+            return;
+        };
+        let strings = |name: &str| -> Vec<String> {
+            answer
+                .get(name)
+                .and_then(Value::as_array)
+                .map(|list| list.iter().map(|x| x.as_str().unwrap_or_default().to_string()).collect())
+                .unwrap_or_default()
+        };
+        let texts: Vec<String> = answer
+            .get("items")
+            .and_then(Value::as_array)
+            .map(|items| items.iter().map(|item| item.get("text").and_then(Value::as_str).unwrap_or_default().to_string()).collect())
+            .unwrap_or_default();
+        let accounts = strings("accounts");
+        if texts.is_empty() {
+            self.embed_after(false, false);
+            return;
+        }
+        let model = answer.get("model").and_then(Value::as_str).unwrap_or(&target.model).to_string();
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let job = EmbedJob { provider: target.provider.clone(), model: model.clone(), texts, accounts, cancel: cancel.clone() };
+        let Some(start) = self.services.embed_batch.as_ref() else { return };
+        let vectors = start(job);
+        self.model_handed.embedding.run = Some(EmbedRun { batch, model, cancel, vectors });
+    }
+
+    /// The vectors of the batch on its way, when they came: taken in with `ai.embedApply`.
+    fn embed_take(&mut self) {
+        let Some(run) = self.model_handed.embedding.run.as_ref() else { return };
+        let came = match run.vectors.try_recv() {
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Ok(Ok(vectors)) => Some(vectors),
+            // (What went wrong names the provider's address: not logged.)
+            Ok(Err(_)) => {
+                log::debug!("a batch wasn't embedded");
+                None
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => None,
+        };
+        let Some(run) = self.model_handed.embedding.run.take() else { return };
+        let applied = came.map(|vectors| self.session.run("ai.embedApply", &json!({"batch": run.batch, "model": run.model, "vectors": vectors})));
+        match applied {
+            Some(Ok(_)) => self.embed_after(true, false),
+            Some(Err(e)) => {
+                // Only a batch asked for again since can come right later; vectors the engine
+                // refuses (their length, their model) are refused again however often they come.
+                if e.to_string().contains("no batch") {
+                    log::debug!("embedded passages came for a batch no longer waiting");
+                    self.embed_after(false, false);
+                } else {
+                    log::debug!("embedded passages were refused");
+                    self.embed_give_up();
+                }
+            }
+            None => self.embed_after(false, false),
+        }
+    }
+
+    /// When to ask for the next batch: at once after a batch went in, in a minute when there was
+    /// none, and after a failure five seconds, doubled each time, ten minutes at most.
+    fn embed_after(&mut self, went: bool, nothing_left: bool) {
+        let book = &mut self.model_handed.embedding;
+        let now = now_ms();
+        if went {
+            book.failures = 0;
+            book.next = now + if nothing_left { EMBED_IDLE_MS } else { EMBED_SPACING_MS };
+        } else {
+            book.failures = book.failures.saturating_add(1).min(16);
+            let doubled = EMBED_BACKOFF_MS * f64::from(1u32 << book.failures.saturating_sub(1).min(7));
+            book.next = now + doubled.min(EMBED_MAX_BACKOFF_MS);
+            if book.failures >= EMBED_MAX_FAILURES {
+                self.embed_give_up();
+            }
+        }
+    }
+
+    /// The embedding loop stops for this provider and model, and the owner is told: until either
+    /// changes nothing more is asked.
+    fn embed_give_up(&mut self) {
+        let book = &mut self.model_handed.embedding;
+        book.stop();
+        if !book.stopped {
+            book.stopped = true;
+            self.status(tl!("Indexing mail for search with the model provider stopped: its embeddings can't be used. Choose another embeddings model to try again.").to_string());
+        }
     }
 }
 

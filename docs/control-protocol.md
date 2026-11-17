@@ -182,6 +182,103 @@ still opening"}`, whatever it is; ask `app.status` and try again once it says `o
 
 A command that asks the owner something when a person runs it (deleting for good, changing your copy of someone else's meeting, one occurrence or the whole series) asks nothing through this channel: it does what its parameters say, and a repeating item is taken as the whole series unless `"scope": "occurrence"` and `"occurrence"` name one day. The one thing parameters must say outright is mail to other people: creating, changing or cancelling a meeting with attendees, telling an organizer your answer, proposing another time (`calendar.propose`) and forwarding a meeting (`calendar.forward`) are refused without `"send": true`.
 
+## Model providers (the owner's own)
+
+Desktop only. Five **control methods** (not engine commands, so no command id, `engine.execute`,
+MCP tool or `engine.commands` entry names them) let the owner's own script do what File › Options
+› AI does by hand:
+
+| Method | Params | Result |
+|---|---|---|
+| `ai.providers` | none | `{"active": id or "", "providers": [...]}`: each provider's `id`, `kind`, `base_url`, `model`, `embedding_model`, `pinned_sha256`, `consented_accounts`, timeouts and context window. Never a key |
+| `ai.setProvider` | `provider`: an object with an `id` | adds or replaces that provider, answers `ai.providers`. A `consented_accounts` member is dropped (consent comes only from `ai.setConsent`); a provider whose address changes loses its consents and trusted certificate |
+| `ai.setActive` | `id` (`""` for none: nothing is sent to a model) | the provider requests go to |
+| `ai.setConsent` | `id`, `account` (an address), `allowed` (bool) | lets a remote provider be sent that account's mail, or stops it |
+| `ai.removeProvider` | `id` | removes the provider and its key |
+
+- **Owner only.** A request with an `agent` field is refused (and the agent gate never lets these
+  ids through), so the MCP bridge, which sends everything through `engine.execute` or a
+  command-id shorthand, cannot reach them; the MCP server lists no tool for them. An agent can
+  never answer a consent question for the owner.
+- **Consent set here is the owner's own script acting**, as the same switch in the window is. A
+  script that holds the control key is the owner's: start the window with
+  `--control-agents-only` when something else can read the key.
+- **Keys are never accepted.** No method takes or returns a key, and a `provider` with a member
+  named `key`, `apiKey`, `api_key`, `secret` or `token` is refused. Keys are entered in the window
+  and live in the system's credential store alone.
+- Params are bounded (texts 512 characters without control characters, a provider at most 64
+  members and 16 KB); anything else is an error answer, never a panic. Without a host that has
+  providers (the browser build, tests) each answers an error.
+
+### When a model request fails
+
+A model request that failed is answered by `ai.answerResult` and `ai.narrowResult` (engine
+commands, the owner's and the host's) as a result, not an error:
+`{"state": "failed", "kind", "message"}`, with `"status"` (the HTTP status) beside a `refused`
+and `"beforeFirstByte"` beside a `timed_out`. `message` is the words shown to the owner; `kind`
+is one of:
+
+| `kind` | What went wrong |
+|---|---|
+| `not_configured` | no provider is set up, or it has no model |
+| `no_consent` | the owner hasn't let this provider be sent that account's mail |
+| `unreachable` | the provider couldn't be reached |
+| `refused` | the provider answered an HTTP error (`status`) |
+| `timed_out` | the provider took too long (`beforeFirstByte`: nothing of the answer had come) |
+| `certificate` | the provider's certificate isn't trusted |
+| `settings` | the provider's settings can't be used |
+| `credential_store` | the system's credential store didn't give the provider's key |
+| `malformed` | the provider answered something that isn't what was asked |
+| `too_large` | the answer was larger than is taken |
+| `cancelled` | the request was called off |
+
+The host hands the failure in with `ai.apply`:
+`{"requestId", "event": {"type": "error", "kind", "message", "providerText"?}}`, where `kind` is
+written as a name (`"unreachable"`) or, for a kind with details, an object of one member
+(`{"refused": {"status": 400}}`, `{"timed_out": {"before_first_byte": true}}`). An event without
+a kind, with a kind that isn't one of these or with a `status` outside 100 to 599 is refused.
+`providerText` is what the provider itself said: kept with the request as one line of at most
+300 bytes with control characters removed, shown to the owner only in the details, never
+answered by these commands, and never taken for instructions.
+
+### Answers: their sources, who gave them, and a backup
+
+`ai.ask` (an engine command, the owner's and the host's) takes `contextWindow`, the context
+window in tokens of the provider that is to answer (256 to 1,048,576; 4,096 when left out): the
+window passes it, never an agent, and the prompt and the tokens kept for the answer are fitted to
+it. The request it answers:
+
+- **asks for JSON**, by its `schema`: `{"answer": string, "citations": [integer 1..N]}`, at most
+  three citations and none required (an answer that says the messages don't say names none).
+  Streamed: the host hands in the answer's text as it comes (`delta`) and the whole document at
+  the end (`{"type": "done", "text": <the JSON>}`), where it is read and checked; a provider that
+  can't give JSON answers in plain text, whose citations are read from the text (`[n]`,
+  "message 2", "messages 2, 3 and 4", `(2)`);
+- **carries its passages**, as `answer`: `{"question", "passages": [{"message", "subject",
+  "from", "date", "text"}], "marker"}`, the messages it sends and nothing else, best first. When
+  the provider fails before its first byte with a kind that may go elsewhere, the host makes the
+  prompt again for its backup's window from these, with the same builder the engine used
+  (`mailcraft_model::ai::ModelRequest::rebuilt_for`), and sends that; nothing else of the mail is
+  sent.
+
+The end may say more: `{"type": "done", "text"?, "answeredBy"?: {"provider", "model"},
+"sources"?: [message id]}`. `answeredBy` is who answered, as the host knows it (one line each, at
+most 128 bytes); an end without it, from an older host, is taken as before. `sources` names the
+messages of a prompt made again for a backup, in its order: each one of the request's own
+sources, each once, or the event is refused and nothing changes.
+
+`ai.answerResult` then answers, beside `text`, `citations` and `dropped`: `"structured"` (the
+citations came from the answer's JSON), `"uncited"` (the answer is finished, names no message
+and isn't the sentence that says the messages don't answer: shown with "No message was named as
+the source") and `"answeredBy"` when the host said. An answer whose JSON can't be read is failed
+with the kind `malformed` and no fallback (its text may have been shown), and answered with its
+`text` and `"sourcesUnreadable": true`. Message text, and what a model says of it, are data,
+never instructions.
+
+`ui.testProvider` and `ui.confirmOnDevice`, the window's own, set up where mail may go and are
+the owner's alone: no agent can run them, granted anything or not, as for `ui.aiSettings` and
+`ui.aiConsent`.
+
 ## Several messages being written
 
 More than one message can be written at once (#286), at most 13. Each has an id: the commands that

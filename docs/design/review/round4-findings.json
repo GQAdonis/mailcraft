@@ -1,0 +1,98 @@
+{
+  "mode": "artifact",
+  "verdict": "BLOCK",
+  "judge_model": "mimo-v2.6-pro",
+  "producer_model": "claude-opus-5-5",
+  "isolation_mode": "rest-gateway (local, OpenAI-compatible)",
+  "cross_model_check": "unverified-producer-unknown",
+  "findings": [
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The Claude Code sign-in flow B5.5 builds can never report success, because §6.3 maps the OAuth result of `claude auth login --console` to a state §6.4 declares unusable.",
+      "evidence": "§6.3 table: \"`api_key`, `api_key_helper`, `third_party` → **usable**; `claude.ai`, `oauth_token` → **SubscriptionDeclined**\" — but §6.4 says MailCraft \"spawns `claude auth login --console`\" and then \"Success means `authMethod` is in the allow-list. A resulting `claude.ai` method is reported as declined.\", i.e. the Console login it starts produces `oauth_token`, which §6.3 already labels SubscriptionDeclined. The poll in §6.4 (\"every 2 s for up to 10 minutes\") therefore always times out, and a legitimate API-billed Console sign-in is reported to the owner as the forbidden subscription case.",
+      "suggested_fix": "Split the mapping: distinguish a Claude.ai/Pro-Max subscription credential from an API-billed Console OAuth credential by the fields `claude auth status` actually emits (e.g. `accountRole`/billing type), and state the exact predicate that makes one usable and the other `SubscriptionDeclined`; add that predicate to SCN-RT-AUTH-001 and to SCN-RT-AUTH-001's post-login fixture set."
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The terminal-error rule for SIWC refresh treats every 4xx as fatal, so a 429/408 rate limit permanently destroys the owner's ChatGPT sign-in, and SCN-RT-SIWC-002 asserts that wrong behaviour as correct.",
+      "evidence": "§6.2 Refresh: \"A **4xx** from the token endpoint is **terminal**: delete the entry, set status `SignInEnded`, turn the runtime off\"; SCN-RT-SIWC-002: \"4xx terminal clears the entry and disables; a 5xx retries\". 429 (rate limit) and 408 are 4xx, so a transient throttle deletes `ai.chatgpt`, disables the runtime and signs the owner out with \"OpenAI ended this sign-in\".",
+      "suggested_fix": "Restrict terminal handling to the OAuth grant errors the spec intends (e.g. `invalid_grant`/`invalid_client` and explicit revocation responses); classify 408/429 and other 4xx as transient with backoff. Add a negative-control fixture to SCN-RT-SIWC-002 asserting that a 429 keeps the entry and retries."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The SIWC client id has two mutually exclusive delivery mechanisms and no configuration surface, so the G-RT3 escape (\"hidden until a client id is configured\") cannot be implemented as written.",
+      "evidence": "§6.2: \"The client id ships in the binary.\" vs B5.7: \"hidden until a client id is configured (G-RT3)\" and G-RT3 (a): \"B7 code ships, runtime hidden until a client id is configured\". `ai.json` v3 (§3) has no client-id field, §10 has no command to set one, and a public PKCE client id that ships in the binary cannot later be \"configured\".",
+      "suggested_fix": "Pick one: either the id is a build-time constant and the runtime is gated on \"id != placeholder at build time\", or add a documented `ai.json`/credential entry and a §10 command for the client id (with the same hostile-input checks as paths)."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "G-RT11 (a) recommends adding an \"Anthropic API\" runtime as \"compat-style\", but `compat:*` is defined as OpenAI-compatible and cannot carry the Anthropic Messages API wire format, and the runtime appears in no goal, spec section, change or default.",
+      "evidence": "§2: \"`compat:<provider-id>` ... **Where** ... from the provider kind\" over \"`ProviderConfig` ... unchanged ProviderConfig list for compat:*\" (§3) and §1 \"OpenAI-compatible providers (what exists today)\", while B3 G-RT11 says \"(a) also add \\\"Anthropic API\\\" as a compat-style runtime\". §1 lists \"Seven runtime types\" with no Anthropic entry; no B5.x change, §13 scenario or §8 default mentions it.",
+      "suggested_fix": "Either drop G-RT11 (a), or spell it out as a new adapter (its own `crates/ai` module, recipe, `Where` = `leaves`, credential entry `ai.anthropic_api`, fuzz target, scenario) and add it to §1's list, §2, B5 and §13 so the count and the chain types stay consistent."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The owner's requested deliverable \"KBD prompts guiding a different Claude Code (Opus 5.5) agent\" is still owned by no change and the two plan sections disagree on where the prompts live.",
+      "evidence": "B0: \"**Prompts:** `prompts/`\" vs B9: \"`docs/design/prompts/` updated if the phase changed anything they say (gate answers, change ids, scenario ids)\"; B5.12 (`ai-runtime-docs`) covers only \"PRIVACY.md, threat-model, docs/log.d + release-notes fragments, docs/mcp.md\". The goal (\"an updated PLAN.md and KBD prompts guiding a different Claude Code (Opus 5.5) agent\") is therefore delivered by a conditional DoD line against an ambiguous path, with no change that produces the files.",
+      "suggested_fix": "State the real path once (B0 and B9), name the exact prompt files, and put the update in a B5 change (B5.12) rather than a conditional DoD line."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "B10 redefines Part A's status chip (A 5.4) state vocabulary but no scenario asserts it, so the change is untestable as specified.",
+      "evidence": "B10: \"A 5.4 (status chip) reads chain semantics after B. Its states become: \\\"AI off\\\" ... \\\"AI: on this computer\\\" ... \\\"AI: may leave for ‹accounts›\\\". B5.11 owns this update.\" The §13 table contains SCN-RT-BADGE-001 (\"Part A narrowing badge (A 5.7) names the runtime\") but nothing for the chip's three states or the \"how many are ready\" summary chip in §11.",
+      "suggested_fix": "Add SCN-RT-CHIP-001 asserting the three chip texts for: no enabled runtime, only local runtimes, and a consented `leaves` runtime (plus the no-consent case), and reference it from B5.11."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The `ask` and `stop` fallback policies in §9 have no acceptance scenario; only the `next` path is exercised, so the owner-facing error behaviour is untested.",
+      "evidence": "§9.2–3 define `next`, `ask` (\"show '‹A› couldn't answer (‹reason›). Try ‹B›?'\") and `stop` (\"show the error\"), and `ai.setFallback` accepts all three (§10), but §13 has only SCN-RT-CHAIN-001 (\"the next eligible one answers\") and no scenario naming `ask` or `stop`.",
+      "suggested_fix": "Extend SCN-RT-CHAIN-001 (or add SCN-RT-CHAIN-002) to run the same failing chain under `ask` and `stop`, asserting the prompt text/\"show the error\" and that no second run starts."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "The G-RT0 (b) escape hatch (do Part B first) only accounts for re-planning A 5.4, although B5.11 and B5.10 also modify A 5.7 and A 5.6, which would not exist yet.",
+      "evidence": "B0: \"If the owner wants B first, A 5.4 must be re-planned against the chain model (gate G-RT0).\" vs B5.11: \"status chip update (Part A 5.4); narrowing badge names the runtime (Part A 5.7, SCN-RT-BADGE-001)\" and B5.10: \"provenance list in the answer pane (extends child task 6.6)\" / B10: \"A 5.6 provenance gains the failed-runtime list (B5.10)\".",
+      "suggested_fix": "Extend the G-RT0 (b) condition to A 5.4, A 5.6 and A 5.7 together, or state that option (b) is only available if Part A's 5.6/5.7 land first."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The v2→v3 migration table now has two rows that both claim to handle `primary: None` with opposite outcomes, and it has no row for an absent/null backup.",
+      "evidence": "§3.1: \"primary explicitly None | chain with every entry disabled; `never_configured: false`\" versus \"`backup: \"<provider id>\"` ... → an enabled `compat:<id>` entry placed right after the primary's position (**or first, if the primary was None**)\" and \"`backup: \"apple-on-device\"` + confirmed `on_device` binding | `chain[1] = on_device`, enabled\". A v2 file with `primary: null` and a backup therefore yields either a fully disabled chain or an enabled backup entry depending on which row wins; nothing covers `backup: null`/absent.",
+      "suggested_fix": "State precedence explicitly (backup rows win over the \"every entry disabled\" row, or the reverse), add a row for `backup: null`/absent, and cover all four combinations in SCN-RT-MIGRATE-001."
+    },
+    {
+      "severity": "WARNING",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "The hostile-input rules for `ai.json` v3 itself have no scenario, unlike the v2 migration and path-override rules, so \"unknown runtime kinds dropped (never taken as local)\" is unverified.",
+      "evidence": "§3: \"size cap 256 KB; unknown runtime kinds dropped (never taken as local); every field checked\" — but §13 has SCN-RT-PATH-001 (path overrides) and SCN-RT-MIGRATE-001 (\"malformed v2\") only, with no fixture for a malformed/oversized v3 file, an unknown `runtime` string, or a v2/v4 `version` value.",
+      "suggested_fix": "Add SCN-RT-SETTINGS-001 covering: a >256 KB file, an unknown runtime kind in `chain`, a bad `version`, and junk in `consents`/`keys_kept_for`, asserting the file loads safely, the unknown entry is dropped and never resolves to `local`, and nothing panics."
+    },
+    {
+      "severity": "WARNING",
+      "file": "plan.md",
+      "claim": "B5.4 schedules process-group kill, Windows job objects and AppContainer/Landlock containment in a workspace where `unsafe` is forbidden, without naming the safe boundary that makes that buildable.",
+      "evidence": "Constraints: `no-unsafe` — \"'unsafe_code = \\\"forbid\\\" across the workspace; no unsafe blocks'\" (blocking, `cargo check`), plus `quality-gate-passes`. B5.4: \"process-group kill, spawn-time executable checks, **OS sandbox profiles (Seatbelt / Landlock / AppContainer)**\" and §7.1: \"Cancel kills the **whole process group** (Unix `setsid` + `killpg`; Windows job object)\" — Win32 job objects and AppContainer are unsafe FFI, and no B3 gate, B6 wave note or §4 layering row says whether this comes from a safe wrapper dependency or requires a lint exception.",
+      "suggested_fix": "State per platform which crate supplies the safe API (e.g. `nix` for `setsid`/`killpg`, a safe job-object/AppContainer wrapper) and add a gate/verification item that resolves it before W2; if a lint carve-out is needed, record it as a decision against `no-unsafe` instead of discovering it at `cargo xtask ci`."
+    },
+    {
+      "severity": "SUGGESTION",
+      "file": "AI-SETTINGS-SPEC.md",
+      "claim": "Two invocation details the recipes freeze are still marked \"verify\", so a failed verification silently changes the containment contract after the changes are scoped.",
+      "evidence": "§7.1: \"passed by path (e.g. `--system-prompt-file`; **verify** the flag at assess), or prepended to stdin when no file flag exists\" and §7.4: \"a policy overriding project config (verify the env var that points OpenCode at it)\", while §7.2 already hard-codes `--system-prompt-file <run-dir>/instructions.txt` and B5.5/B5.8 are scheduled in W3 from these recipes; §7.1's `sandbox-exec` note (\"verify it is still usable for this at assess\") is likewise already assigned to B5.4 in W2.",
+      "suggested_fix": "List these three verifications in the assess/analyze wave's explicit verification items (B6 row 1) and make B5.4/B5.5/B5.8 entry criteria depend on their outcome, so the fallback to stdin or to G-RT5 (b) is decided before the change is written."
+    }
+  ],
+  "judge_identity": {
+    "providerId": "xiaomi",
+    "modelId": "mimo-v2.6-pro"
+  }
+}

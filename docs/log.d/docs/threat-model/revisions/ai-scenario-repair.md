@@ -1,0 +1,1 @@
+| 2026-11-17 | minor | A model provider: a local server that is really a gateway, a look-alike on-device model, DNS rebinding of a model address, and a credential store that hangs, each with its residual risk |

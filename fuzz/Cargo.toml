@@ -225,3 +225,29 @@ path = "fuzz_targets/header_block.rs"
 test = false
 doc = false
 bench = false
+
+# A model server's event stream (`mailcraft_net::sse`), read in one piece and in two.
+[dependencies.mailcraft-net]
+path = "../crates/net"
+
+[[bin]]
+name = "sse"
+path = "fuzz_targets/sse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "markdown"
+path = "fuzz_targets/markdown.rs"
+test = false
+doc = false
+bench = false
+
+# A model's structured answer (`mailcraft_model::ai`): its text read as it streams, and the whole.
+[[bin]]
+name = "answer_json"
+path = "fuzz_targets/answer_json.rs"
+test = false
+doc = false
+bench = false

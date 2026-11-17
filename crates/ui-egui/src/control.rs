@@ -16,6 +16,8 @@
 //!
 //! A request the MCP bridge marked as an agent's (`agent`) goes through [`crate::agent_gate`].
 //! - `ui.parity`: feature catalog parity
+//! - `ai.providers`, `ai.setProvider {provider}`, `ai.setActive {id}`, `ai.setConsent {id, account, allowed}`,
+//!   `ai.removeProvider {id}`: the owner's model providers (`control/ai.rs`); no key goes in or out
 
 use std::sync::mpsc::Sender;
 
@@ -279,6 +281,9 @@ impl Drop for Driven<'_> {
     }
 }
 
+mod ai;
+#[cfg(test)]
+mod ai_tests;
 #[cfg(test)]
 mod tests;
 
@@ -396,6 +401,8 @@ fn dispatch(app: &mut MailApp, ctx: &egui::Context, req: &ControlRequest) -> Out
             }
             ok(json!({}))
         }
+        // The owner's own model-provider settings: never an engine command, never an agent's.
+        m if ai::is_ai_method(m) => ai::handle(app, req.agent.is_some(), m, p),
         "app.quit" => {
             app.quit_requested = true;
             ok(json!({}))

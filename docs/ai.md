@@ -1,0 +1,70 @@
+# AI assistance: model servers, what is sent, and what happens on failure
+
+> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-17 · **Change:** major · **Target:** Microsoft Outlook (Microsoft 365)
+
+MailCraft has no AI service of its own. Searching in words, answering questions from your mail and narrowing the message list work only with a model server you name in **File › Options › AI assistance**. Each one speaks the OpenAI-style chat API. This page says what each kind of server is sent and what MailCraft does when one fails. [PRIVACY.md](../PRIVACY.md) is the authority on privacy; this page explains the mechanics.
+
+## Kinds of model server
+
+| Kind | Where it runs | Connection | Before mail is sent |
+|---|---|---|---|
+| **On this computer** | A program on this computer (apfel serving Apple's on-device model, Ollama, LM Studio, …) | Loopback only (`127.0.0.1`, `::1`, `localhost`); may be plain HTTP | Nothing more is asked, but its model list is checked first (below) |
+| **Gateway on this computer** | A local proxy that forwards to the internet (LiteLLM, liter-llm, …) | Loopback, like the row above | Your yes for each account, as for an internet service |
+| **Internet service** | A provider on the internet or your network | HTTPS only; certificate pinning available | Your yes for each account |
+
+A key is kept only in the operating system's credential store, and only for a gateway or internet service. A model on this computer has no key field.
+
+### Is a "local" server really local?
+
+A program on loopback can pass everything on to the internet. Before MailCraft first sends a server set up as "on this computer" anything in a session, it reads that server's `GET /v1/models` list, with no mail and no key:
+
+- **Refused:** model names or `owned_by` values of known hosted providers (`anthropic`, `azure`, `bedrock`, `vertex_ai`, `gemini`, `groq`, `openrouter`, `dashscope`, `…-token`). Set such a server up as a gateway.
+- **Asked once:** any other publisher prefix (`openai/gpt-oss-20b`, `lmstudio-community/…`, `hf.co/…`), several different `owned_by` values, an `owned_by` of `openai` (LiteLLM's default), or names of hosted model families (`gpt-…`, `claude-…`, `gemini-…`, `qwen4-max`, …). Asked "Does this server send your mail to the internet?", with the answers *Yes, It Does* (it becomes a gateway), *No, It Doesn't* (remembered for this address and this model list) and *Not Now* (nothing is sent; you're asked again next time).
+- **Passed:** plain local names with no publisher prefix and no hosted model family (`llama3.2:latest`, `mistral:7b`).
+
+A list MailCraft can't read (an error, or not a model list) is not checked; a server that hides what it forwards to that way, or by listing plain names, looks local. Setting it up as a gateway is then up to you.
+
+## Primary and backup
+
+You choose a **primary** model server (or None) and a **backup**: Apple's on-device model, or None.
+
+- **Never set up:** MailCraft uses the on-device model, once it is found and you have confirmed it.
+- **Primary None:** nothing is sent anywhere, and the backup is off too.
+- **When the primary fails** before any of its answer has arrived, and the failure is one a second model can help with (unreachable, refused, timed out before the first byte, credential store unavailable), the backup answers. The answer says which model gave it, and that the primary didn't answer.
+- **No fallback** once part of an answer is on screen. Because the backup is always on this computer, it may also answer when the primary is refused for its settings or has no consent for the account, and it never sends mail anywhere else.
+
+### Finding the on-device model
+
+MailCraft looks for the on-device model only when File › Options opens or when you ask your first question, and never while the backup is None. It asks apfel's usual address (`127.0.0.1:11434`) and any ports you add for `/v1/models` and `/health`. These are loopback requests with no mail and no key.
+
+A server is the on-device model when its list is exactly `apple-foundationmodel` and its health answer has apfel's shape. Candidates are listed with a **Use It** button. Nothing is sent to an address until you press Use It for it. The identity is checked again at first use in each session and after any error (not before every request); if it changed, MailCraft stops using it and asks again.
+
+## Context window
+
+Each server's context window is read from its `/health` or `/v1/models` entry (`context_length`, `context_window`, `max_model_len`), clamped to 256–1,048,576 tokens. You can also type it in Options. The defaults are 4,096 on this computer and 32,768 for a gateway or internet service.
+
+The prompt is built for the window of the model that answers. When the backup takes over, MailCraft rebuilds the prompt for the backup's window from the same passages. That can drop or renumber passages, and citations follow the rebuilt numbering.
+
+## Structured answers
+
+Answers ask for `{"answer": "...", "citations": [1, 2]}`, with at most three citations. They are streamed: the answer text appears as it arrives, and the citations are read at the end.
+
+If a server rejects the requested format (HTTP 400), MailCraft steps down on the same server: JSON schema, then JSON object, then plain text, reading `[n]`, "message 2" and "(2)" for citations. It remembers the level that worked for the session.
+
+An answer that names no message is shown as "No message was named as the source". One whose citations can't be read keeps its text, marked "MailCraft couldn't read which messages this came from".
+
+## When something fails
+
+Every failure has a kind: `not_configured`, `no_consent`, `unreachable`, `refused` (with the HTTP status), `timed_out` (before or after the first byte), `certificate`, `settings`, `credential_store`, `malformed`, `too_large`, `cancelled`. The window's message comes from the kind, never from the server's wording. What the server said is kept under **Details** as text, never followed or run.
+
+A credential store that doesn't answer within 5 seconds fails the request as `credential_store` instead of freezing it.
+
+## Agents
+
+External agents (MCP, the control channel) may search mail read-only. They can't ask the model, change model servers, answer the gateway question, run Test Connection or confirm the on-device model. Those are the owner's alone.
+
+## Revision history
+
+| Date | Change | Summary |
+|---|---|---|
+| 2026-11-17 | major | New: model server kinds, primary and backup, finding Apple's on-device model, context windows, structured answers and their step-down, failure kinds, agents |

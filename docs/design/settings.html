@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MailCraft — AI assistance settings (agent runtimes)</title>
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
+   Put this @layer first; product CSS outside the layer wins ordinary layout rules.
+   Native hidden and closed-dialog states take precedence over component display rules. */
+@layer od-layout {
+  [hidden]:not([hidden="until-found" i]) { display: none !important; }
+  dialog:not([open]) { display: none !important; }
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+  .od-icon { display: inline-block; inline-size: var(--od-icon-size, 1em); block-size: var(--od-icon-size, 1em); flex: none; }
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }
+  .od-nowrap  { white-space: nowrap; }
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; }
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+:root [hidden]:where(:not([hidden="until-found" i])) { display: none; }
+/* /OD-LAYOUT-PRIMITIVES v1 */
+</style>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body class="settings-body">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7.5 18.5h10a4 4 0 0 0 .4-8A6 6 0 0 0 6.3 9.6a4.5 4.5 0 0 0 1.2 8.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m7 9.5 3 2.5-3 2.5M12.5 15h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-hub" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="20" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m6.6 7.3 3.4 3M17.4 7.3l-3.4 3M12 14.5V18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3L12 4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4.5M12 17v.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19 8a7.5 7.5 0 0 0-13.4-1.2M5 16a7.5 7.5 0 0 0 13.4 1.2M5 3.5v3.8h3.8M19 20.5v-3.8h-3.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6l-7-2.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="opt-window" role="dialog" aria-labelledby="optTitle">
+  <header class="opt-titlebar od-row">
+    <h1 id="optTitle" class="od-fill">MailCraft Options</h1>
+    <div class="seg-choice" role="group" aria-label="Theme">
+      <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </header>
+
+  <div class="opt-body">
+    <nav class="opt-side" aria-label="Options pages">
+      <button type="button" class="opt-link" data-toast="General is unchanged in this proposal.">General</button>
+      <button type="button" class="opt-link" data-toast="Mail is unchanged in this proposal.">Mail</button>
+      <button type="button" class="opt-link" aria-current="true">AI assistance</button>
+      <button type="button" class="opt-link" data-toast="Agents (MCP) is covered in the window prototype's Agents panel.">Agents</button>
+    </nav>
+
+    <main class="opt-main od-scroll" id="main">
+      <section class="opt-hero">
+        <h2>AI assistance</h2>
+        <p class="lead">MailCraft asks a model only when you ask a question, narrow a search or request a draft. It tries the runtimes below in order and stops at the first that can answer. Anything that leaves this computer needs your yes for each account.</p>
+        <div class="od-row summary" id="summary"></div>
+      </section>
+
+      <section class="opt-block" aria-labelledby="chainTitle">
+        <div class="od-row block-head">
+          <div class="od-fill">
+            <h3 id="chainTitle">Runtimes, in the order they are tried</h3>
+            <p class="help">Use the arrows to change the order. Off runtimes are skipped.</p>
+          </div>
+          <button class="btn quiet" type="button" id="rescan">
+            <svg class="od-icon"><use href="#i-refresh"/></svg>Look again
+          </button>
+        </div>
+        <ol class="chain" id="chain" aria-label="Runtimes in order"></ol>
+      </section>
+
+      <section class="opt-block" aria-labelledby="whenTitle">
+        <h3 id="whenTitle">When a runtime can't answer</h3>
+        <div class="od-stack" role="radiogroup" aria-labelledby="whenTitle" style="--od-gap:8px">
+          <label class="choice"><input type="radio" name="fallback" value="next" checked><span class="od-field"><span class="choice-title">Try the next one</span><span class="choice-help">Only runtimes already allowed for that account are tried. The answer says which one replied.</span></span></label>
+          <label class="choice"><input type="radio" name="fallback" value="ask"><span class="od-field"><span class="choice-title">Ask me first</span><span class="choice-help">MailCraft says which runtime failed and which it would try next.</span></span></label>
+          <label class="choice"><input type="radio" name="fallback" value="stop"><span class="od-field"><span class="choice-title">Stop and tell me</span><span class="choice-help">Nothing else is tried.</span></span></label>
+        </div>
+      </section>
+
+      <section class="opt-block" aria-labelledby="acctTitle">
+        <h3 id="acctTitle">Accounts and what may leave this computer</h3>
+        <p class="help">Runtimes on this computer can read every account. A runtime that sends text elsewhere (a subscription, an internet service) needs a yes for each account.</p>
+        <div class="acct-table" id="acctTable"></div>
+      </section>
+    </main>
+
+    <aside class="detail od-scroll" id="detail" aria-live="polite" hidden></aside>
+  </div>
+</div>
+
+<!-- Sign-in: Codex (ChatGPT plan) via the CLI's own device sign-in -->
+<dialog class="dlg dlg-signin" id="signinDlg" aria-labelledby="signinTitle">
+  <div class="dlg-body od-stack" style="--od-gap:16px" id="signinBody"></div>
+  <div class="dlg-foot od-row" id="signinFoot"></div>
+</dialog>
+
+<!-- Consent per account -->
+<dialog class="dlg dlg-consent" id="consentDlg" aria-labelledby="consentTitle">
+  <div class="dlg-body od-stack" style="--od-gap:16px">
+    <div class="od-row">
+      <svg class="od-icon warn-ink" style="--od-icon-size:22px"><use href="#i-cloud"/></svg>
+      <h2 id="consentTitle" class="dlg-title od-fill"></h2>
+    </div>
+    <dl class="facts" id="consentFacts"></dl>
+  </div>
+  <div class="dlg-foot od-row">
+    <span class="od-fill"></span>
+    <button class="btn quiet" type="button" id="consentNo" autofocus>Don't Allow</button>
+    <button class="btn primary" type="button" id="consentYes">Allow for this account</button>
+  </div>
+</dialog>
+
+<!-- Add an OpenAI-compatible provider -->
+<dialog class="dlg dlg-consent" id="addDlg" aria-labelledby="addTitle">
+  <div class="dlg-body od-stack" style="--od-gap:16px">
+    <h2 id="addTitle" class="dlg-title">Add an OpenAI-compatible provider</h2>
+    <div class="od-field form-field">
+      <label for="addName">Name</label>
+      <input id="addName" class="text-input" type="text" placeholder="e.g. OpenRouter">
+    </div>
+    <div class="od-field form-field">
+      <label for="addUrl">Address <span class="req">required</span></label>
+      <input id="addUrl" class="text-input" type="url" placeholder="https://… or http://localhost:…" aria-describedby="addUrlHelp addUrlErr">
+      <span id="addUrlHelp" class="help">On this computer: http://localhost or 127.0.0.1. Elsewhere: https:// only.</span>
+      <span id="addUrlErr" class="field-err" hidden></span>
+    </div>
+    <div class="od-field form-field" id="addKeyField">
+      <label for="addKey">Key</label>
+      <input id="addKey" class="text-input" type="password" autocomplete="off" aria-describedby="addKeyHelp">
+      <span id="addKeyHelp" class="help">Kept in the system keychain, never in MailCraft's files.</span>
+    </div>
+  </div>
+  <div class="dlg-foot od-row">
+    <span class="od-fill"></span>
+    <button class="btn quiet" type="button" id="addCancel">Cancel</button>
+    <button class="btn primary" type="button" id="addSave" disabled>Test and Add</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="settings.js"></script>
+</body>
+</html>

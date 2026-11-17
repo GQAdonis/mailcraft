@@ -2,13 +2,17 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! Removing everything MailCraft keeps on this computer (#177): File › Info › Remove MailCraft's
 //! data from this computer. The window stops writing and forgets the system's credential store
-//! entries first (`mailcraft_ui_egui::data_removal`); this is the host's part, the folders.
+//! entries first (`mailcraft_ui_egui::data_removal`); this is the host's part, the folders, and
+//! the keys of the model providers (#ai), which the host alone keeps: `ai-key:<provider id>`,
+//! every piece of it, for each provider `ai.json` names or noted a key for, taken out of the
+//! credential store before the folder (and `ai.json` with it) goes. One that stays is reported.
 //!
 //! ```text
 //! <settings>/                   (mailcraft_control_key::settings_dir: %APPDATA%\MailCraft,
 //!                                ~/Library/Application Support/MailCraft, ~/.config/mailcraft)
 //!     mailbox.mailcraft…        the mailbox, its content folder, its word index
 //!     ui.json, logs/, pictures/ the settings, the logs, the downloaded pictures
+//!     ai.json (and ai.json.new) the model providers (never their keys)
 //!     updates/ …                the update's downloads and the version kept to go back to
 //! <cache>/MailCraft/Attachments/    the attachments opened (`opened_files::base`)
 //! ```
@@ -43,6 +47,7 @@
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
+use mailcraft_host::SecretStore;
 use mailcraft_ui_egui::data_removal::{DataWipe, Why, WipeReport};
 
 /// Folders deeper than this are not walked (a mailbox's content folder is two deep).
@@ -131,6 +136,8 @@ pub struct Wipe {
     pub roots: Roots,
     /// The downloaded pictures kept on disk, told to write nothing before their folder goes.
     pub pictures: Option<std::sync::Arc<crate::picture_cache::Cache>>,
+    /// The credential store the model providers' keys are kept in (#ai).
+    pub secrets: Option<std::sync::Arc<dyn SecretStore>>,
 }
 
 impl DataWipe for Wipe {
@@ -143,10 +150,32 @@ impl DataWipe for Wipe {
         if let Some(logger) = crate::logging::current() {
             logger.no_file();
         }
-        let report = erase(&self.roots, mailbox);
+        // The providers' keys first: which they are is read from `ai.json`, which goes with the folder.
+        let keys_left = forget_ai_keys(&self.roots, self.secrets.as_deref());
+        let mut report = erase(&self.roots, mailbox);
+        report.failed.extend(keys_left);
         log::info!("MailCraft's data was removed from this computer ({} entries, {} problems)", report.removed, report.failed.len());
         report
     }
+}
+
+/// Take every model provider's key (#ai) out of `store`: `ai-key:<id>` for each provider id the
+/// settings folder's `ai.json` names or noted a key for, every piece of it (the store's own
+/// `delete`). What is still there afterwards (or can't be looked at) is a line of the report,
+/// named as the window names the entries it couldn't remove.
+pub fn forget_ai_keys(roots: &Roots, store: Option<&dyn SecretStore>) -> Vec<(String, Why)> {
+    let (Some(settings), Some(store)) = (roots.settings.as_deref(), store) else { return Vec::new() };
+    let mut left = Vec::new();
+    for id in crate::ai::settings::key_owners(&settings.join(crate::ai::settings::FILE)) {
+        let Ok(name) = crate::ai::keys::entry_name(&id) else { continue };
+        let gone = crate::ai::keys::forget(store, &id).is_ok() && matches!(store.read(&name), Ok(None));
+        if !gone {
+            // The window's own words for the entries it couldn't remove, in the interface language.
+            let line = mailcraft_ui_egui::tl!("The system's credential store: {key}").replace("{key}", &name);
+            left.push((line, Why::Io(mailcraft_ui_egui::tl!("it could not be removed").to_string())));
+        }
+    }
+    left
 }
 
 /// Remove everything under `roots`; `mailbox` is the file the window had open.
@@ -168,7 +197,12 @@ pub fn erase(roots: &Roots, mailbox: Option<&Path>) -> WipeReport {
         // The file, and what sits beside it (its content folder and word index): all private
         // mail, all left, all said.
         report.left.push((file.display().to_string(), Why::KeptByOwner));
-        for beside in [mailcraft_engine::store::blob_dir(file), mailcraft_engine::store::words_file(file)] {
+        let derived = [
+            mailcraft_engine::store::blob_dir(file),
+            mailcraft_engine::store::words_file(file),
+            mailcraft_engine::retrieval::vectors::vectors_file(file),
+        ];
+        for beside in derived {
             if fs::symlink_metadata(&beside).is_ok() {
                 report.left.push((beside.display().to_string(), Why::KeptByOwner));
             }
@@ -192,7 +226,8 @@ fn inside(file: &Path, settings: Option<&Path>) -> bool {
 /// without a mailbox (harmless, swept) and never a mailbox without its content.
 fn tier(name: &str, is_dir: bool) -> u8 {
     let mailbox = name.starts_with("mailbox.");
-    match (mailbox, is_dir || name.ends_with(".words")) {
+    // (Its word index and its vectors, #ai, are what it derives: they go after it.)
+    match (mailbox, is_dir || name.ends_with(".words") || name.ends_with(".vectors")) {
         (true, false) => 0,
         (true, true) => 1,
         _ => 2,

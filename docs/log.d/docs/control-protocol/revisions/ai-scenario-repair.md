@@ -1,0 +1,1 @@
+| 2026-11-17 | minor | `ai.answerResult` / `ai.narrowResult`: a failed request answers `{"state":"failed","kind","message"}`; `ai.answerResult` adds `answeredBy`, `uncited`, `structured` and `sourcesUnreadable`; `ai.ask` `contextWindow` is 256–1,048,576; `ui.testProvider` and `ui.confirmOnDevice` (owner only); `answerText` in `ui.inspect` (geometry only) |

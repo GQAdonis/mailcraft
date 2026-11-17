@@ -66,8 +66,13 @@ mod pinned;
 mod push;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod report;
+// How a model server's name is looked up, once (#ai, D-rebind).
+#[cfg(not(target_arch = "wasm32"))]
+mod resolve;
 #[cfg(not(target_arch = "wasm32"))]
 mod send;
+// Server-Sent Events, as a model server streams its answer (#ai): bytes in, events out, no I/O.
+pub mod sse;
 #[cfg(not(target_arch = "wasm32"))]
 mod sync;
 #[cfg(not(target_arch = "wasm32"))]

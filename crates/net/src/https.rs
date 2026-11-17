@@ -231,6 +231,90 @@ fn response(reply: http::Reply) -> Response {
 /// What a person is shown about a certificate (re-exported for hosts).
 pub use crate::cert::CertificateInfo;
 
+pub use crate::http::{Deadlines, Flow, Piece, StreamHead, StreamOutcome};
+
+/// A request whose answer is read as it comes: a model server's answer, streamed (#ai).
+///
+/// The rules are [`send`]'s: TLS, with the owner's one trusted certificate when [`trusted`]
+/// names it, or plain HTTP only to this machine, and then only when every address the name stands
+/// for is a loopback address (127.0.0.0/8, `::1`, or IPv4's mapped into IPv6), which is what is
+/// connected to (the name is looked up once). No redirect is followed. Each header value loses its
+/// control characters (CR, LF and NUL among them) and nothing of the request is logged.
+///
+/// [`trusted`]: StreamRequest::trusted
+#[derive(Clone, Copy)]
+pub struct StreamRequest<'a> {
+    /// `POST`, usually.
+    pub method: &'a str,
+    /// An `https://` address, or `http://` to this machine. No user name, no fragment.
+    pub url: &'a str,
+    /// The header fields to send (`Authorization` among them): sent, never logged.
+    pub fields: &'a [(&'a str, &'a str)],
+    /// The body.
+    pub body: &'a [u8],
+    /// The SHA-256 fingerprint of the one certificate the owner chose to trust; empty for none.
+    pub trusted: &'a str,
+    /// How long connecting, the first byte, a silence and the whole may take.
+    pub deadlines: Deadlines,
+    /// The most body bytes taken of a success: an answer that is longer is an error.
+    pub max_response: u64,
+    /// The most body bytes taken of any other answer: the rest is not read.
+    pub max_error_response: u64,
+    /// Once it is set the request stops at the next read (within a fifth of a second) and the
+    /// connection is closed: the error then says so ([`is_stopped`]).
+    pub cancel: Option<&'a std::sync::atomic::AtomicBool>,
+}
+
+impl std::fmt::Debug for StreamRequest<'_> {
+    /// The method and the body's length: no address, no credential, no content.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamRequest").field("method", &self.method).field("body_len", &self.body.len()).finish()
+    }
+}
+
+/// Performs `request` and hands its answer to `deliver` as it comes: [`Piece::Head`] once, then
+/// [`Piece::Body`] pieces. `deliver` may say [`Flow::Stop`] at any piece; the connection is then
+/// closed and the outcome says it was stopped. A redirect is given back as its status, never
+/// followed.
+///
+/// An error is a [`NetError`]: [`NetError::Config`] for an address that may not be spoken to
+/// (plain HTTP to anything but this machine) before anything is sent, [`NetError::Certificate`]
+/// for a certificate that isn't accepted, a stop ([`is_stopped`]), a deadline ([`is_timeout`]),
+/// and the usual connection and protocol errors.
+pub fn stream(request: &StreamRequest<'_>, deliver: &mut dyn FnMut(Piece<'_>) -> Flow) -> Result<StreamOutcome, NetError> {
+    let url = Url::parse(&http::unmapped(request.url))?;
+    let pin = pin_of(request.trusted)?;
+    let call = http::StreamCall {
+        method: request.method,
+        headers: request.fields,
+        body: request.body,
+        deadlines: request.deadlines,
+        max_body: request.max_response,
+        max_error_body: request.max_error_response,
+        cancel: request.cancel,
+    };
+    if !url.secure {
+        return http::post_stream(&url, &call, None, deliver);
+    }
+    let (config, verifier) = crate::tls::pinned_config(pin).map_err(|reason| NetError::Tls { host: url.host.clone(), reason: reason.into() })?;
+    match http::post_stream(&url, &call, Some(config), deliver) {
+        // A handshake that stopped at the certificate says which, and why.
+        Err(error @ NetError::Tls { .. }) => Err(verifier.take_problem().map_or(error, |problem| NetError::Certificate(Box::new(problem)))),
+        other => other,
+    }
+}
+
+/// Whether `error` says that a [`stream`]ed request was stopped by its caller's flag.
+pub fn is_stopped(error: &NetError) -> bool {
+    http::is_stopped(error)
+}
+
+/// Whether `error` says that a [`stream`]ed request's answer didn't come in its time: the first
+/// byte, a silence, or the whole.
+pub fn is_timeout(error: &NetError) -> bool {
+    http::is_late(error)
+}
+
 /// The problem with the server's certificate behind `error`, when that is what it is.
 pub fn certificate_problem(error: &NetError) -> Option<&CertificateProblem> {
     match error {
@@ -242,3 +326,7 @@ pub fn certificate_problem(error: &NetError) -> Option<&CertificateProblem> {
 #[cfg(test)]
 #[path = "https_tests.rs"]
 mod https_tests;
+
+#[cfg(test)]
+#[path = "https_stream_tests.rs"]
+mod https_stream_tests;

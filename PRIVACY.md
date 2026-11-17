@@ -67,7 +67,7 @@ send ([Problem reports](#problem-reports)).
 
 ## What the program connects to, and when
 
-MailCraft connects only to these, over encrypted connections:
+MailCraft connects only to these, over encrypted connections (the one exception is a model server you set up on this computer itself, [AI model servers](#ai-model-servers)):
 
 | What | When | What is sent |
 |---|---|---|
@@ -85,6 +85,7 @@ MailCraft connects only to these, over encrypted connections:
 | The certificate authority that issued a server's certificate, on Windows and macOS | When a server MailCraft connects to leaves out the intermediate certificate its own was issued by: the system fetches it from the address the certificate names, as it does for other programs (and may ask whether the certificate was revoked) | Nothing of yours: the authority learns only which of its certificates a server on the way uses |
 | GitHub's API (`api.github.com`), to see whether a new version is out | Off unless you turn it on (the program asks once, and the switch in File › About changes it): then at most once a day; and whenever you press Check for Updates in File › About | One request for the newest release of MailCraft's repository (`GET /repos/UCS-Care-Group/mailcraft/releases/latest`), with nothing about you, your accounts, your mail or this computer in it, not even the version you run |
 | GitHub's release downloads (`github.com`, and `objects.githubusercontent.com` or `release-assets.githubusercontent.com`, where GitHub sends those), to download a new version | Only for a copy installed from the Windows `.msi`, the macOS app or a Linux AppImage, while the daily check is on and File › About › Install updates automatically is on (as it is unless you, or your organisation, turn it off); when a check finds a newer release | Requests for three files of that release: its list of checksums, the signature over it, and the package for your kind of computer. Nothing about you, your accounts, your mail or the version you run. The package is kept in the program's own folder, installed only when MailCraft's release signature says it is the project's own (when you press Restart to update, or when you quit), and deleted otherwise. Installing it connects to nothing |
+| A model server you configure for search and answers, in the desktop app ([AI model servers](#ai-model-servers)) | Off unless you set one up in File › Options; then only when you ask a question or narrow the list in words, and, if you also set up an embeddings address, while your mail is prepared for meaning-based search. A server on another computer is used for an account's mail only after you said yes for that account | For narrowing: only what you typed and the shape of a search, never mail. For a question: what you typed and the passages of your own mail found for it, from accounts you allowed. Never your passwords, sign-in tokens or what a sender hid in a message |
 | The project's report relay (`mailcraft.work/api/report`), in the desktop app | Only when you press Send report (or Try again) in Help › Report a Problem; never by itself, never again by itself, and never for a script or an agent | One request, over HTTPS, with what the window showed you: the title, what you wrote, MailCraft's version and your platform, the GitHub username if you gave one, and the diagnostics if you left them ticked. No account, address, mailbox name, computer name or identifier, no cookie, no sign-in. The relay sees your IP address, as any web server does ([Problem reports](#problem-reports)) |
 
 Nothing in a message runs, and nothing in a message is fetched unless you ask for its pictures, or ask to unsubscribe from a list in one click (then only the list's address is told, as above). A message's own style sheet is read for how the message looks (colours, sizes, spacing, what the sender hid), but nothing in it is ever fetched: a sheet's `@import`, its fonts and its pictures are ignored, and a link it styles is never shown as visited. Its `@media` rules are tested against two things on your own computer and nothing else: how wide the message is laid out in the reading pane, and whether your window is dark; the program sends neither to anyone. One consequence to know: once you allow pictures, a message can show a different picture in a dark window, or at each of several widths, and the picture for the look on screen is fetched, so its server can tell from which address was asked for that your window is dark and how wide the message is laid out, to within a few pixels (it is told nothing else, and nothing is fetched until you allow pictures). What a sender hid in a message (a line of preview text, the other copy of a desktop and mobile pair) is not shown to you and is not quoted in your replies, but it is kept with the message on your computer, so that your search and your rules can find it, and it is what an agent you have allowed to read your mail is given as the message's text. The one other thing fetched for your mail is a sender's picture, and only once you turn sender images on.
@@ -174,6 +175,66 @@ including the Limited Use requirements.
 You can take the permissions back at any time at <https://myaccount.google.com/permissions>;
 MailCraft then asks you to sign in again the next time it needs them. File › Info › Remove
 MailCraft's data from this computer removes your mail and every stored sign-in from your computer.
+
+## AI model servers
+
+MailCraft has no AI service of its own and sends nothing to one by itself. Search, answers and
+narrowing the list in words work only once you name a model server in File › Options, and you
+choose which:
+
+- **A model server on this computer** (for example one serving Apple's on-device model, or any
+  program that answers OpenAI-style requests at a local address). Its address must lead back to
+  this computer (`127.0.0.1`, `::1`, `localhost`): MailCraft looks the name up once, checks the
+  address it actually connects to, follows no redirect, and refuses anything else. Because the
+  request never leaves your computer it may be unencrypted; your mail still goes to that program,
+  so use one you trust. Before it first sends such a program anything in a session, MailCraft asks
+  it for its list of models (a request with no mail and no key). A program whose list shows it
+  passes requests on to an internet service (model names like `anthropic/…`, `openrouter/…` or
+  `…-token/…`) is refused as "on this computer": set it up as a gateway instead. When the list
+  could be either, MailCraft asks you once whether it sends your mail to the internet, and
+  remembers your answer for that address and that list; until you answer, nothing is sent. A
+  program that gives no readable list of models, or lists plain model names while it forwards,
+  looks local to MailCraft: set such a program up as a gateway yourself.
+- **A gateway on this computer that sends your mail to the internet** (a local proxy such as
+  LiteLLM that forwards to providers on the internet). It is reached at a local address like a
+  model server on this computer, but it is treated like a server elsewhere: an account's mail goes
+  through it only after you said yes for that account, because the gateway hands it on to whatever
+  provider it is set up for (for example Alibaba Cloud), under that provider's terms.
+
+Test Connection in File › Options asks the server you typed for its list of models; for a
+gateway or a server elsewhere it sends the key kept for that server (never mail), and only to the
+same address and kind you saved it for.
+- **A model server elsewhere** (a provider on the internet or on your network). It is reached only
+  over HTTPS, and you can pin its certificate. Its key is kept in your operating system's
+  credential store, never in the mailbox file, the settings or a log. Mail of an account goes to
+  it only after you said yes for that account, in a screen that says what is sent and to whom;
+  you can take that back at any time, and nothing more is sent for that account from then on.
+  File › Info › Remove MailCraft's data deletes the model servers' settings and every key
+  MailCraft saved for them (it keeps the names of those entries, never the keys, to find them).
+
+What is sent: to narrow the list, only the words you typed and a description of MailCraft's
+search language; never mail. To answer a question, the words you typed and the passages of your
+own mail that MailCraft's search found for it (at most a few dozen short passages), from accounts
+you allowed. What a sender hid in a message, your passwords and your sign-in tokens are never
+sent. The answer comes back to your computer and is shown as plain text with the messages it
+cites; nothing in it runs, is fetched or is sent, and it can be wrong. The provider's own
+privacy terms apply to what you send it.
+
+**A backup on this computer.** You can let Apple's on-device model (served by a program on this
+computer, such as apfel) answer when your chosen model server can't, or when you set none up.
+MailCraft looks for it only when you open File › Options or ask your first question, and never
+while the backup is set to None: it asks the usual local addresses for their list of models and
+their health (requests with no mail and no key, to this computer only). A program it finds is only
+listed; nothing is sent to it until you press Use It for that address, and MailCraft checks again
+that the same program answers there when it is first used in a session and after any error. When the backup answers,
+the answer says which model gave it. The backup is used only before any of the first model's
+answer arrives, and mail for an account you haven't allowed never goes anywhere but this
+computer.
+
+If you also give an embeddings address, MailCraft asks it for numbers describing your messages'
+passages so that it can find mail by meaning; the same rules apply (this computer, or elsewhere
+only for accounts you allowed), and the numbers are kept beside the mailbox file, from which they
+can be rebuilt or removed.
 
 ## Problem reports
 
@@ -295,7 +356,9 @@ not in a release yet are marked "when the app is released".
 
 MailCraft can be driven by scripts and AI agents through a control channel and an MCP server.
 Both are off unless you start the program with them, listen on your own computer only, and take
-requests only with a key the program keeps in a file in your settings folder.
+requests only with a key the program keeps in a file in your settings folder. An agent can search
+your mail (it receives what it finds, marked as message text, never instructions), but it cannot
+ask your model server anything or act on an answer: questions to a model server are yours alone.
 
 ## Changes and contact
 

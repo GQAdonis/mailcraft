@@ -289,7 +289,7 @@ fn a_removal_stops_the_pictures_from_writing_and_marks_the_data_as_removed() {
     let scratch = Scratch::new("pictures");
     fill(&scratch);
     let pictures = crate::picture_cache::Cache::at(scratch.join("config/mailcraft/pictures"));
-    let wipe = Wipe { roots: roots(&scratch), pictures: Some(pictures.clone()) };
+    let wipe = Wipe { roots: roots(&scratch), pictures: Some(pictures.clone()), secrets: None };
     assert!(!begun() && may_install_at_exit(false));
 
     wipe.erase(None);
@@ -303,4 +303,104 @@ fn a_removal_stops_the_pictures_from_writing_and_marks_the_data_as_removed() {
     assert!(!pictures.put("https://example.org/a.png", &png));
     pictures.flush();
     assert!(!scratch.join("config/mailcraft").exists());
+}
+
+/// A credential store in memory; a `stubborn` one lets nothing go.
+#[derive(Default)]
+struct Memory {
+    entries: std::sync::Mutex<std::collections::BTreeMap<String, String>>,
+    stubborn: bool,
+}
+
+impl SecretStore for Memory {
+    fn get(&self, key: &str) -> Option<String> {
+        self.entries.lock().unwrap().get(key).cloned()
+    }
+    fn set(&self, key: &str, secret: &str) -> Result<(), mailcraft_host::SecretError> {
+        self.entries.lock().unwrap().insert(key.to_string(), secret.to_string());
+        Ok(())
+    }
+    fn delete(&self, key: &str) {
+        if !self.stubborn {
+            self.entries.lock().unwrap().remove(key);
+        }
+    }
+}
+
+/// `ai.json` naming a provider that can be used, one that can't, and a provider a key was kept
+/// for that is set up no more.
+fn ai_settings(scratch: &Scratch) {
+    scratch.file(
+        "config/mailcraft/ai.json",
+        r#"{"version": 1, "active": "p1", "providers": [
+            {"id": "p1", "base_url": "http://127.0.0.1:11437", "model": "m"},
+            {"id": "p2", "base_url": "http://192.0.2.1:11434", "model": "m"},
+            {"id": "bad id!", "base_url": "http://127.0.0.1:1", "model": "m"}
+        ], "keys_kept_for": ["p3", "p1", "../x"]}"#,
+    );
+    scratch.file("config/mailcraft/ai.json.new", "{}");
+}
+
+#[test]
+fn the_model_providers_settings_and_the_keys_kept_for_them_go() {
+    let scratch = Scratch::new("ai-keys");
+    fill(&scratch);
+    ai_settings(&scratch);
+    let store = std::sync::Arc::new(Memory::default());
+    for name in ["ai-key:p1", "ai-key:p2", "ai-key:p3", "password:owner@example.org"] {
+        store.set(name, "sk-test-not-a-real-key").unwrap();
+    }
+    let wipe = Wipe { roots: roots(&scratch), pictures: None, secrets: Some(store.clone()) };
+    let report = wipe.erase(None);
+    assert!(report.failed.is_empty(), "{:?}", report.failed);
+    for gone in ["ai-key:p1", "ai-key:p2", "ai-key:p3"] {
+        assert!(store.get(gone).is_none(), "{gone}");
+    }
+    // The window's own entries are the window's to forget (`data_removal`).
+    assert!(store.get("password:owner@example.org").is_some());
+    assert!(!scratch.join("config/mailcraft/ai.json").exists() && !scratch.join("config/mailcraft/ai.json.new").exists());
+}
+
+#[test]
+fn a_key_the_store_keeps_is_reported_by_its_name() {
+    let scratch = Scratch::new("ai-keys-stay");
+    ai_settings(&scratch);
+    let store = Memory { stubborn: true, ..Memory::default() };
+    store.set("ai-key:p1", "sk-test-not-a-real-key").unwrap();
+    let left = forget_ai_keys(&roots(&scratch), Some(&store));
+    assert_eq!(left.len(), 1, "{left:?}");
+    assert_eq!(left[0].0, "The system's credential store: ai-key:p1");
+    assert!(!format!("{left:?}").contains("sk-test"));
+    // Without a store, or without settings, there is nothing to look for.
+    assert!(forget_ai_keys(&roots(&scratch), None).is_empty());
+    assert!(forget_ai_keys(&Roots::default(), Some(&store)).is_empty());
+}
+
+#[test]
+fn an_ai_json_that_is_a_link_is_not_read() {
+    #[cfg(unix)]
+    {
+        let scratch = Scratch::new("ai-link");
+        let elsewhere = scratch.file("elsewhere.json", r#"{"providers": [{"id": "p9"}]}"#);
+        fs::create_dir_all(scratch.join("config/mailcraft")).unwrap();
+        std::os::unix::fs::symlink(&elsewhere, scratch.join("config/mailcraft/ai.json")).unwrap();
+        let store = Memory::default();
+        store.set("ai-key:p9", "sk-test-not-a-real-key").unwrap();
+        assert!(forget_ai_keys(&roots(&scratch), Some(&store)).is_empty());
+        assert!(store.get("ai-key:p9").is_some(), "nothing read through the link");
+    }
+}
+
+#[test]
+fn a_mailboxs_vectors_go_after_it_and_beside_one_kept_elsewhere_they_are_left_and_said() {
+    assert_eq!(tier("mailbox.mailcraft.vectors", false), 1);
+    let scratch = Scratch::new("vectors");
+    fill(&scratch);
+    scratch.file("config/mailcraft/mailbox.mailcraft.vectors", "v");
+    let mine = scratch.file("Documents/kept.mailcraft", "the owner's own file");
+    let vectors = scratch.file("Documents/kept.mailcraft.vectors", "v");
+    let report = erase(&roots(&scratch), Some(&mine));
+    assert!(!scratch.join("config/mailcraft").exists());
+    assert!(vectors.exists(), "beside the owner's own file: theirs");
+    assert!(report.left.iter().any(|(path, why)| path.ends_with("kept.mailcraft.vectors") && *why == Why::KeptByOwner), "{:?}", report.left);
 }

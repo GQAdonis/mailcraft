@@ -847,13 +847,19 @@ fn dependencies(krate: &str) -> Vec<String> {
 fn this_crate_has_no_way_to_fetch_anything() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let why = "a new dependency: can it reach the network?";
-    assert_eq!(dependencies("mailcraft-html"), ["mailcraft-link", "mailcraft-names", "proptest", "serde", "serde_json"], "{why}");
+    assert_eq!(dependencies("mailcraft-html"), ["mailcraft-link", "mailcraft-names", "proptest", "pulldown-cmark", "serde", "serde_json"], "{why}");
     // `mailcraft-link` only reads an address and `mailcraft-names` only cleans text, and neither
     // brings in a crate that could fetch. (`proptest` is a dev-dependency in each manifest, and
     // `serde_json` one here, to weigh what the blocks come to written out; the lock lists both
     // kinds alike.)
     assert_eq!(dependencies("mailcraft-link"), ["mailcraft-names", "proptest"], "{why}");
     assert_eq!(dependencies("mailcraft-names"), ["proptest"], "{why}");
+    // `pulldown-cmark` (without its default features) only parses Markdown text, and what it
+    // brings in are three crates that depend on nothing.
+    assert_eq!(dependencies("pulldown-cmark"), ["bitflags", "memchr", "unicase"], "{why}");
+    for leaf in ["bitflags", "memchr", "unicase"] {
+        assert!(dependencies(leaf).is_empty(), "{leaf}: {why}");
+    }
     let mut files = vec![root.join("src")];
     let mut checked = 0;
     while let Some(path) = files.pop() {

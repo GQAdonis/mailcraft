@@ -21,6 +21,8 @@
 #![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+// Model providers (#ai): their keys in the credential store; the jobs come with the host wiring.
+mod ai;
 mod alerts;
 #[cfg(target_os = "macos")]
 mod apple_events;
@@ -1076,6 +1078,11 @@ fn services(
     let pst_ctx = ctx.clone();
     let alert_ctx = ctx.clone();
     let autodiscover_ctx = ctx.clone();
+    // Model providers (#ai): what the owner set up, kept in `ai.json` (never with a key) unless
+    // this run keeps nothing.
+    let ai_ctx = ctx.clone();
+    let ai_settings =
+        ai::settings::Shared::open(mailcraft_control_key::settings_dir().filter(|_| prefs_enabled()).map(|d| d.join(ai::settings::FILE)));
     let (keys_ctx, keys_store) = (ctx.clone(), secrets::store());
     let attachment_preview = attachment_render::service(&ctx);
     let (sync_ctx, sign_in_ctx, graph_ctx, mx_ctx, test_ctx) = (ctx.clone(), ctx.clone(), ctx.clone(), ctx.clone(), ctx);
@@ -1288,7 +1295,7 @@ fn services(
         // File › Info › Remove MailCraft's data from this computer (#177): the folders this
         // program works in, and no others. Not offered by a run that keeps nothing.
         data_wipe: prefs_enabled().then(|| {
-            Box::new(wipe::Wipe { roots: wipe::Roots::of_this_program(), pictures: wipe_pictures })
+            Box::new(wipe::Wipe { roots: wipe::Roots::of_this_program(), pictures: wipe_pictures, secrets: secrets::store() })
                 as Box<dyn mailcraft_ui_egui::data_removal::DataWipe>
         }),
         // File › Info › Open MailCraft's data folder (#460): the settings folder, and the opener
@@ -1330,6 +1337,25 @@ fn services(
         system_time_locale: system_locale::system_time_locale(),
         // Whether the system plays animations, for Options › Animations (#1183).
         animations_enabled: system_motion::reader(),
+        // Model requests (#ai): each on a thread of its own, to the provider the owner made
+        // active, its answer streamed back for the window to take in with `ai.apply`.
+        model_request: Some(ai::service::model_requests(ai_settings.clone(), secrets::store(), ai_ctx.clone())),
+        // The providers' settings, keys (in the credential store alone) and consents.
+        // Embeddings (#ai): the mailbox's passages a batch at a time, and the owner's question,
+        // only with an embeddings model the owner named.
+        embed_target: Some(ai::service::embed_target(ai_settings.clone())),
+        embed_batch: Some(ai::service::embed_batches(ai_settings.clone(), secrets::store(), ai_ctx.clone())),
+        embed_query: Some(ai::service::embed_query(ai_settings.clone(), secrets::store(), ai_ctx.clone())),
+        ai_providers: Some(Box::new(ai::service::Providers::new(ai_settings, secrets::store(), ai_ctx))),
+        // A number from the system's own random source, for `ai.ask` (0 only if it failed).
+        nonce: Some(Box::new(|| {
+            use ring::rand::SecureRandom;
+            let mut bytes = [0u8; 8];
+            match ring::rand::SystemRandom::new().fill(&mut bytes) {
+                Ok(()) => u64::from_le_bytes(bytes),
+                Err(_) => 0,
+            }
+        })),
         ..Default::default()
     }
 }

@@ -1038,6 +1038,13 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, accent: Color32) {
             pen.circle(10.0, 10.0, 7.5, c);
             pen.question(10.0, 9.75, 0.6, a);
         }
+        // Find by Description (#ai): a speech balloon, its tail at the lower right, with two
+        // lines of words in it (the second shorter).
+        "describe" => {
+            pen.rounded(&[(2.5, 3.5), (17.5, 3.5), (17.5, 13.5), (14.5, 13.5), (14.5, 17.0), (11.0, 13.5), (2.5, 13.5)], true, 1.0, c);
+            pen.line_c(&[(5.5, 7.0), (14.5, 7.0)], a);
+            pen.line_c(&[(5.5, 10.0), (11.0, 10.0)], a);
+        }
         // Report a Problem: a speech bubble with an exclamation mark in it.
         "report" | "reportProblem" => {
             pen.rounded(&[(2.5, 3.5), (17.5, 3.5), (17.5, 13.5), (9.0, 13.5), (5.5, 17.0), (5.5, 13.5), (2.5, 13.5)], true, 1.0, c);
@@ -1441,6 +1448,7 @@ pub const NAMES: &[&str] = &[
     "help",
     "report",
     "reportProblem",
+    "describe",
     "print",
     "theme",
     "phone",

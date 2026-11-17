@@ -69,6 +69,10 @@ pub const TABLE: &[(&str, Class)] = &[
     ("mcp", Class::Layer(5)),
     // Host services (credential store, platform entries) below the window, over engine and net.
     ("host", Class::Layer(5)),
+    // Model providers (#ai), beside `host`: OpenAI-compatible chat and embeddings over `net`'s HTTP.
+    // Never a dependency of what the browser builds (model, engine, ui-egui, web): the engine
+    // describes a request and takes in its answer, the host runs it.
+    ("ai", Class::Layer(5)),
     ("ui-egui", Class::Layer(6)),
     // The binding for the phone apps (UniFFI to Kotlin and Swift): a front end beside `ui-egui`
     // that never depends on a UI toolkit, and is not part of the browser build.

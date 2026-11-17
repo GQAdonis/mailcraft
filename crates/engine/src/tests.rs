@@ -2526,6 +2526,71 @@ fn hostile_params_never_panic() {
             ],
             "contacts": [{"id": "c-1", "displayName": "\u{0}", "emails": [{"value": "a@b.example\r\nBcc: x@example.org"}], "birthday": {"year": 0, "month": 13, "day": 32}}, {"id": "c-1"}, {}],
         }}),
+        // Retrieval and model calls (the AI features): questions that are none, far too long,
+        // all words of a question, filters that name nothing or everything; requests and events
+        // that make no sense, ids that are none, text far over any cap.
+        json!({"query": "\u{0}\r\n\u{202e}", "limit": 1e300, "from": "\u{202e}", "thread": 18446744073709551615u64, "folder": -1}),
+        json!({"query": "What deposit did the hall ask for? from:\u{0}@example.org", "limit": 18446744073709551615u64, "from": "a", "thread": 1, "folder": 1}),
+        json!({"query": "a ".repeat(2_000), "limit": 1}),
+        json!({"query": "x".repeat(100_000)}),
+        json!({"query": "budget", "from": "x".repeat(10_000)}),
+        json!({"query": "the what did", "from": "@", "thread": 0}),
+        json!({"query": ["deep"], "limit": "10", "from": 5}),
+        json!({"kind": "answer", "messages": [{"role": "user", "content": "\u{0}".repeat(10_000)}], "sources": [18446744073709551615u64, 0], "maxTokens": 1e300, "temperature": "hot", "schema": 5}),
+        json!({"kind": "narrow", "messages": (0..100).map(|_| json!({"role": "tool", "content": 1})).collect::<Vec<_>>(), "stream": "yes"}),
+        json!({"requestId": 18446744073709551615u64, "event": {"type": "delta", "text": "x".repeat(100_000)}}),
+        json!({"requestId": 1, "event": {"type": "run", "command": "mail.send", "params": {"to": "x@example.org"}}}),
+        json!({"requestId": -1, "event": {"type": "done", "text": null}}),
+        json!({"requestId": 1e300, "event": [[[]]]}),
+        // Failures with kinds that are none, details that are none, statuses out of range and
+        // a provider's words far over their cap; then one that is taken, so that the result
+        // commands answer a failed request.
+        json!({"requestId": 1, "event": {"type": "error", "kind": "on_fire", "message": "\u{0}"}}),
+        json!({"requestId": 1, "event": {"type": "error", "kind": {"refused": {"status": 0}}, "message": "m", "providerText": "x".repeat(100_000)}}),
+        json!({"requestId": 1, "event": {"type": "error", "kind": {"timed_out": {"before_first_byte": "yes"}}, "message": 5}}),
+        json!({"requestId": 1, "event": {"type": "error", "kind": {"refused": {"status": 400}, "settings": null}, "message": "m"}}),
+        json!({"requestId": 1, "event": {"type": "error", "kind": {"refused": {"status": 400}}, "message": "\u{202e}\r\n", "providerText": "\u{0}\u{202e}".repeat(10_000)}}),
+        json!({"requestId": 2, "event": {"type": "error", "kind": {"timed_out": {"before_first_byte": false}}, "message": "m", "providerText": null}}),
+        json!({"requestId": 1}),
+        // Find by Description and answers: descriptions and questions that are none, too long or
+        // all control characters; windows too small and too large; markers named by junk.
+        json!({"text": "\u{0}\r\n\u{202e}"}),
+        json!({"text": "mail from ada with a PDF"}),
+        json!({"text": "x".repeat(100_000)}),
+        json!({"question": "What deposit did the hall ask for?", "limit": 20, "contextWindow": 512, "nonce": 18446744073709551615u64}),
+        json!({"question": "\u{0}".repeat(3_000), "limit": 1e300, "contextWindow": -1, "nonce": [1]}),
+        json!({"question": "budget meeting", "contextWindow": 1_048_576, "nonce": 0}),
+        json!({"requestId": 2}),
+        json!({"requestId": 3, "event": {"type": "done", "text": "{\"query\": \"from:ada sender:x\"} [1] [2] [99]"}}),
+        // Answers asked for as JSON (ai-cited-answers-v2) and ends that say who answered and which
+        // messages a backup's prompt held (ai-provider-chain): documents cut short, nested past
+        // any depth, with citations that are none, far too many or not numbers; answerers and
+        // messages that are none, repeated, not the request's, or far over any cap; windows at
+        // and past the bounds.
+        json!({"question": "What deposit did the hall ask for?", "contextWindow": 256, "nonce": 7}),
+        json!({"question": "What deposit did the hall ask for?", "contextWindow": 255}),
+        json!({"question": "What deposit did the hall ask for?", "contextWindow": 1_024, "nonce": 8}),
+        json!({"requestId": 4, "event": {"type": "done", "text": "{\"answer\": \"x\\ud83d\", \"citations\": [1, 1e300, -1, \"2\", null, [3]]}"}}),
+        json!({"requestId": 5, "event": {"type": "done", "text": format!("{{\"answer\": {}", "[".repeat(100_000))}}),
+        json!({"requestId": 6, "event": {"type": "done", "text": "{\"answer\": \"The messages don't say.\", \"citations\": []}", "answeredBy": {"provider": "\u{0}\r\n", "model": "x".repeat(100_000)}}}),
+        json!({"requestId": 7, "event": {"type": "done", "text": null, "answeredBy": [1], "sources": [0, 18446744073709551615u64, 1, 1]}}),
+        json!({"requestId": 8, "event": {"type": "done", "text": "x", "answeredBy": null, "sources": (0..10_000u64).collect::<Vec<_>>()}}),
+        json!({"requestId": 9, "event": {"type": "done", "text": "{", "answeredBy": {"provider": 5}, "sources": []}}),
+        json!({"requestId": 4}),
+        json!({"requestId": 6}),
+        // Embedding jobs and question vectors (optional vectors): models that are none, batches
+        // that are none or far too large, vectors of nonsense, lengths and numbers.
+        json!({"model": "fake-embedder", "max": 64, "accounts": ["\u{0}", "a@example.org"]}),
+        json!({"model": "\u{0}\r\n", "max": 1e300, "accounts": [[]]}),
+        json!({"model": "fake-embedder"}),
+        json!({"batch": 1, "model": "fake-embedder", "vectors": [[1.0, 2.0], [3.0]]}),
+        json!({"batch": 1, "model": "fake-embedder", "vectors": (0..64).map(|_| vec![1e30; 4_096]).collect::<Vec<_>>()}),
+        json!({"batch": 18446744073709551615u64, "model": "x".repeat(10_000), "vectors": [[f64::MAX, -f64::MAX]]}),
+        json!({"batch": 2, "model": "fake-embedder", "vectors": [[0.0, 0.0, 0.0]]}),
+        json!({"query": "budget", "queryVector": [1.0, 0.5], "embedder": "fake-embedder", "limit": 50}),
+        json!({"query": "deposit", "queryVector": vec![1e30; 4_096], "embedder": "fake-embedder", "from": "a"}),
+        json!({"query": "x", "queryVector": [[1.0]], "embedder": ""}),
+        json!({"question": "What deposit was asked for?", "queryVector": [1.0, 0.5], "embedder": "fake-embedder", "nonce": 1}),
     ];
     let mut s = session();
     // Shared mailboxes switched on, under a Microsoft account, so that their commands get past

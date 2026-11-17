@@ -3111,6 +3111,7 @@ dependencies = [
  "keyring-core",
  "ksni",
  "log",
+ "mailcraft-ai",
  "mailcraft-assuan",
  "mailcraft-charset",
  "mailcraft-control-key",
@@ -3136,6 +3137,7 @@ dependencies = [
  "ring",
  "rsa 0.10.0",
  "security-framework",
+ "serde",
  "serde_json",
  "sha2 0.11.1",
  "sysinfo",
@@ -3151,6 +3153,18 @@ dependencies = [
  "zbus",
  "zbus-secret-service-keyring-store",
  "zeroize",
+]
+
+[[package]]
+name = "mailcraft-ai"
+version = "0.13.0"
+dependencies = [
+ "mailcraft-net",
+ "proptest",
+ "rcgen",
+ "rustls",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3272,6 +3286,7 @@ dependencies = [
  "mailcraft-link",
  "mailcraft-names",
  "proptest",
+ "pulldown-cmark",
  "serde",
  "serde_json",
 ]
@@ -4888,6 +4903,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulldown-cmark"
+version = "0.13.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3db2be46835f013dd3f4fa7f5f7402c537787b54ebb6fe2b94bbdd7e2669bb7b"
+dependencies = [
+ "bitflags 2.13.2",
+ "memchr",
+ "unicase",
+]
+
+[[package]]
 name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6445,6 +6471,12 @@ name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
+
+[[package]]
+name = "unicase"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "357cc3acc6a036009fd6c973ed009037c732d60d0b4f6c673e9041497482a28f"
 
 [[package]]
 name = "unicode-general-category"

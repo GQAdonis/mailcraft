@@ -111,6 +111,8 @@ impl Access {
 }
 
 const SAFE: &[&str] = &[
+    // The messages that answer a question, from the mailbox alone: reads, asks no model.
+    "ai.retrieve",
     // A result the servers found for the owner's search, opened (and so fetched) as any message.
     "search.openServerResult",
     // File: content goes in and out as `data`; a path is refused separately.
@@ -628,6 +630,50 @@ const NEVER: &[&str] = &[
     "ui.importPublicKey",
     "ui.verifyKey",
     "ui.markKeyVerified",
+    // A model is asked only by the owner, and what it says is taken in only by the host (D2):
+    // asking for an answer or a narrowed search, the request the host sends, what came back,
+    // calling one off.
+    "ai.ask",
+    "ai.answerResult",
+    "ai.embedApply",
+    "ai.embedRequest",
+    "ai.narrow",
+    "ai.narrowResult",
+    "ai.request",
+    "ai.apply",
+    "ai.cancel",
+    // The window's AI surfaces: Find by Description, the Answer pane, the AI settings and the
+    // question of what may go to a model, the owner's alone.
+    "ui.findByDescription",
+    "ui.answers",
+    "ui.aiSettings",
+    "ui.aiConsent",
+    // Testing a provider (which sends its kept key to it) and confirming the model found on this
+    // computer: setting up where mail may go is the owner's alone (ai-settings-ux).
+    "ui.testProvider",
+    "ui.confirmOnDevice",
+];
+
+/// The AI commands no agent may run, asked or not (SAFETY-001): asking a model, what the host
+/// sends and takes back (with `ai.ask`'s `contextWindow`, the window of the provider that is to
+/// answer, which only the window and the host know), and the window's AI settings, consent,
+/// provider test and on-device confirmation. Each is [`Access::Never`]; a test holds them to it.
+pub const AI_OWNER_ONLY: &[&str] = &[
+    "ai.ask",
+    "ai.answerResult",
+    "ai.embedApply",
+    "ai.embedRequest",
+    "ai.narrow",
+    "ai.narrowResult",
+    "ai.request",
+    "ai.apply",
+    "ai.cancel",
+    "ui.findByDescription",
+    "ui.answers",
+    "ui.aiSettings",
+    "ui.aiConsent",
+    "ui.testProvider",
+    "ui.confirmOnDevice",
 ];
 
 /// A command's class by id; `None`: not classified (and so refused).
