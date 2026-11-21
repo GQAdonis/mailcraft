@@ -8,6 +8,9 @@
 use egui::epaint::{Mesh, TextShape};
 use egui::{Align2, Color32, FontId, Painter, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 
+/// The runtime chain's icons: generic shapes, no vendor's mark.
+pub(crate) mod ai;
+
 /// Draws on the 20-unit grid of one icon, fitted to the screen's pixels.
 ///
 /// Everything is worked out in device pixels: the grid's origin is a whole pixel, a stroke is a
@@ -465,6 +468,10 @@ impl Pen<'_> {
 /// `c` (a disabled button, the module bar), every part is drawn in `c`. Below 16 pt a few icons
 /// leave out the detail that would not hold at that size.
 pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, accent: Color32) {
+    // The runtime chain's icons (`icons/ai.rs`).
+    if ai::paint(p, r, name, c, accent) {
+        return;
+    }
     let Some(pen) = Pen::new(p, r, c, accent) else { return };
     let t = crate::theme::Tokens::get(p.ctx());
     let mono = c == accent;
@@ -1278,6 +1285,87 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, accent: Color32) {
                 pen.line(&[(3.5, 16.5), (16.5, 3.5)]);
             }
         }
+        // Where AI runs (the status bar's chip): a chip with its pins, on this computer; the same
+        // chip struck through, nothing is asked of a model; a cloud, mail may go elsewhere.
+        "aiLocal" | "aiOff" => {
+            pen.rect(5.5, 5.5, 14.5, 14.5, c);
+            for at in [8.5, 11.5] {
+                pen.line(&[(at, 2.5), (at, 5.5)]);
+                pen.line(&[(at, 14.5), (at, 17.5)]);
+                pen.line(&[(2.5, at), (5.5, at)]);
+                pen.line(&[(14.5, at), (17.5, at)]);
+            }
+            if name == "aiOff" {
+                pen.line(&[(3.0, 17.0), (17.0, 3.0)]);
+            } else {
+                pen.frect_r(8.0, 8.0, 12.0, 12.0, 0.5, a);
+            }
+        }
+        "aiRemote" | "cloud" => {
+            pen.path()
+                .m(&pen, 15.0, 15.5)
+                .l(&pen, 5.5, 15.5)
+                .a(&pen, 5.5, 12.5, 3.0, 90.0, 270.0)
+                .a(&pen, 10.0, 9.5, 4.5, 180.0, 360.0)
+                .a(&pen, 14.5, 12.5, 3.0, 270.0, 450.0)
+                .draw_closed(&pen, c);
+        }
+        // The ribbon's AI group (ai-discoverability). Ask Mail: a four-pointed spark, its sides
+        // drawn in towards the middle, and a small one beside it in the accent.
+        "spark" => {
+            let (x, y, arm, pinch) = (8.5, 11.0, 6.5, 1.25);
+            pen.path()
+                .m(&pen, x, y - arm)
+                .c(&pen, (x + pinch * 0.4, y - pinch), (x + pinch, y - pinch * 0.4), x + arm, y)
+                .c(&pen, (x + pinch, y + pinch * 0.4), (x + pinch * 0.4, y + pinch), x, y + arm)
+                .c(&pen, (x - pinch * 0.4, y + pinch), (x - pinch, y + pinch * 0.4), x - arm, y)
+                .c(&pen, (x - pinch, y - pinch * 0.4), (x - pinch * 0.4, y - pinch), x, y - arm)
+                .draw_closed(&pen, c);
+            if !tiny {
+                pen.line_c(&[(15.0, 2.5), (15.0, 7.5)], a);
+                pen.line_c(&[(12.5, 5.0), (17.5, 5.0)], a);
+            }
+        }
+        // Find by Description: the magnifier, with the words of a description in its lens.
+        "findByDescription" => {
+            pen.circle(8.5, 8.5, 6.0, c);
+            pen.line(&[(13.0, 13.0), (17.0, 17.0)]);
+            pen.line_c(&[(5.5, 7.0), (11.5, 7.0)], a);
+            if !tiny {
+                pen.line_c(&[(5.5, 10.0), (9.5, 10.0)], a);
+            }
+        }
+        // AI Settings: a shield (what is sent, and where, is the owner's to say), a small spark on it.
+        "shield" => {
+            pen.path()
+                .m(&pen, 10.0, 2.5)
+                .l(&pen, 16.5, 5.0)
+                .l(&pen, 16.5, 9.5)
+                .c(&pen, (16.5, 13.5), (13.5, 16.0), 10.0, 17.5)
+                .c(&pen, (6.5, 16.0), (3.5, 13.5), 3.5, 9.5)
+                .l(&pen, 3.5, 5.0)
+                .draw_closed(&pen, c);
+            if !tiny {
+                pen.fill_shape(
+                    (10.0, 10.0),
+                    &[(10.0, 6.5), (10.8, 9.2), (13.5, 10.0), (10.8, 10.8), (10.0, 13.5), (9.2, 10.8), (6.5, 10.0), (9.2, 9.2)],
+                    a,
+                );
+            }
+        }
+        // The Agents button and panel (agent-console): a helper's head with an aerial, its eyes in
+        // the accent; struck through, agent access is stopped for this session.
+        "agents" | "agentsOff" => {
+            pen.rounded(&[(3.5, 7.5), (16.5, 7.5), (16.5, 16.5), (3.5, 16.5)], true, 2.5, c);
+            pen.line(&[(10.0, 7.5), (10.0, 4.5)]);
+            pen.fcircle(10.0, 3.5, 1.25, c);
+            if name == "agentsOff" {
+                pen.line(&[(2.5, 18.0), (17.5, 3.0)]);
+            } else {
+                pen.line_c(&[(7.5, 11.0), (7.5, 13.0)], a);
+                pen.line_c(&[(12.5, 11.0), (12.5, 13.0)], a);
+            }
+        }
         // Anything else: a lettered tile, so a missing drawing is visible rather than empty.
         _ => {
             pen.rect(3.5, 3.5, 16.5, 16.5, c);
@@ -1494,4 +1582,18 @@ pub const NAMES: &[&str] = &[
     "decreaseIndent",
     "showPassword",
     "hidePassword",
+    "aiOff",
+    "aiLocal",
+    "aiRemote",
+    "cloud",
+    "spark",
+    "findByDescription",
+    "shield",
+    "agents",
+    "agentsOff",
+    "aiDevice",
+    "aiProvider",
+    "aiPlan",
+    "aiTerminal",
+    "aiHub",
 ];

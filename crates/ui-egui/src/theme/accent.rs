@@ -198,8 +198,12 @@ impl Tokens {
             self.pill_quiet = hex(0x2E2E33);
             self.selection_unfocused = hex(0x222226);
             self.selection_edge_unfocused = hex(0xA8A8B0);
-            self.flagged_row = hex(0x3E282D);
+            self.flagged_row = hex(0x33232A);
             self.overdue = hex(0xFFB3B3);
+            self.ai_local = hex(0x7FE0A8);
+            self.ai_local_soft = hex(0x13261B);
+            self.ai_remote = hex(0xF5C860);
+            self.ai_remote_soft = hex(0x2A2210);
             self.off_hours = hex(0x101011);
             self.find_highlight = Color32::from_rgba_unmultiplied(0xE0, 0xBC, 0x00, 0xA0);
             self.red = hex(0xFF8A8A);
@@ -255,8 +259,12 @@ impl Tokens {
             self.pill_quiet = hex(0xE2E6ED);
             self.selection_unfocused = hex(0xEBEEF3);
             self.selection_edge_unfocused = hex(0x4A5568);
-            self.flagged_row = hex(0xFCE8EB);
+            self.flagged_row = hex(0xFDEEF1);
             self.overdue = hex(0x8A140C);
+            self.ai_local = hex(0x0E5530);
+            self.ai_local_soft = hex(0xE6F4EC);
+            self.ai_remote = hex(0x6A4300);
+            self.ai_remote_soft = hex(0xFFF6E0);
             self.off_hours = hex(0xF0F2F6);
             self.find_highlight = Color32::from_rgba_unmultiplied(0xFF, 0xD0, 0x00, 0xB0);
             self.red = hex(0xA31B1B);

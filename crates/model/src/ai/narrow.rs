@@ -3,8 +3,9 @@
 //! Find by Description: the owner's words turned into a search in MailCraft's own query
 //! language ([`crate::search`]), for the owner to look at and accept.
 //!
-//! - **Only the owner's words go to the model**, with a description of the query language
-//!   ([`narrow_messages`]): never any mail, so nothing a message says can reach the model here.
+//! - **Only the owner's words go to the model**, with a description of the query language and
+//!   today's date, so that a date written without a year ("since 29 September") gets the right
+//!   one ([`narrow_messages`]): never any mail, so nothing a message says can reach the model here.
 //! - **The answer is hostile input.** It is to be `{"query": "…"}` ([`NARROW_SCHEMA`]);
 //!   [`proposed_query`] takes the query out of it and [`check_query`] holds it to the language:
 //!   one line of at most [`MAX_PROPOSAL_CHARS`] characters, no control characters, every
@@ -15,6 +16,7 @@ use super::AiError;
 use super::call::{ChatMessage, Role, clean_text};
 use crate::search::Query;
 use crate::words::ALL;
+use mailcraft_time::Date;
 
 /// Longest description the owner may type, in characters.
 pub const MAX_NARROW_CHARS: usize = 1_000;
@@ -67,9 +69,15 @@ The query language:\n\
 - A value with spaces goes in double quotes: from:\"ada byron\".\n\
 Use only these keywords. Example: invoices from Ada last month with a PDF -> {\"query\": \"invoice from:ada received:\\\"last month\\\" attachment:pdf\"}";
 
-/// The conversation that asks for a search: the instructions, then the owner's description
-/// (cleaned, at most [`MAX_NARROW_CHARS`] characters). No mail.
-pub fn narrow_messages(description: &str) -> Result<Vec<ChatMessage>, AiError> {
+/// The instructions with `today`, so that a date without a year is read as the latest such date
+/// that is not after it.
+fn system(today: Date) -> String {
+    format!("{SYSTEM}\nToday is {}. A date written without a year is the latest such date that is not after today.", today.iso())
+}
+
+/// The conversation that asks for a search: the instructions with `today` (the owner's date),
+/// then the owner's description (cleaned, at most [`MAX_NARROW_CHARS`] characters). No mail.
+pub fn narrow_messages(description: &str, today: Date) -> Result<Vec<ChatMessage>, AiError> {
     let description = description.trim();
     if description.is_empty() {
         return Err(AiError::Invalid("describe what to look for".into()));
@@ -78,14 +86,14 @@ pub fn narrow_messages(description: &str) -> Result<Vec<ChatMessage>, AiError> {
         return Err(AiError::Invalid(format!("the description is longer than {MAX_NARROW_CHARS} characters")));
     }
     let (text, _) = clean_text(description, MAX_NARROW_CHARS.saturating_mul(4));
-    Ok(vec![ChatMessage { role: Role::System, content: SYSTEM.to_string() }, ChatMessage { role: Role::User, content: text }])
+    Ok(vec![ChatMessage { role: Role::System, content: system(today) }, ChatMessage { role: Role::User, content: text }])
 }
 
 /// The conversation that asks again after an answer that wasn't a search MailCraft can read:
 /// [`narrow_messages`], and what was wrong in the engine's own words (`why` is never the model's
 /// text).
-pub fn narrow_retry_messages(description: &str, why: &AiError) -> Result<Vec<ChatMessage>, AiError> {
-    let mut messages = narrow_messages(description)?;
+pub fn narrow_retry_messages(description: &str, today: Date, why: &AiError) -> Result<Vec<ChatMessage>, AiError> {
+    let mut messages = narrow_messages(description, today)?;
     let note = format!(
         "Your last answer was not a search MailCraft can read ({why}). Answer again with JSON only: {{\"query\": \"...\"}}, using only the keywords above."
     );

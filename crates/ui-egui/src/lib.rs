@@ -403,6 +403,30 @@ pub trait AiProviders {
     fn stop_using_on_device(&self) -> Result<(), String> {
         Err(String::new())
     }
+
+    // ai-runtime-chain (W8): what the window reads of a walk down the runtimes' chain. Only the
+    // window's own buttons answer the question: an agent has no command, method or tool for it.
+
+    /// The fallback question waiting for the owner (the `ask` policy): `{"request": n, "failed":
+    /// runtime id, "reason": skip or error kind, "next": runtime id}`.
+    fn fallback_question(&self) -> Option<Value> {
+        None
+    }
+    /// The owner's answer to the fallback question of `request`.
+    fn answer_fallback(&self, _request: u64, _yes: bool) -> Result<(), String> {
+        Err(String::new())
+    }
+    /// The fallback question closed unanswered: nothing more is tried.
+    fn dismiss_fallback_question(&self) {}
+    /// Who answered `request` and every runtime passed over or failed before it: `{"request",
+    /// "answeredBy": runtime id | null, "passedOver": [{"runtime", "skipped" | "failed"}]}`.
+    fn provenance(&self, _request: u64) -> Option<Value> {
+        None
+    }
+    /// The runtimes stopped for trying to use a tool while `request` ran, in order.
+    fn tool_use_notices(&self, _request: u64) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// Platform services injected by the host (file dialogs, downloads, servers, storage).
@@ -726,6 +750,10 @@ pub struct Services {
     /// Desktop: the model providers' settings, keys and consents ([`AiProviders`]). Absent in the
     /// browser and the tests: no provider.
     pub ai_providers: Option<Box<dyn AiProviders>>,
+    /// Desktop: the AI runtimes' chain, consents and fallback, read and saved for the owner's
+    /// `ai.*` runtime methods ([`control::AiRuntimes`]). Absent in the browser and the tests: those
+    /// methods then answer that the runtimes aren't available in this build.
+    pub ai_runtimes: Option<Box<dyn control::AiRuntimes>>,
     /// Desktop: where the mailbox's passages are embedded now ([`EmbedTarget`]), asked every frame
     /// on the window's thread (it reads the settings, never the credential store); `None` when
     /// the active provider has no embeddings model, or is elsewhere and allowed no account.
@@ -1247,7 +1275,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ),
     (
         "ui.answers",
-        "Answers",
+        "Ask Mail",
         "Search",
         r#"{"open"?: bool (left out: open it when closed, close it when open), "question"?: string (ask it, 1–2000 characters: the messages that seem to answer it go to the model; none found, nothing is sent), "stop"?: true (stop the answer being written)} — the Answers pane at the right of Mail, which starts clean each time it opens. Answers {"open", "stage": "idle"|"looking"|"writing"|"done"|"stopped"|"nothingFound"|"trouble", "request", "question", "sources": [{"number", "id"}]}. Never for agents"#,
     ),
@@ -1256,6 +1284,18 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "AI Assistance",
         "File › Options",
         r#"{"kind"?: "none"|"local"|"gateway"|"remote" (gateway and remote ask the owner first unless "confirmed": true; none also turns the backup off), "address"?: string, "model"?: string, "embeddingModel"?: string, "contextWindow"?: string|number (tokens, 256–1048576: a number outside is clamped, anything else is refused and not saved), "backup"?: "none"|"onDevice" (the backup that answers when the primary can't), "lookAgain"?: true (look for the on-device model now), "ports"?: string (the ports besides 11434 to look on, such as "11437, 8080"), "stopUsing"?: true (forget the confirmed on-device address), "gatewayAnswer"?: bool with "gatewayProvider": id, "gatewayAddress"?: string and "gatewayModels"?: string (the answer to the gateway question the host asks now: Yes, It Does or No, It Doesn't; refused when the question changed, its list of models' fingerprint being the current question's unless given)} — File › Options at AI assistance, with what is given typed in and used (an http address only for this computer; remote https only; a gateway on this computer only). Never a key. Answers {"kind", "primaryKind": "none"|"local"|"gateway"|"remote"|"never", "id", "address", "model", "embeddingModel", "problem", "active", "keyKept", "backup": "onDevice"|"none", "test": {"state": "idle"|"testing"|"ok"|"failed", "kind"?, "count"?}, "models": [id], "contextWindow", "contextWindowSource": "server"|"default"|"owner", "device": {"state": "looking"|"found"|"using"|"changed"|"none"|"off"|"na", "candidates": [address], "confirmed"?}, "asking": "remote"|"gateway"|"gatewayQuestion"|null}. The legacy hit kind `aiModel` stays on the Kind control. Never for agents"#,
+    ),
+    (
+        "ui.agents",
+        "Agents",
+        "Title bar",
+        r#"{"open"?: bool (left out: open it when closed, close it when open)} — the Agents panel: the agents recently active (by the name each reported, never checked) and, for this session, what each asked for and what was decided (ids and counts, never mail). Kept in memory only. Never for agents"#,
+    ),
+    (
+        "ui.agentAccess",
+        "Stop Agent Access",
+        "Agents panel",
+        r#"{"value"?: bool (false: every agent request is refused and the questions waiting are answered no; true: agents are let in again; left out: switch it)} — for this session only, never saved. Never for agents"#,
     ),
     (
         "ui.testProvider",
@@ -2765,6 +2805,8 @@ impl MailApp {
             "ui.findByDescription" | "ui.answers" | "ui.aiSettings" | "ui.aiConsent" | "ui.testProvider" | "ui.confirmOnDevice" => {
                 return ai::command(self, id, p);
             }
+            // The Agents panel and Stop Agent Access (agent-console).
+            "ui.agents" | "ui.agentAccess" => return ai::command(self, id, p),
             "ui.previewAttachment" => attachment_preview::command(self, p),
             "ui.focusSearch" => {
                 self.search_focus = true;
@@ -5397,6 +5439,8 @@ impl MailApp {
             unconfirmed::bar(self, ui);
             nav::module_bar(self, ui);
             ribbon::show(self, ui);
+            // The Agents panel (agent-console) at the right, beside every module.
+            ai::agents::panel(self, ui);
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| match self.session.view.module {
                 mailcraft_engine::Module::Mail => {
                     // The Answers pane (#ai) at the right, before the rest takes the room.
@@ -5944,6 +5988,14 @@ impl MailApp {
         self.embed_tick(ctx);
     }
 
+    /// Run `id`, if the host has it, is told to stop now: its next read (a fraction of a second)
+    /// ends the connection, without waiting for the next frame's [`Self::model_calls_off`].
+    pub(crate) fn model_stop_now(&self, id: u64) {
+        for run in self.model_runs.iter().filter(|run| run.id == id) {
+            run.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+
     /// The runs whose request is no longer under way (`ai.cancel`, another mailbox) are told to stop.
     fn model_calls_off(&mut self) {
         let requests = &self.session.ai;
@@ -6183,6 +6235,8 @@ impl MailApp {
     }
 }
 
+#[cfg(test)]
+mod a11y_tests;
 #[cfg(test)]
 mod privacy_tests;
 #[cfg(test)]

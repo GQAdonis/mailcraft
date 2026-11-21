@@ -45,9 +45,9 @@ echo "==> MailCraft $VERSION for Linux $ARCH ($FORMATS)"
 
 if [[ $SKIP_BUILD == 0 ]]; then
   if [[ -n "${CROSS_TARGET:-}" ]]; then
-    (cd "$ROOT" && cargo build --release --locked -p mailcraft -p mailcraft-cli --target "$CROSS_TARGET")
+    (cd "$ROOT" && cargo build --release --locked -p mailcraft -p mailcraft-cli -p mailcraft-launcher --target "$CROSS_TARGET")
   else
-    (cd "$ROOT" && cargo build --release --locked -p mailcraft -p mailcraft-cli)
+    (cd "$ROOT" && cargo build --release --locked -p mailcraft -p mailcraft-cli -p mailcraft-launcher)
   fi
 fi
 BIN="$CARGO_TARGET_DIR/${CROSS_TARGET:+$CROSS_TARGET/}release"
@@ -58,7 +58,9 @@ rm -rf "$WORK"
 # ---- stage an FHS tree (shared by every format) -------------------------------------------------
 install -Dm755 "$BIN/mailcraft" "$STAGE/usr/bin/mailcraft"
 install -Dm755 "$BIN/mailcraft-cli" "$STAGE/usr/bin/mailcraft-cli"
-"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/mailcraft" "$STAGE/usr/bin/mailcraft-cli" 2>/dev/null || true
+# The Linux sandbox launcher for the AI runtimes: next to the app, where it looks for it.
+install -Dm755 "$BIN/mailcraft-launcher" "$STAGE/usr/bin/mailcraft-launcher"
+"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/mailcraft" "$STAGE/usr/bin/mailcraft-cli" "$STAGE/usr/bin/mailcraft-launcher" 2>/dev/null || true
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$HERE/$APP_ID.mime.xml" "$STAGE/usr/share/mime/packages/$APP_ID.xml"
 mkdir -p "$STAGE/usr/share/metainfo"

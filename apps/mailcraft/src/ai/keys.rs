@@ -4,11 +4,16 @@
 //! `Services::secrets` (the window's [`SecretStore`]) and nowhere else: never the mailbox file,
 //! `ui.json`, a command's params, a command line, an address, a log line or an error's text.
 //!
-//! The key is filed under `ai-key:<provider id>` (beside the store's other entries, which are
-//! `password:…` and `refresh:…`), so it is found by the provider it belongs to and taken away with
-//! it. A provider's id is the owner's (or, for a boundary run, `mailcraft-boundary-<runId>`, which
-//! its clean-up deletes by that name); only letters, digits, `.`, `-` and `_` make one, so it
-//! can't reach another entry.
+//! The key is filed under its runtime's credential entry, `ai.compat:<provider id>`
+//! (`RuntimeId::credential_entry`, beside the store's other entries, which are `password:…` and
+//! `refresh:…`), so it is found by the provider it belongs to and taken away with it. Version 2
+//! filed it under `ai-key:<provider id>` ([`LEGACY_PREFIX`]): such a key is moved to its new name
+//! with a read-back before the old one goes ([`move_legacy`]), and until then it is read from its
+//! old name when the new one holds none and the settings say it may be there ([`Kept::Either`],
+//! [`load_from`]); taking a key away takes both ([`forget`]). A
+//! provider's id is the owner's (or, for a boundary run, `mailcraft-boundary-<runId>`, which its
+//! clean-up deletes by that name); only letters, digits, `.`, `-` and `_` make one, so it can't
+//! reach another entry. There is never an entry for Claude Code or Codex.
 //!
 //! **A read never hangs a request** (the credential store may wait for the owner to answer a
 //! system prompt, or never answer at all). Reads for model requests go through one [`Broker`]:
@@ -24,7 +29,7 @@
 //! [`Broker::forget_late`] moves on (the owner saved, forgot or withdrew its key, or its address
 //! changed); a read carries the generation it started in, and a key that comes after its request
 //! gave up is kept only when that generation is still the provider's. A read that only looks
-//! whether a key is there ([`Broker::read_for`] with `keep_late` false) keeps nothing.
+//! whether a key is there ([`Broker::read_kept`] with `keep_late` false) keeps nothing.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -32,20 +37,26 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, SyncSender, TrySendError, sync_channel};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use mailcraft_ai::{ApiKey, ProviderConfig, ProviderKind, valid_id};
 use mailcraft_host::{SecretError, SecretStore};
+use mailcraft_model::ai::RuntimeId;
 
 /// The longest a request waits for the credential store.
 pub(crate) const READ_WAIT: Duration = Duration::from_secs(5);
+/// How often a request whose read found the credential thread busy looks again.
+const BUSY_LOOK: Duration = Duration::from_millis(20);
 /// Most keys kept in memory after their request gave up.
 const MAX_LATE: usize = 64;
 /// Most providers whose generation is noted one by one (beyond that, every provider's moves on).
 const MAX_GENERATIONS: usize = 1_024;
 
 /// What the name of a provider's key begins with in the credential store.
-pub(crate) const PREFIX: &str = "ai-key:";
+#[cfg_attr(not(test), allow(dead_code, reason = "the name is made by `RuntimeId::credential_entry`"))]
+pub(crate) const PREFIX: &str = "ai.compat:";
+/// What it began with in version 2.
+pub(crate) const LEGACY_PREFIX: &str = "ai-key:";
 
 /// Why a key could not be kept, read or taken away. Its words never hold the key.
 #[derive(Clone, PartialEq, Eq)]
@@ -92,49 +103,159 @@ impl fmt::Debug for KeyError {
 
 impl std::error::Error for KeyError {}
 
-/// The name `provider_id`'s key is filed under: `ai-key:<provider id>`.
+/// The name `provider_id`'s key is filed under: its runtime's credential entry,
+/// `ai.compat:<provider id>`.
 pub(crate) fn entry_name(provider_id: &str) -> Result<String, KeyError> {
-    if valid_id(provider_id) { Ok(format!("{PREFIX}{provider_id}")) } else { Err(KeyError::BadProvider) }
+    if !valid_id(provider_id) {
+        return Err(KeyError::BadProvider);
+    }
+    RuntimeId::compat(provider_id).ok().and_then(|r| r.credential_entry()).ok_or(KeyError::BadProvider)
 }
 
-/// Keeps `key` for `provider_id` in `store`.
+/// The name version 2 filed `provider_id`'s key under: `ai-key:<provider id>`.
+pub(crate) fn legacy_entry_name(provider_id: &str) -> Result<String, KeyError> {
+    if valid_id(provider_id) { Ok(format!("{LEGACY_PREFIX}{provider_id}")) } else { Err(KeyError::BadProvider) }
+}
+
+/// Keeps `key` for `provider_id` in `store`, under its new name.
 pub(crate) fn save(store: &dyn SecretStore, provider_id: &str, key: &ApiKey) -> Result<(), KeyError> {
     let name = entry_name(provider_id)?;
+    let _writing = writes();
     store.set(&name, key.expose()).map_err(KeyError::Store)
 }
 
-/// The key kept for `provider_id`, if any. (The store may wait for the owner to unlock it: a
-/// background thread asks, never the window.)
-pub(crate) fn load(store: &dyn SecretStore, provider_id: &str) -> Result<Option<ApiKey>, KeyError> {
-    let name = entry_name(provider_id)?;
-    match store.read(&name).map_err(KeyError::Store)? {
+/// One write of the keys' entries at a time: a key saved and a key moved from its version 2 name
+/// ([`move_legacy`]) never interleave, so a move never puts an older key over a newer one.
+static KEY_WRITES: Mutex<()> = Mutex::new(());
+
+/// The right to write the keys' entries, until it is dropped.
+fn writes() -> MutexGuard<'static, ()> {
+    lock(&KEY_WRITES)
+}
+
+/// What `store` holds under `name`, as a key.
+fn read_key(store: &dyn SecretStore, name: &str) -> Result<Option<ApiKey>, KeyError> {
+    match store.read(name).map_err(KeyError::Store)? {
         None => Ok(None),
         Some(text) => ApiKey::new(&text).map(Some).map_err(|_| KeyError::Damaged),
     }
 }
 
-/// Takes the key kept for `provider_id` away (the provider removed, or the owner's "forget").
+/// Where the settings say a provider's key is kept.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Kept {
+    /// Nowhere: nothing is read.
+    No,
+    /// Under its new name.
+    New,
+    /// Under its new name, or still under its version 2 name (not moved yet, or its copy didn't
+    /// read back): the old name is read when the new one holds none.
+    Either,
+}
+
+impl From<bool> for Kept {
+    fn from(kept: bool) -> Kept {
+        if kept { Kept::New } else { Kept::No }
+    }
+}
+
+/// The key kept for `provider_id` under its new name, if any. (The store may wait for the owner to
+/// unlock it: a background thread asks, never the window.)
+#[cfg_attr(not(test), allow(dead_code, reason = "requests read through `load_from`"))]
+pub(crate) fn load(store: &dyn SecretStore, provider_id: &str) -> Result<Option<ApiKey>, KeyError> {
+    load_from(store, provider_id, false)
+}
+
+/// [`load`]; and when `legacy` (the settings say the key may still be under its version 2 name),
+/// the old name when the new one holds none, or holds something that isn't a key.
+pub(crate) fn load_from(store: &dyn SecretStore, provider_id: &str, legacy: bool) -> Result<Option<ApiKey>, KeyError> {
+    let old = legacy_entry_name(provider_id)?;
+    match read_key(store, &entry_name(provider_id)?) {
+        Ok(None) if legacy => read_key(store, &old),
+        Err(KeyError::Damaged) if legacy => read_key(store, &old).and_then(|key| key.map(Some).ok_or(KeyError::Damaged)),
+        other => other,
+    }
+}
+
+/// Takes the key kept for `provider_id` away (the provider removed, or the owner's "forget"),
+/// under both its names.
 pub(crate) fn forget(store: &dyn SecretStore, provider_id: &str) -> Result<(), KeyError> {
     let name = entry_name(provider_id)?;
-    store.remove(&name).map_err(KeyError::Store)
+    let legacy = legacy_entry_name(provider_id)?;
+    let _writing = writes();
+    let new = store.remove(&name).map_err(KeyError::Store);
+    let old = store.remove(&legacy).map_err(KeyError::Store);
+    new.and(old)
+}
+
+/// What came of moving a key to its new name.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Moved {
+    /// It is under its new name, read back, and its old name is gone (or it was already moved).
+    Done,
+    /// Nothing was kept under either name.
+    Nothing,
+    /// The copy didn't read back as the key: the copy was taken away again (as far as it could
+    /// be) and the key stays under its old name, where it is still read.
+    NotReadBack,
+    /// It is under its new name and read back, but its old name couldn't be taken away yet.
+    OldKept,
+}
+
+/// Move `provider_id`'s key from its version 2 name to its new one: copied only when nothing is
+/// under the new name, read back, and only then taken away from the old name. A key already under
+/// the new name (one the owner saved since, before or while this runs) wins: the old one is only
+/// taken away, never copied over it. Saving a key waits while this runs ([`save`]). What is kept
+/// is copied as it is (never looked at beyond the comparison). Errors are the store's, never the
+/// key.
+pub(crate) fn move_legacy(store: &dyn SecretStore, provider_id: &str) -> Result<Moved, KeyError> {
+    let name = entry_name(provider_id)?;
+    let legacy = legacy_entry_name(provider_id)?;
+    let _writing = writes();
+    let Some(old) = store.read(&legacy).map_err(KeyError::Store)? else {
+        return Ok(if store.read(&name).map_err(KeyError::Store)?.is_some() { Moved::Done } else { Moved::Nothing });
+    };
+    if store.read(&name).map_err(KeyError::Store)?.is_none() {
+        store.set(&name, &old).map_err(KeyError::Store)?;
+        let back = store.read(&name);
+        if !matches!(&back, Ok(Some(new)) if *new == old) {
+            // Nothing half-made is left for a read to find first (the old name is read then).
+            let _ = store.remove(&name);
+            return Ok(Moved::NotReadBack);
+        }
+    }
+    let gone = store.remove(&legacy).is_ok() && matches!(store.read(&legacy), Ok(None));
+    Ok(if gone { Moved::Done } else { Moved::OldKept })
 }
 
 /// `config` with its key in memory, for the request about to be made, read through `broker`.
 ///
 /// Nothing is read for a provider on this computer (it has no key), for one the settings don't
-/// note a usable kept key for (`kept`: `keys_kept_for` names it and its key isn't withdrawn), or
-/// without a store; the key already in memory for this session, if any, then stays.
+/// note a usable kept key for (`kept`: `keys_kept_for` names it and its key isn't withdrawn;
+/// [`Kept::Either`] while it may still be under its version 2 name), or without a store; the key
+/// already in memory for this session, if any, then stays.
 pub(crate) fn with_key(
     config: ProviderConfig,
-    kept: bool,
+    kept: impl Into<Kept>,
     broker: &Broker,
     store: Option<&Arc<dyn SecretStore>>,
 ) -> Result<ProviderConfig, KeyError> {
-    if config.kind == ProviderKind::Local || !kept {
+    let kept = kept.into();
+    if config.kind == ProviderKind::Local || kept == Kept::No {
         return Ok(config);
     }
     let Some(store) = store else { return Ok(config) };
-    match broker.read(store, &config.id)? {
+    // Another read under way (a question's embedding and its chat read the same key one after
+    // the other) is waited out, for no longer than one read may take: never a hang, never a
+    // thread more, and never "the credential store didn't answer" for a store that did.
+    let started = Instant::now();
+    let read = loop {
+        match broker.read_kept(store, &config.id, true, kept == Kept::Either) {
+            Err(KeyError::Busy) if started.elapsed() < broker.wait && broker.under_way_within_wait() => std::thread::sleep(BUSY_LOOK),
+            other => break other,
+        }
+    };
+    match read? {
         Some(api_key) => Ok(ProviderConfig { api_key: Some(api_key), ..config }),
         None => Ok(config),
     }
@@ -153,6 +274,8 @@ struct Job {
     generation: u64,
     /// Whether a key that comes too late may be kept for the next request.
     keep_late: bool,
+    /// Whether the key may still be under its version 2 name.
+    legacy: bool,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -211,6 +334,9 @@ type Late = Arc<Mutex<LateKeys>>;
 pub(crate) struct Broker {
     queue: Arc<Mutex<Option<Sender<Job>>>>,
     busy: Arc<AtomicBool>,
+    /// When the read under way began: one still inside its wait is worth waiting out, one past
+    /// it is stuck on the store (a request is then told at once).
+    since: Arc<Mutex<Option<Instant>>>,
     late: Late,
     wait: Duration,
 }
@@ -225,7 +351,18 @@ impl fmt::Debug for Broker {
 impl Broker {
     /// A broker whose reads are waited for at most `wait` (its thread starts with the first read).
     pub(crate) fn new(wait: Duration) -> Broker {
-        Broker { queue: Arc::new(Mutex::new(None)), busy: Arc::new(AtomicBool::new(false)), late: Arc::default(), wait }
+        Broker {
+            queue: Arc::new(Mutex::new(None)),
+            busy: Arc::new(AtomicBool::new(false)),
+            since: Arc::new(Mutex::new(None)),
+            late: Arc::default(),
+            wait,
+        }
+    }
+
+    /// Whether the read under way, if any, began less than one wait ago (so it will end soon).
+    fn under_way_within_wait(&self) -> bool {
+        self.busy.load(Ordering::SeqCst) && lock(&self.since).is_some_and(|since| since.elapsed() < self.wait)
     }
 
     /// The app's own broker, waiting [`READ_WAIT`].
@@ -237,13 +374,21 @@ impl Broker {
     /// The key kept for `provider_id` in `store`: one that came late for an earlier request, or
     /// else a read on the credential thread, waited for at most this broker's time. A key that
     /// comes after this read gave up is kept for the next one.
+    #[cfg_attr(not(test), allow(dead_code, reason = "requests read through `read_kept`, which knows where the key is kept"))]
     pub(crate) fn read(&self, store: &Arc<dyn SecretStore>, provider_id: &str) -> Result<Option<ApiKey>, KeyError> {
-        self.read_for(store, provider_id, true)
+        self.read_kept(store, provider_id, true, false)
     }
 
     /// [`Broker::read`]; a key that comes after this read gave up is kept for the next request
-    /// only when `keep_late` (the settings note a usable key for the provider).
-    pub(crate) fn read_for(&self, store: &Arc<dyn SecretStore>, provider_id: &str, keep_late: bool) -> Result<Option<ApiKey>, KeyError> {
+    /// only when `keep_late` (the settings note a usable key for the provider); when `legacy`, the
+    /// key may still be under its version 2 name ([`load_from`]).
+    pub(crate) fn read_kept(
+        &self,
+        store: &Arc<dyn SecretStore>,
+        provider_id: &str,
+        keep_late: bool,
+        legacy: bool,
+    ) -> Result<Option<ApiKey>, KeyError> {
         entry_name(provider_id)?;
         let generation = {
             let late = lock(&self.late);
@@ -255,9 +400,10 @@ impl Broker {
         if self.busy.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
             return Err(KeyError::Busy);
         }
+        *lock(&self.since) = Some(Instant::now());
         let (reply, answer) = sync_channel(1);
         let gave_up = Arc::new(Mutex::new(false));
-        let job = Job { store: store.clone(), provider: provider_id.to_string(), reply, gave_up: gave_up.clone(), generation, keep_late };
+        let job = Job { store: store.clone(), provider: provider_id.to_string(), reply, gave_up: gave_up.clone(), generation, keep_late, legacy };
         if let Err(error) = self.send(job) {
             self.busy.store(false, Ordering::SeqCst);
             return Err(error);
@@ -300,6 +446,12 @@ impl Broker {
         }
     }
 
+    /// The keys held in memory, for the check that refuses a CLI's argv holding one (never
+    /// logged, shown or written).
+    pub(crate) fn held_secrets(&self) -> Vec<String> {
+        lock(&self.late).keys.values().map(|k| k.expose().to_string()).collect()
+    }
+
     /// The owner saved, forgot or withdrew provider `id`'s key: one kept in memory isn't used,
     /// and one a read under way brings later isn't kept.
     pub(crate) fn forget_late(&self, id: &str) {
@@ -310,7 +462,7 @@ impl Broker {
 /// The credential thread: one read at a time, until its broker is gone.
 fn serve(jobs: &Receiver<Job>, busy: &AtomicBool, late: &Mutex<LateKeys>) {
     for job in jobs {
-        let read = catch_unwind(AssertUnwindSafe(|| load(job.store.as_ref(), &job.provider))).unwrap_or(Err(KeyError::Unavailable));
+        let read = catch_unwind(AssertUnwindSafe(|| load_from(job.store.as_ref(), &job.provider, job.legacy))).unwrap_or(Err(KeyError::Unavailable));
         {
             let gave_up = lock(&job.gave_up);
             let undelivered = if *gave_up {

@@ -194,6 +194,9 @@ impl Server {
     fn request(&mut self, method: &str, params: &Value) -> Result<Value, (i64, String)> {
         match method {
             "initialize" => {
+                // Who the client says it is goes to the window with every request, as its own
+                // word (`agent.client`); a new `initialize` replaces it, or clears it.
+                self.backend.set_client(crate::ClientInfo::from_initialize(params));
                 let asked = params.get("protocolVersion").and_then(Value::as_str).unwrap_or(PROTOCOL_VERSION);
                 let version = if SUPPORTED_VERSIONS.contains(&asked) { asked } else { PROTOCOL_VERSION };
                 Ok(json!({

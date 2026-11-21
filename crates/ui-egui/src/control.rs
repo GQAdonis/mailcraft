@@ -15,15 +15,27 @@
 //!   answered (every other is refused, `crate::opening::STILL_OPENING`)
 //!
 //! A request the MCP bridge marked as an agent's (`agent`) goes through [`crate::agent_gate`].
+//! What the agent reported about itself (`agent.client`) is cleaned by [`agent_client`] and never
+//! decides anything.
 //! - `ui.parity`: feature catalog parity
 //! - `ai.providers`, `ai.setProvider {provider}`, `ai.setActive {id}`, `ai.setConsent {id, account, allowed}`,
 //!   `ai.removeProvider {id}`: the owner's model providers (`control/ai.rs`); no key goes in or out
+//! - `ai.runtimes`, `ai.setRuntimeOrder {order}`, `ai.setRuntimeEnabled {runtime, value}`,
+//!   `ai.setRuntimeOption {runtime, model?, path?, instance?}`, `ai.rescan`, `ai.signIn {runtime}`,
+//!   `ai.signOut {runtime}`, `ai.setRuntimeKey {runtime}`, `ai.setFallback {value}`,
+//!   `ai.setConsent {runtime, account, allowed}`: the owner's runtimes (`control/ai_runtimes.rs`);
+//!   never an agent's, and no key or token is ever a param
 
 use std::sync::mpsc::Sender;
 
 use serde_json::{Value, json};
 
 use crate::MailApp;
+
+pub use ai::{
+    AiRuntimes, PROVIDER_METHODS, RUNTIME_METHODS, RuntimeSettings, RuntimeState, RuntimeStatus, SignIn, SignOut, Step, is_ai_method, run_runtime,
+};
+pub use client::{AgentClient, MAX_CLIENT_CHARS, agent_client};
 
 pub struct ControlRequest {
     pub method: String,
@@ -32,17 +44,28 @@ pub struct ControlRequest {
     /// From an agent (the MCP bridge marks its requests), with what the owner allowed it in
     /// advance; `None`: the owner's own script.
     pub agent: Option<Vec<mailcraft_engine::agent::Class>>,
+    /// Who the agent says it is (`agent.client`, cleaned by [`agent_client`]); self-reported, shown as
+    /// such and never used to decide anything. `None` for an owner's script, and for an agent
+    /// that reported nothing.
+    pub client: Option<AgentClient>,
 }
 
 impl ControlRequest {
     pub fn new(method: impl Into<String>, params: Value) -> (Self, std::sync::mpsc::Receiver<Value>) {
         let (tx, rx) = std::sync::mpsc::channel();
-        (Self { method: method.into(), params, reply: tx, agent: None }, rx)
+        (Self { method: method.into(), params, reply: tx, agent: None, client: None }, rx)
     }
 
     /// The same request, as an agent's that was allowed `allow`.
     pub fn from_agent(mut self, allow: Vec<mailcraft_engine::agent::Class>) -> Self {
         self.agent = Some(allow);
+        self
+    }
+
+    /// The same request, with what its agent reported about itself ([`agent_client`]). It
+    /// changes no decision: the gate reads only what [`ControlRequest::from_agent`] allowed.
+    pub fn with_client(mut self, client: Option<AgentClient>) -> Self {
+        self.client = client;
         self
     }
 }
@@ -100,6 +123,11 @@ impl HitMap {
     pub fn rect(&self, kind: &str, id: u64) -> Option<egui::Rect> {
         let found = |main: bool| self.items.iter().find(|(k, i, _, w)| *k == kind && *i == id && (*w == 0) == main);
         found(true).or_else(|| found(false)).map(|(_, _, r, _)| *r)
+    }
+
+    /// Whether `pos` is on anything of one of `kinds`, in any window.
+    pub(crate) fn any_at(&self, pos: egui::Pos2, kinds: &[&str]) -> bool {
+        self.items.iter().any(|(k, _, r, _)| kinds.contains(k) && r.contains(pos))
     }
 
     /// Where `kind` with `id` is in the window of its own numbered `window` (0: the main window).
@@ -284,6 +312,9 @@ impl Drop for Driven<'_> {
 mod ai;
 #[cfg(test)]
 mod ai_tests;
+mod client;
+#[cfg(test)]
+mod client_tests;
 #[cfg(test)]
 mod tests;
 

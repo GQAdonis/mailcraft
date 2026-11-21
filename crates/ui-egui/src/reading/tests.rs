@@ -142,7 +142,7 @@ fn message(n: usize, from: (&str, &str), subject: &str, html: Option<String>, te
     }
 }
 
-fn html_message(n: usize, from: (&str, &str), subject: &str, html: &str) -> Message {
+pub(super) fn html_message(n: usize, from: (&str, &str), subject: &str, html: &str) -> Message {
     let mut m = message(n, from, subject, Some(html.to_string()), mailcraft_html::to_text(html));
     // Each message carries the pictures it refers to, and no others.
     m.attachments = pictures().into_iter().filter(|a| html.contains(&format!("cid:{}", a.content_id))).collect();
@@ -238,7 +238,7 @@ fn large_newsletter() -> Message {
 // ---- laying out without a window ----
 
 /// Run `f` inside a frame of a context that has the interface's fonts and theme.
-fn in_frame<R>(dark: bool, f: impl FnOnce(&egui::Context) -> R) -> R {
+pub(super) fn in_frame<R>(dark: bool, f: impl FnOnce(&egui::Context) -> R) -> R {
     let ctx = egui::Context::default();
     ctx.set_fonts(crate::theme::font_definitions());
     crate::theme::apply(&ctx, if dark { Appearance::Dark } else { Appearance::Light }.preference(None), &crate::theme::ThemeChoice::default());
@@ -255,7 +255,7 @@ fn in_frame<R>(dark: bool, f: impl FnOnce(&egui::Context) -> R) -> R {
 }
 
 /// A message laid out to the end at `width`.
-fn lay_out(ctx: &egui::Context, m: &Message, width: f32) -> Laid {
+pub(super) fn lay_out(ctx: &egui::Context, m: &Message, width: f32) -> Laid {
     let doc = Doc::of(m);
     let pictures = Pictures::of(ctx);
     let mut pictures = pictures.lock().unwrap();
@@ -270,7 +270,7 @@ fn corpus_message(name: &str) -> Message {
 }
 
 /// The text of a laid-out piece.
-fn text_of(item: &Item) -> &str {
+pub(super) fn text_of(item: &Item) -> &str {
     match &item.kind {
         ItemKind::Text(text) => &text.job.text,
         _ => "",
@@ -1217,8 +1217,8 @@ fn the_reading_pane_names_nothing_that_could_fetch() {
         checked += 1;
     }
     assert_eq!(
-        checked, 22,
-        "reading.rs, colors (and its tests), fonts (and its tests), header tests, images (and its tests), invitation, layout, remote, select, sharing (and its tests), signature (and its tests), unsubscribe (and its tests), view (and its zoom tests) and warnings (and its tests)"
+        checked, 23,
+        "reading.rs, colors (and its tests), fonts (and its tests), header tests, images (and its tests), invitation, layout, measure tests, remote, select, sharing (and its tests), signature (and its tests), unsubscribe (and its tests), view (and its zoom tests) and warnings (and its tests)"
     );
 }
 
@@ -2627,7 +2627,7 @@ fn a_say_so_that_is_taken_back_stops_the_asking_at_once() {
 use super::select::{self, Point, Surface as _, Zone};
 
 /// The whole of a laid-out message as a copy has it.
-fn copy_of(laid: &Laid) -> String {
+pub(super) fn copy_of(laid: &Laid) -> String {
     match (select::clamp(laid, Point::START), select::clamp(laid, Point::END)) {
         (Some(lo), Some(hi)) => select::copied(laid, lo, hi),
         _ => String::new(),

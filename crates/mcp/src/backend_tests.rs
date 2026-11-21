@@ -239,3 +239,33 @@ fn read_line_within(line: &str) -> Option<usize> {
     let stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
     read_reply(&mut BufReader::new(stream), MAX_LINE).ok().map(|r| r.len())
 }
+
+/// What the MCP client reported in `initialize` goes with every request as `agent.client`
+/// (cleaned and bounded), beside the `allow` list it changes nothing of; a client that reported
+/// nothing sends no `client` at all.
+#[test]
+fn every_request_carries_what_the_client_reported() {
+    let (port, seen) =
+        fake_app(|req| Some(if req["method"] == "auth.challenge" { (prove(req, "k1"), false) } else { (json!({"ok": true, "result": 1}), false) }));
+    let r = Remote::connect_with(&format!("127.0.0.1:{port}"), fixed_key("k1")).unwrap().with_allow(vec![mailcraft_engine::agent::Class::Send]);
+    let mut s = crate::Server::new(Box::new(r));
+    let init = |name: Value| {
+        json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"clientInfo": {"name": name, "version": "1.0"}}}).to_string()
+    };
+    let call = r#"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"mailcraft://mailbox"}}"#;
+    s.handle_line(&init(json!("Example\u{202e} Agent\n"))).unwrap();
+    s.handle_line(call).unwrap();
+    let req = seen.recv_timeout(WAIT).unwrap();
+    assert_eq!(req["agent"], json!({"allow": ["send"], "client": {"name": "Example Agent", "version": "1.0"}}));
+    // A 10 KB name goes as at most 64 characters.
+    s.handle_line(&init(json!("\u{202e}x\n".repeat(4000)))).unwrap();
+    s.handle_line(call).unwrap();
+    let req = seen.recv_timeout(WAIT).unwrap();
+    let name = req["agent"]["client"]["name"].as_str().unwrap();
+    assert!(name.starts_with("x x") && name.chars().count() <= crate::client::MAX_CHARS, "{name:?}");
+    // A client that reports nothing: the request is marked as an agent's, as ever, with no client.
+    s.handle_line(r#"{"jsonrpc":"2.0","id":3,"method":"initialize","params":{}}"#).unwrap();
+    s.handle_line(call).unwrap();
+    let req = seen.recv_timeout(WAIT).unwrap();
+    assert_eq!(req["agent"], json!({"allow": ["send"]}));
+}

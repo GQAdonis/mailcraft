@@ -1393,6 +1393,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
+name = "mailcraft-ai"
+version = "0.13.0"
+dependencies = [
+ "mailcraft-net",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "mailcraft-assuan"
 version = "0.13.0"
 dependencies = [
@@ -1465,6 +1474,7 @@ name = "mailcraft-fuzz"
 version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
+ "mailcraft-ai",
  "mailcraft-assuan",
  "mailcraft-charset",
  "mailcraft-dav",

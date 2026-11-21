@@ -134,6 +134,11 @@ msgid "(No title)"
 msgstr "（无标题）"
 
 #. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "(a command MailCraft doesn't know)"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/signature.rs
 #, fuzzy
 msgid "(as the signer says)"
@@ -344,6 +349,11 @@ msgid "A JMAP account's mail can't be snoozed yet."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "A Terminal window opened with the command below. Sign in there with your Claude account."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/warnings.rs
 #, fuzzy
 msgid "A brand's name on another address."
@@ -402,6 +412,11 @@ msgstr "和往常一样，会先在原位置旁边保存整个邮箱的副本。
 #, fuzzy
 msgid "A file dialog is already open."
 msgstr "文件对话框已打开。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "A gateway at {host}"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings.rs
@@ -530,6 +545,16 @@ msgid "A model on this computer"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "A model service at {host}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "A model service elsewhere"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ai/settings.rs
 msgid "A model service on the internet"
 msgstr ""
@@ -537,6 +562,16 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/ai/settings.rs
 msgid "A model service on the internet needs an https address."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "A model service on this computer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "A model wrote this answer, and it can be wrong: check the sources."
 msgstr ""
 
 #. interface
@@ -673,9 +708,19 @@ msgstr ""
 msgid "A web address, an email address, a phone number (tel:) or another address such as ms-settings:network-vpn. With nothing selected, the address is put in as it is."
 msgstr "网址、电子邮件地址、电话号码（tel:）或其他地址，如 ms-settings:network-vpn。未选中文本时，直接插入该地址。"
 
-#. command label
-#: crates/ui-egui/src/lib.rs
+#. ribbon
+#: crates/ui-egui/src/ribbon.rs
+msgid "AI"
+msgstr ""
+
+#. command label, ribbon
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/ribbon.rs
 msgid "AI Assistance"
+msgstr ""
+
+#. ribbon
+#: crates/ui-egui/src/ribbon.rs
+msgid "AI Settings"
 msgstr ""
 
 #. interface
@@ -691,6 +736,53 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/ai/settings.rs
 msgid "AI assistance is turned off. Nothing is sent anywhere."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI off"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: may leave for {account}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: may leave for {n} account"
+msgid_plural "AI: may leave for {n} accounts"
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: on this computer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: remote allowed for {n} account"
+msgid_plural "AI: remote allowed for {n} accounts"
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: your typed searches go to a remote service"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: your typed searches go to the gateway"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: your typed searches go to {host}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "AI: your typed searches may go to {runtime}"
 msgstr ""
 
 #. date and time, interface
@@ -720,6 +812,12 @@ msgstr ""
 #, fuzzy
 msgid "About MailCraft"
 msgstr "关于 MailCraft"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "About {m} minute left."
+msgid_plural "About {m} minutes left."
+msgstr[0] ""
 
 #. interface
 #: crates/ui-egui/src/dialogs.rs
@@ -826,6 +924,11 @@ msgstr ""
 msgid "Accounts"
 msgstr "账户"
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Accounts and what may leave this computer"
+msgstr ""
+
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar/meeting.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/compose.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/people.rs crates/engine/src/cmd/people_merge.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -837,6 +940,11 @@ msgstr "操作"
 #, fuzzy
 msgid "Active"
 msgstr "活动"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Activity"
+msgstr ""
 
 #. command label, interface
 #: crates/engine/src/cmd/view/display.rs crates/ui-egui/src/ribbon/view_menus.rs
@@ -871,6 +979,16 @@ msgstr "添加账户"
 #, fuzzy
 msgid "Add Calendar"
 msgstr "添加日历"
+
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Add Key…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Add OpenAI-Compatible Provider…"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -1026,6 +1144,11 @@ msgstr "添加过滤器"
 msgid "Add from file…"
 msgstr "从文件添加…"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Add the key this service asks for"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -1067,7 +1190,7 @@ msgid "Added by a newer version of MailCraft: send and receive with it there"
 msgstr "由较新版本的 MailCraft 添加：请使用该版本发送和接收邮件"
 
 #. interface
-#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/people_view.rs
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/people_view.rs
 #, fuzzy
 msgid "Address"
 msgstr "地址"
@@ -1116,6 +1239,61 @@ msgstr "在邮件中接受、暂定接受或拒绝会议请求，或从日历中
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarScreen.kt
 msgid "Agenda"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agent access is on"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agent access is stopped"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agent access is stopped until you turn it back on or MailCraft closes."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agent access is stopped: every agent request is refused. Open to let agents in again."
+msgstr ""
+
+#. command label, interface
+#: crates/ui-egui/src/ai/agents.rs crates/ui-egui/src/lib.rs
+msgid "Agents"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agents can ask again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agents connected through MailCraft's MCP bridge can search and read your mail. Before one sends, deletes, or changes an account or a setting, you are asked, unless you allowed it when you started the bridge."
+msgstr ""
+
+#. ribbon location
+#: crates/ui-egui/src/lib.rs
+msgid "Agents panel"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agents: access stopped"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agents: active in the last 5 minutes"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Agents: off"
 msgstr ""
 
 #. android, interface, name
@@ -1173,10 +1351,15 @@ msgid "All the conditions must hold"
 msgstr "所有条件必须成立"
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/ai/settings_ask.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/settings_ask.rs
 #, fuzzy
 msgid "Allow"
 msgstr "允许"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Allow Agent Access"
+msgstr ""
 
 #. command label, interface
 #: crates/ui-egui/src/auto_replies.rs crates/ui-egui/src/lib.rs
@@ -1262,12 +1445,17 @@ msgid "Allow an Account's Mail to Go to a Model"
 msgstr ""
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Accounts.kt crates/ui-egui/src/ai/settings_page.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Accounts.kt crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/settings_page.rs
 msgid "Allowed"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/ai/settings_page.rs
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Allowed without asking: {kinds}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/settings_page.rs
 msgid "Allow…"
 msgstr ""
 
@@ -1453,6 +1641,11 @@ msgstr ""
 msgid "Another mailbox was opened: the import stopped."
 msgstr "打开了另一个邮箱，导入已停止。"
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Another path"
+msgstr ""
+
 #. interface, what a command says
 #: crates/engine/src/cmd/calendar.rs crates/ui-egui/src/meeting_dialogs.rs
 #, fuzzy
@@ -1476,6 +1669,16 @@ msgstr "建议了其他时间：{title}"
 #, fuzzy
 msgid "Another time was proposed to {name}"
 msgstr "已向 {name} 建议其他时间"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Another user of this computer could replace it. Make it writable only by you, or install a copy that is."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Another user of this computer could replace what's in {folder}. Make the folder writable only by you, or install a copy in a folder that is, then choose Look Again."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/report_problem.rs
@@ -1512,13 +1715,52 @@ msgid "Answer the invitation. You are asked whether to tell the organizer."
 msgstr "回复邀请，系统会询问是否通知组织者。"
 
 #. interface
-#: crates/ui-egui/src/ai/answers.rs
-msgid "Answered by {model}"
+#: crates/ui-egui/src/ai/answers_sources.rs
+msgid "Answered by {model} at {host}, from {n} passage of your mail. Message text was treated as data, never as instructions."
+msgid_plural "Answered by {model} at {host}, from {n} passages of your mail. Message text was treated as data, never as instructions."
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_sources.rs
+msgid "Answered by {model} on this computer, from {n} passage of your mail. Message text was treated as data, never as instructions."
+msgid_plural "Answered by {model} on this computer, from {n} passages of your mail. Message text was treated as data, never as instructions."
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_sources.rs
+msgid "Answered by {model} through the gateway at {host}, from {n} passage of your mail. Message text was treated as data, never as instructions."
+msgid_plural "Answered by {model} through the gateway at {host}, from {n} passages of your mail. Message text was treated as data, never as instructions."
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_sources.rs
+msgid "Answered by {model}, from {n} passage of your mail. Message text was treated as data, never as instructions."
+msgid_plural "Answered by {model}, from {n} passages of your mail. Message text was treated as data, never as instructions."
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Answers count against your ChatGPT plan's usage limits, the same as using Codex yourself."
 msgstr ""
 
-#. command label
-#: crates/ui-egui/src/lib.rs
-msgid "Answers"
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Answers count against your ChatGPT plan's usage limits."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Answers count against your Claude plan's usage limits, the same as using Claude Code yourself."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Answers use your ChatGPT plan and its usage limits."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Anthropic"
 msgstr ""
 
 #. name
@@ -1534,7 +1776,12 @@ msgid "Anything still waiting to go to the server goes first: mail in the Outbox
 msgstr "等待发送到服务器的内容将先被处理：发件箱中的邮件，以及您离线时的标记和移动。如果 MailCraft 无法连接服务器，切换将等待连接恢复。"
 
 #. interface
-#: crates/ui-egui/src/ai/settings_device.rs
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Apple Intelligence on this Mac, through apfel"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/ai/settings_device.rs
 msgid "Apple's on-device model"
 msgstr ""
 
@@ -1798,6 +2045,23 @@ msgstr "正如收件人所见"
 msgid "As the people you write to see it"
 msgstr "收件人看到的效果"
 
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "As {email} ({plan})."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "As {email}."
+msgstr ""
+
+#. ribbon
+#: crates/ui-egui/src/ribbon.rs
+msgid ""
+"Ask\n"
+"Mail"
+msgstr ""
+
 #. command label
 #: crates/engine/src/cmd/ai/mod.rs
 msgid "Ask About Your Mail"
@@ -1806,6 +2070,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/ai/answers.rs
 msgid "Ask Again"
+msgstr ""
+
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "Ask Mail"
 msgstr ""
 
 #. interface
@@ -1870,6 +2139,11 @@ msgstr "请求读取和更改 To Do 列表及任务的权限：Microsoft 页面�
 #, fuzzy
 msgid "Ask for permission to read the calendars of shared mailboxes: Microsoft's page opens in your browser. Without it, nothing of this mailbox's calendars is read."
 msgstr "请求读取共享邮箱日历的权限：Microsoft 页面将在浏览器中打开。未获授权时，不会读取此邮箱的任何日历。"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Ask me first"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/reading/remote.rs
@@ -2301,6 +2575,11 @@ msgid "Be careful with this message."
 msgstr "请谨慎处理此邮件。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Because of what a message says, it may run commands, open files or browse the web. MailCraft stops the answer when it sees a tool used, but by then the tool may already have run, and MailCraft can't undo what it did."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/graph_switch.rs
 #, fuzzy
 msgid "Before anything changes, a copy of your whole mailbox is saved next to it, with today's date in its name."
@@ -2364,6 +2643,11 @@ msgstr "将日历置于最前"
 #, fuzzy
 msgid "Bring in"
 msgstr "导入"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Broken"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/recent_attachments.rs
@@ -2527,13 +2811,28 @@ msgid "Calibri"
 msgstr "Calibri"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Can't run here"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Can't sign"
 msgstr "无法签名"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Can't use it: {reason}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Can't use it: {reason}."
+msgstr ""
+
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/help.rs crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/chrome.rs crates/ui-egui/src/close_to_tray.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/import_tree.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/security.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/help.rs crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/ai/signin.rs crates/ui-egui/src/chrome.rs crates/ui-egui/src/close_to_tray.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/import_tree.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Cancel"
 msgstr "取消"
@@ -2583,6 +2882,11 @@ msgstr "取消发送/接收"
 #, fuzzy
 msgid "Cancel Sign-In"
 msgstr "取消登录"
+
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Cancel Sign-in"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/dialogs.rs
@@ -2784,6 +3088,16 @@ msgstr "字符（带空格）"
 msgid "Chart"
 msgstr "图表"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "ChatGPT"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs crates/ui-egui/src/ai/runtime_rows.rs
+msgid "ChatGPT plan"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -2860,6 +3174,11 @@ msgid "Check the account's settings"
 msgstr "检查账户设置"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Check the path below, or clear it to look in the usual places."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Checked with its certification authority"
@@ -2931,6 +3250,11 @@ msgid "Choose Google sign-in, or select Use an app password instead."
 msgstr "选择 Google 登录，或选择使用应用密码。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Choose Stop beside {account} under Accounts in File › Options › AI assistance, or turn {runtime} off. What was already sent can't be called back."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
 msgid "Choose a category"
@@ -2993,6 +3317,56 @@ msgstr "城市"
 #, fuzzy
 msgid "Classic Ribbon"
 msgstr "经典功能区"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Claude"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/ai/signin.rs
+msgid "Claude Code"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Claude Code didn't say whether you're signed in"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Claude Code didn't say whether you're signed in. Update Claude Code, then choose Look Again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Claude Code didn't say you're signed in within 10 minutes. If you finished signing in, choose Look Again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/ai/signin.rs
+msgid "Claude Code is signed in without a Claude plan. Anthropic may charge that sign-in for each answer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Claude Code on this computer, which sends it to Anthropic under your own Claude sign-in. Anthropic handles it under the terms of your Claude plan; MailCraft can't see what it does with it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Claude Code says you're signed in."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Claude Code says you're signed in. Answers use your Claude plan and its usage limits, as if you used Claude Code yourself."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Claude Code uses your own sign-in, which Claude Code keeps."
+msgstr ""
 
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/rules.rs crates/ui-egui/src/ribbon.rs
@@ -3079,10 +3453,15 @@ msgid "Clipboard"
 msgstr "剪贴板"
 
 #. android, interface, ribbon
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/find_replace.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/reminders.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/symbol.rs crates/ui-egui/src/sync_panel.rs crates/ui-egui/src/tasks_view.rs crates/ui-egui/src/view_source.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/ai/signin.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/find_replace.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/reminders.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/symbol.rs crates/ui-egui/src/sync_panel.rs crates/ui-egui/src/tasks_view.rs crates/ui-egui/src/view_source.rs
 #, fuzzy
 msgid "Close"
 msgstr "关闭"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Close Agents"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/answers.rs
@@ -3152,6 +3531,31 @@ msgstr "关闭页面了吗？这将重新打开提供商的登录页面。"
 #, fuzzy
 msgid "Closes this window. Nothing is kept."
 msgstr "关闭此窗口，不会保留任何内容。"
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Codex"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Codex can't be made fully tool-free on its own. MailCraft runs it inside the system sandbox, in an empty folder, with nothing saved, and stops it the moment it tries a tool. The skills and agent instructions in your Codex folder still reach what it's sent."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Codex isn't offered on Windows: it runs only inside a system sandbox, and Windows doesn't provide one."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Codex on this computer, which sends it to OpenAI under your own ChatGPT sign-in. The skills and agent instructions kept in your Codex folder go along with it: MailCraft can't turn them off. OpenAI handles it under the terms of your plan; MailCraft can't see what it does with it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Codex uses your own sign-in, kept in your Codex folder."
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/mail.rs
@@ -3460,6 +3864,11 @@ msgstr "复制消息给我的管理员"
 msgid "Copy all of it"
 msgstr "复制全部"
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Copy it, run it in a terminal, then choose Look Again."
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt
 msgid "Copy message for an administrator"
@@ -3487,6 +3896,11 @@ msgstr "复制 MailCraft 的版本、平台及其日志末尾内容，以便粘�
 #, fuzzy
 msgid "Copy to Folder"
 msgstr "复制到文件夹"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_widgets.rs
+msgid "Copy {command}"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup/help.rs
@@ -4124,10 +4538,15 @@ msgid "Detail"
 msgstr "详情"
 
 #. interface
-#: crates/ui-egui/src/ai/errors.rs crates/ui-egui/src/reading/signature.rs crates/ui-egui/src/tasks_view.rs
+#: crates/ui-egui/src/ai/errors.rs crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/reading/signature.rs crates/ui-egui/src/tasks_view.rs
 #, fuzzy
 msgid "Details"
 msgstr "详情"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Details: {runtime}"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/lib.rs
@@ -4277,7 +4696,12 @@ msgid "Doesn't repeat"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/ai/settings_ask.rs
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Don't"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/settings_ask.rs
 #, fuzzy
 msgid "Don't Allow"
 msgstr "不允许"
@@ -4313,6 +4737,11 @@ msgid "Don't Send, Keep on This Computer"
 msgstr "不发送，保留在此计算机上"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Don't Use It"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Don't ask again for these accounts"
@@ -4342,7 +4771,7 @@ msgid "Don't send automatic replies"
 msgstr "不发送自动回复"
 
 #. interface
-#: crates/ui-egui/src/account_setup.rs
+#: crates/ui-egui/src/account_setup.rs crates/ui-egui/src/ai/signin.rs
 #, fuzzy
 msgid "Done"
 msgstr "完成"
@@ -4601,6 +5030,11 @@ msgid "E-mail"
 msgstr "电子邮件"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Each answer counts against your {plan} plan's usage limits."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/auto_replies.rs
 #, fuzzy
 msgid "Each sender gets one automatic reply, with the message below:"
@@ -4842,6 +5276,11 @@ msgstr ""
 #, fuzzy
 msgid "Every"
 msgstr "每个"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Every agent request is refused until you allow agents again. This lasts until MailCraft closes. Your own scripts still work."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -5228,8 +5667,8 @@ msgstr "查找相关邮件"
 msgid "Find a Time"
 msgstr "查找时间"
 
-#. command label, interface
-#: crates/engine/src/cmd/ai/mod.rs crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/lib.rs
+#. command label, interface, ribbon
+#: crates/engine/src/cmd/ai/mod.rs crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/ribbon.rs
 msgid "Find by Description"
 msgstr ""
 
@@ -5277,6 +5716,11 @@ msgstr "指纹（SHA-256）："
 msgid "Fingerprint:"
 msgstr "指纹："
 
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Finish Signing In in Your Browser"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt
 msgid "Finish on Microsoft's page in your browser. MailCraft is waiting."
@@ -5310,6 +5754,11 @@ msgstr "名字"
 #, fuzzy
 msgid "First save Google's standard IMAP and SMTP settings and a matching email user name before switching sign-in methods."
 msgstr "在切换登录方法之前，首先保存 Google 的标准 IMAP 和 SMTP 设置以及匹配的电子邮件用户名。"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "First to answer: {runtime}"
+msgstr ""
 
 #. android, name
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/MailListModel.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/MailRowView.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/RowActionsSheet.kt crates/ui-egui/src/forms.rs
@@ -5596,6 +6045,11 @@ msgid "Forward…"
 msgstr "转发…"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Found"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 msgid "Found in your domain's DNS. Your sign-in goes to a server outside your domain only after you agree."
 msgstr ""
@@ -5605,6 +6059,11 @@ msgstr ""
 #, fuzzy
 msgid "Found in {path}. Nothing is imported until you press Import."
 msgstr "在 {path} 中找到。点击“导入”前不会导入任何内容。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Found on this Mac. Using it sends nothing anywhere."
+msgstr ""
 
 #. what a command says
 #: crates/model/src/sync/progress.rs
@@ -5690,6 +6149,16 @@ msgstr "完整详细信息：包括地点和备注"
 #, fuzzy
 msgid "Full messages: {done} of {total}"
 msgstr "完整邮件：{done}/{total}"
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Gateway"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Gateway: {host}"
+msgstr ""
 
 #. interface, name, ribbon location
 #: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs
@@ -5796,6 +6265,16 @@ msgstr "GitHub 页面已打开：请在该页面附加诊断文件，然后提�
 #, fuzzy
 msgid "GitHub's page is open: check it, then submit. MailCraft sent nothing."
 msgstr "GitHub 页面已打开：请检查后再提交。MailCraft 没有发送任何内容。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Give the path of the program itself below."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Give the program's full path below."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/report_problem.rs
@@ -6283,10 +6762,30 @@ msgid "How it repeats is for its organizer to say."
 msgstr "重复方式由组织者决定。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "How it runs"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/folder_properties.rs
 #, fuzzy
 msgid "How many messages each folder holds and the space they take"
 msgstr "每个文件夹包含的邮件数量及其占用空间"
+
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "How to Install"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "How to stop."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "I understand this runtime can run commands because of what a message says"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -6307,6 +6806,11 @@ msgid "Icons"
 msgstr "图标"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "If Codex isn't signed in yet, run codex login in a terminal yourself, with your ChatGPT account."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/help.rs
 #, fuzzy
 msgid "If Google says the app is in testing, ask the developer to add your email as a test user. If your organization blocks MailCraft, ask its Workspace administrator. Those pages may not return here: cancel, then retry when access is granted or use an app password if allowed."
@@ -6317,6 +6821,11 @@ msgstr "如果 Google 表示应用正在测试，请联系开发者将您的电�
 #, fuzzy
 msgid "If MailCraft is still in Google's testing mode, ask its developer to add this address to the Test users list. If your organization blocked access, ask your Google Workspace administrator. Your mailbox was not changed."
 msgstr "如果 MailCraft 仍处于 Google 测试模式，请联系开发者将此地址添加到测试用户列表。如果您的组织阻止访问，请联系 Google Workspace 管理员。您的邮箱没有更改。"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "If a runtime tries to use a tool, MailCraft stops it and always tells you, whichever you choose."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_state.rs
@@ -6676,6 +7185,11 @@ msgid "In the selection"
 msgstr "在所选内容中"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "In the usual places"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/import_pst.rs
 #, fuzzy
 msgid "In this calendar:"
@@ -6788,6 +7302,11 @@ msgstr "在我的组织内部"
 msgid "Inspect View"
 msgstr "检查视图"
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Install"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
@@ -6799,6 +7318,16 @@ msgstr "自动安装更新"
 #, fuzzy
 msgid "Install updates automatically"
 msgstr "自动安装更新"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Install {runtime} with its own installer, then choose Look Again. MailCraft never installs or updates it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Installed, not running. MailCraft can't start this version itself."
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -6877,6 +7406,21 @@ msgstr "颁发者："
 #, fuzzy
 msgid "Issued to"
 msgstr "发给"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "It can't run commands, read or write files, browse the web or use other tools, and MailCraft stops it if it tries. Mail is data, never instructions: a message can't talk it into anything. This can't be turned off."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "It didn't answer its version check. Reinstall it, then choose Look Again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "It doesn't ask Codex whether you're signed in either: it finds out when Codex answers. To sign in, run codex login; to sign out, run codex logout, in a terminal."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/meeting_dialogs.rs
@@ -7063,6 +7607,11 @@ msgstr "主题：“{subject}”。正文：“{body}”。"
 #, fuzzy
 msgid "Its text is replaced"
 msgstr "其文本被替换"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Its tools stay on."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/dialogs.rs
@@ -7324,6 +7873,11 @@ msgid "Kept on this computer only: invitations and repeating events aren't sent 
 msgstr "仅保存在此计算机上：邀请和重复日程尚未发送到服务器"
 
 #. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Kept only while MailCraft is open, and never shown to an agent. No message text, subject, address or search is kept here."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ai/settings_page.rs
 msgid "Key"
 msgstr ""
@@ -7393,6 +7947,16 @@ msgstr "上周"
 msgid "Last name"
 msgstr "姓氏"
 
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Last seen {when} · {requests}, {ran}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Last time:"
+msgstr ""
+
 #. interface, name
 #: crates/ui-egui/src/graph_switch.rs crates/ui-egui/src/tasks_view.rs
 #, fuzzy
@@ -7442,6 +8006,11 @@ msgid "Leave this account out of this Send/Receive"
 msgstr "此次发送/接收时跳过此账户"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Leaves this computer"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Let me set up my account manually"
@@ -7456,6 +8025,11 @@ msgstr "让别人知道您不在或暂时无法回复：邮箱会自动回复"
 #. interface
 #: crates/ui-egui/src/ai/settings_ask.rs
 msgid "Let {host} Read Mail from {address}?"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Let {runtime} Read Mail from {account}?"
 msgstr ""
 
 #. name
@@ -7559,8 +8133,8 @@ msgstr "本地邮箱"
 msgid "Location"
 msgstr "位置"
 
-#. interface
-#: crates/ui-egui/src/ai/settings_device.rs crates/ui-egui/src/reading/invitation.rs
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/ai/settings_device.rs crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/ai/signin.rs crates/ui-egui/src/reading/invitation.rs
 #, fuzzy
 msgid "Look Again"
 msgstr "重新查找"
@@ -7578,10 +8152,20 @@ msgid "Look for This Meeting on the Calendar"
 msgstr "在日历上查找此会议"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Look for the runtimes' programs on this computer again. Looking runs each program's version check and sends nothing."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Look for your certificates and keys again"
 msgstr "再次查找您的证书和密钥"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Look in the Usual Places"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_device.rs
@@ -7593,6 +8177,17 @@ msgstr ""
 #, fuzzy
 msgid "Lookalike address."
 msgstr "相似地址。"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Looked again: {n} runtime found."
+msgid_plural "Looked again: {n} runtimes found."
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Looked in: your PATH and the usual places for {runtime}."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_state.rs
@@ -7625,6 +8220,11 @@ msgstr "正在查找您的 Exchange 服务器…"
 #. interface
 #: crates/ui-egui/src/ai/answers.rs
 msgid "Looking through your mail…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Looking…"
 msgstr ""
 
 #. interface
@@ -7750,11 +8350,31 @@ msgstr "垃圾邮件中的邮件仍须逐封询问。可在“文件 › 选项�
 msgid "Mail in this shared mailbox's Outbox waits: sending from shared mailboxes needs your permission. Use Send/Receive."
 msgstr "此共享邮箱发件箱中的邮件正在等待发送：从共享邮箱发送邮件需要您的许可。请使用“发送/接收”。"
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Mail may leave: {pairs}"
+msgstr ""
+
 #. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "Mail moves and copies between a shared mailbox and its own account's mailboxes only: move it there, or into a folder on this computer"
 msgstr "邮件只能在共享邮箱与其所属账户的邮箱之间移动或复制：请将邮件移到其中一个邮箱，或移到此计算机上的文件夹中。"
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Mail of {accounts} may be sent through the gateway at {host} to a service on the internet. Click to change or stop it in AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Mail of {accounts} may be sent to {host}. Click to change or stop it in AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Mail of {accounts} may go to {runtimes}. Click to change or stop it in AI assistance."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/data_removal.rs
@@ -7815,6 +8435,21 @@ msgid "Mail, calendar, people and tasks, written from scratch in Rust. It runs n
 msgstr "邮件、日历、联系人和任务程序，完全使用 Rust 编写。它可在 macOS、Windows、Linux 和 BSD 上原生运行，也可在浏览器中运行。"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft Stopped Waiting"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft adds no API key, so it never pays by the token for you."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft asks a model only when you ask: a question in Ask Mail, a search you describe in words, a draft. It tries the runtimes below in order and uses the first one that can answer. A runtime that sends text off this computer gets an account's mail only after you allow that account."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/graph_switch.rs
 #, fuzzy
 msgid "MailCraft can now keep {account} in step with Microsoft through Microsoft Graph, the way Outlook on the web does, instead of IMAP. Your folders, flags, categories and drafts then match what you see in Outlook, and your mail keeps coming even where your organisation has turned IMAP off."
@@ -7838,6 +8473,16 @@ msgid "MailCraft can't sign in to this server this way yet (it wants Kerberos). 
 msgstr "MailCraft 暂时无法以此方式登录该服务器（服务器要求使用 Kerberos）。请询问管理员是否可以通过加密连接使用用户名和密码。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "MailCraft can't turn off its tools."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft can't turn off this runtime's tools."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ai/settings_state.rs
 msgid "MailCraft checks that it is still the same model each time it starts and after any error."
 msgstr ""
@@ -7853,10 +8498,20 @@ msgid "MailCraft couldn't open a browser for Microsoft's page. Install or enable
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft couldn't open a terminal. Open one yourself and run:"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/approval.rs
 #, fuzzy
 msgid "MailCraft couldn't open your browser for Microsoft's approval page. Copy the message instead: the link in it opens the same page."
 msgstr "MailCraft 无法打开您的浏览器访问 Microsoft 的批准页面。请复制该消息：其中的链接会打开同一页面。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "MailCraft couldn't read it. Check its permissions, then choose Look Again."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/answers.rs
@@ -7871,6 +8526,11 @@ msgstr ""
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt
 msgid "MailCraft couldn't set aside the saved mailbox it couldn't read, so changes aren't saved this time. Free up space and restart the app."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft didn't start this Universal Agent Runtime and can't turn off its tools. Whatever it is sent leaves this computer, as far as MailCraft can tell, and it is used only for the accounts you allow."
 msgstr ""
 
 #. what a command says
@@ -7900,6 +8560,16 @@ msgstr "MailCraft 暂不支持重命名或移动 JMAP 账户的文件夹：这�
 #, fuzzy
 msgid "MailCraft doesn't support POP yet. Use your provider's IMAP server instead (usually imap.<your domain>, port 993)."
 msgstr "MailCraft 尚不支持 POP。请改用服务提供商的 IMAP 服务器（通常为 imap.<your domain>，端口 993）。"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft forgets this sign-in and stops sending any account's mail to ChatGPT. You'd allow each account again after signing back in."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft has forgotten this ChatGPT sign-in on this computer. You can also remove MailCraft from the connected apps in your ChatGPT settings."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_state.rs
@@ -7960,6 +8630,11 @@ msgid "MailCraft keeps this account's rules on this computer: the rule runs whil
 msgstr "MailCraft 将此账户的规则保存在这台计算机上，规则仅在 MailCraft 打开时运行。"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft keeps this sign-in in the system's credential store, never in its files, and uses it only for your own questions."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ai/errors.rs
 msgid "MailCraft kept only its start. Ask a narrower question to get the rest."
 msgstr ""
@@ -8003,6 +8678,21 @@ msgid "MailCraft needs your system browser to sign in. You can also use a Google
 msgstr "MailCraft 需要使用系统浏览器登录。您也可以使用 Google 应用密码。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft never reads, keeps or passes on your sign-in, and never runs codex login."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft never reads, keeps or passes on your sign-in:"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft never sees your sign-in. It asks Claude Code every few seconds whether you're signed in, for up to 10 minutes."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/updates.rs
 #, fuzzy
 msgid "MailCraft now installs its updates itself. Turn this off in File › About."
@@ -8021,6 +8711,21 @@ msgid "MailCraft reads the key without its passphrase and keeps the file, still 
 msgstr "MailCraft 读取密钥时无需输入密码短语，并将仍受密码短语保护的文件保存在系统凭据存储中。密钥必须设置密码短语，并使用 Ed25519 或 ECDSA 签名；签名时 MailCraft 会要求输入密码短语。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "MailCraft runs Codex inside the system sandbox, which keeps it from writing your files and from reading most of them."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "MailCraft runs only programs that belong to you or to the system. Install your own copy, then choose Look Again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft says which runtime couldn't answer and which it would try next, and waits for you."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ai/settings.rs
 msgid "MailCraft sends only to the address on this computer, and needs no permission for each account. Your mail still goes to the program at that address, so use one you trust."
 msgstr ""
@@ -8030,6 +8735,11 @@ msgstr ""
 #, fuzzy
 msgid "MailCraft sends {host} the address this list gave for unsubscribing, which may identify you to it, and nothing else: no cookies, no sign-in. Like any connection, it also shows your internet address."
 msgstr "MailCraft 只会把此列表提供的退订地址发送给 {host}，该地址可能让对方识别出你，此外不发送任何内容：没有 Cookie，也不登录。与任何连接一样，它也会显示你的 IP 地址。"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft signs in with OpenAI's Sign in with ChatGPT. It keeps the long-lived part of the sign-in in the system's credential store and the short-lived part only in memory. They renew on their own; if OpenAI ends the sign-in, ChatGPT plan turns off and says so."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/opening.rs
@@ -8048,6 +8758,21 @@ msgstr "MailCraft 尚未读取完成便停止了。"
 #, fuzzy
 msgid "MailCraft stopped reading the .pst file before it was done: what came in is kept"
 msgstr "MailCraft 未能读完整个 .pst 文件；已导入的内容会保留"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft stopped waiting after 10 minutes. Nothing was changed."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "MailCraft stopped waiting. If you sign in later, choose Look Again."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "MailCraft talks to OpenAI directly"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
@@ -8378,6 +9103,11 @@ msgstr ""
 msgid "Message Preview"
 msgstr "邮件预览"
 
+#. interface
+#: crates/ui-egui/src/ai/answers_sources.rs
+msgid "Message no longer available"
+msgstr ""
+
 #. interface, ribbon, ribbon location
 #: crates/engine/src/cmd/view.rs crates/engine/src/cmd/view/display.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -8602,7 +9332,7 @@ msgid "Mobile"
 msgstr "手机"
 
 #. interface
-#: crates/ui-egui/src/ai/settings_page.rs
+#: crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/ai/settings_runtimes.rs
 msgid "Model"
 msgstr ""
 
@@ -8829,6 +9559,16 @@ msgid "Move to…"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Move {runtime} down"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Move {runtime} up"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Moving it to the other calendar: the account's server makes it there, then takes it out of this one"
@@ -8894,6 +9634,11 @@ msgid "Names and colours for sorting mail, events, people and tasks"
 msgstr "用于整理邮件、日程、联系人和任务的名称及颜色"
 
 #. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Names are what each agent says it is; MailCraft can't check them."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/compose.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/meeting_dialogs.rs
 #, fuzzy
 msgid "Names or addresses, separated by ;"
@@ -8934,6 +9679,11 @@ msgstr "需要启用“检查新版本”。"
 #, fuzzy
 msgid "Needs Google sign-in"
 msgstr "需要 Google 登录"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Needs a key"
+msgstr ""
 
 #. name
 #: crates/ui-egui/src/theme/blue.rs
@@ -9202,6 +9952,11 @@ msgid "Next week"
 msgstr "下周"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Next, choose which accounts may use it, under Accounts."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/merge_contacts.rs
 #, fuzzy
 msgid "Nickname"
@@ -9283,6 +10038,11 @@ msgstr "尚无账户：文件 › 添加账户"
 #, fuzzy
 msgid "No account's server keeps a calendar here yet, so there is nowhere to move these to."
 msgstr "当前没有账户的服务器在此处保存日历，因此无法将这些项目移过去。"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "No agent has asked for anything in this session."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/windows.rs
@@ -9470,6 +10230,11 @@ msgid "No model is set up. Nothing is sent anywhere."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "No model is used, and nothing is sent anywhere. Click to set up AI assistance."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/updates.rs
 #, fuzzy
 msgid "No new version is ready to install."
@@ -9532,6 +10297,11 @@ msgid "No rules yet. A rule files, flags or deletes mail as it arrives."
 msgstr "尚无规则。规则会在邮件到达时将其移入文件夹、标记或删除。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "No runtime is set up yet. Choose Look Again to look for the runtimes' programs on this computer."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/ai/errors.rs crates/ui-egui/src/ai/narrow.rs
 msgid "No search came back."
 msgstr ""
@@ -9553,6 +10323,11 @@ msgstr "在此地址通常使用的位置没有服务器响应。请检查网络
 #, fuzzy
 msgid "No sign-in with Microsoft is under way"
 msgstr "当前没有正在进行的 Microsoft 登录"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "No sign-in. It runs on this Mac and never sends text anywhere."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ribbon.rs
@@ -9678,7 +10453,7 @@ msgid "Not a date"
 msgstr "日期无效"
 
 #. interface
-#: crates/ui-egui/src/ai/settings_page.rs
+#: crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/settings_page.rs
 msgid "Not allowed"
 msgstr ""
 
@@ -9728,6 +10503,11 @@ msgid "Not available: {reason}"
 msgstr "不可用：{reason}"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not checked yet"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/mail_view/server_rows.rs crates/ui-egui/src/server_search.rs
 #, fuzzy
 msgid "Not connected"
@@ -9751,10 +10531,25 @@ msgid "Not every server was found: the rest is only a guess made from the domain
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Not found"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not found on this computer"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
 msgid "Not in Outlook's list: no colour there"
 msgstr "不在 Outlook 的列表中：Outlook 中没有对应颜色"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not installed"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -9774,6 +10569,21 @@ msgstr "暂不"
 msgid "Not now: it is installed when you quit MailCraft."
 msgstr "暂不：退出 MailCraft 时将安装它。"
 
+#. interface, name
+#: crates/ui-egui/src/agent_log.rs
+msgid "Not run: no answer in 50 s"
+msgstr ""
+
+#. interface, name
+#: crates/ui-egui/src/agent_log.rs
+msgid "Not run: you said no"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not running"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/compose.rs
 #, fuzzy
@@ -9783,6 +10593,21 @@ msgstr "未保存"
 #. interface
 #: crates/ui-egui/src/ai/settings_page.rs
 msgid "Not set up"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not signed in. Run codex login in a terminal yourself: MailCraft never runs it."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not signed in. Sign in with claude auth login in a terminal."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Not turned on"
 msgstr ""
 
 #. interface
@@ -9808,7 +10633,7 @@ msgid "Not verified"
 msgstr "未验证"
 
 #. android, interface, ribbon location
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/engine/src/cmd/notes.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/people_view.rs crates/ui-egui/src/tasks_view.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/engine/src/cmd/notes.rs crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/people_view.rs crates/ui-egui/src/tasks_view.rs
 #, fuzzy
 msgid "Notes"
 msgstr "注释"
@@ -9855,10 +10680,20 @@ msgid "Nothing came for too long."
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Nothing can answer yet"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/invitation.rs
 #, fuzzy
 msgid "Nothing else is on your calendar at that time."
 msgstr "那个时间您的日历上没有其他事项。"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Nothing else is tried."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/sync_panel.rs
@@ -9914,6 +10749,11 @@ msgstr "当前未发送或接收任何内容。单击以重新连接。"
 #. interface
 #: crates/ui-egui/src/ai/settings_page.rs
 msgid "Nothing is sent. Choose a model to describe searches in words and ask questions about your mail."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Nothing leaves this computer"
 msgstr ""
 
 #. interface
@@ -10052,6 +10892,11 @@ msgstr "10月"
 msgid "October"
 msgstr "10月"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/ai/runtime_widgets.rs
+msgid "Off"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Freshness.kt
 msgid "Offline"
@@ -10070,7 +10915,7 @@ msgid "Oldest on top"
 msgstr "最早邮件置顶"
 
 #. interface
-#: crates/ui-egui/src/forms.rs
+#: crates/ui-egui/src/ai/runtime_widgets.rs crates/ui-egui/src/forms.rs
 #, fuzzy
 msgid "On"
 msgstr "开"
@@ -10133,7 +10978,7 @@ msgid "On the server: here it can be switched on or off, moved or deleted"
 msgstr "保存在服务器上：可在此启用、停用、移动或删除"
 
 #. interface
-#: crates/ui-egui/src/calendar_view.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/widgets.rs
+#: crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/calendar_view.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/widgets.rs
 #, fuzzy
 msgid "On this computer"
 msgstr "在这台计算机上"
@@ -10303,6 +11148,11 @@ msgid "Only one part of this message was signed, and what's shown here holds mor
 msgstr "此邮件只有一部分经过签名，而这里显示的内容不止这一部分；签名范围之外可能包含任何内容。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Only runtimes already allowed for that account are tried. The answer says which one replied, and which couldn't."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/auto_replies.rs
 #, fuzzy
 msgid "Only send during this time range:"
@@ -10360,6 +11210,31 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/ai/narrow.rs
 msgid "Only what you type here goes to {host}, encrypted. No mail is sent."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Only what you type into Find by Description and Ask Mail's question box goes through the gateway at {host} to a service on the internet. No mail is sent there until you allow an account. Click to change or stop it in AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Only what you type into Find by Description and Ask Mail's question box goes through the gateway to a service on the internet. No mail is sent there until you allow an account. Click to change or stop it in AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Only what you type into Find by Description and Ask Mail's question box goes to a remote service. No mail is sent there until you allow an account. Click to change or stop it in AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Only what you type into Find by Description and Ask Mail's question box goes to {host}. No mail is sent there until you allow an account. Click to change or stop it in AI assistance."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Only what you type into Find by Description and Ask Mail's question box may go to {runtimes}. No mail is sent there until you allow an account. Click to change or stop it in AI assistance."
 msgstr ""
 
 #. interface
@@ -10468,6 +11343,11 @@ msgid "Open Shared Calendar"
 msgstr "打开共享日历"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Open Sign-in Page"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 #, fuzzy
 msgid "Open a mailbox of your organisation that you were given Full Access to, such as a team's, under this account"
@@ -10569,6 +11449,26 @@ msgid "Open {name}? {why}"
 msgstr "打开 {name}？{why}"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/ai/signin.rs
+msgid "OpenAI"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "OpenAI ended this sign-in. Sign in with ChatGPT again to keep using your ChatGPT plan."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "OpenAI's sign-in page opens in your web browser. Sign in with your ChatGPT account, then choose Allow. Answers then use your ChatGPT plan and its usage limits."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "OpenAI, under your ChatGPT sign-in, over an encrypted connection. MailCraft asks OpenAI not to keep the conversation, but it handles what it receives under its own terms for your plan, and MailCraft can't see what it does with it."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/open_shared.rs
 #, fuzzy
 msgid "Opened the calendar of {name}. It is listed under Shared Calendars, on this computer only."
@@ -10585,6 +11485,11 @@ msgstr "使用 {owner} 的登录信息打开。此操作需要组织管理员授
 #, fuzzy
 msgid "Opening Mail Attachment"
 msgstr "正在打开邮件附件"
+
+#. name
+#: crates/ui-egui/src/control/ai_runtimes.rs
+msgid "Opening a terminal for `claude auth login`"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/opening.rs
@@ -11225,6 +12130,11 @@ msgid "Private"
 msgstr "私人"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Program"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/nav.rs
 #, fuzzy
 msgid "Promotions"
@@ -11361,6 +12271,11 @@ msgstr "将您选择的日历日期插入邮件中的光标位置。"
 msgid "Questions about mail from an account you haven't allowed are answered by the backup on this computer instead."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/status.rs
+msgid "Questions are answered on this computer, and no mail leaves it. Click to change AI assistance."
+msgstr ""
+
 #. ribbon location
 #: crates/engine/src/cmd/edit.rs
 #, fuzzy
@@ -11372,6 +12287,16 @@ msgstr "快速访问"
 #, fuzzy
 msgid "Quit MailCraft"
 msgstr "退出 MailCraft"
+
+#. interface, name
+#: crates/ui-egui/src/agent_log.rs
+msgid "Ran: allowed in advance"
+msgstr ""
+
+#. interface, name
+#: crates/ui-egui/src/agent_log.rs
+msgid "Ran: no question needed"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -11416,6 +12341,11 @@ msgstr "立即从 Outlook 重新读取收藏夹"
 #. command label
 #: crates/engine/src/cmd/ai/mod.rs
 msgid "Read the Suggested Search"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Read what it's given and write an answer, nothing else. It gets no tools: if it tries to run a command, open a file, browse the web or use any other tool, MailCraft stops it."
 msgstr ""
 
 #. interface
@@ -11470,6 +12400,11 @@ msgstr "正在从 Microsoft 读取日历…"
 msgid "Reading your automatic replies from the server…"
 msgstr "正在读取服务器上的自动回复…"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Ready"
+msgstr ""
+
 #. name
 #: crates/ui-egui/src/credits.rs
 #, fuzzy
@@ -11520,6 +12455,11 @@ msgstr ""
 #, fuzzy
 msgid "Recent mail"
 msgstr "最近的邮件"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Recently active"
+msgstr ""
 
 #. name
 #: crates/ui-egui/src/forms.rs
@@ -11580,6 +12520,11 @@ msgstr "刷新"
 #, fuzzy
 msgid "Refresh Your Certificates and Keys"
 msgstr "刷新您的证书和密钥"
+
+#. interface, name
+#: crates/ui-egui/src/agent_log.rs
+msgid "Refused"
+msgstr ""
 
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
@@ -11644,6 +12589,16 @@ msgstr ""
 #, fuzzy
 msgid "Reminders Window"
 msgstr "提醒窗口"
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Remote"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Remote: {host}"
+msgstr ""
 
 #. android, interface
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt crates/ui-egui/src/backstage.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/forms/junk.rs crates/ui-egui/src/open_shared.rs crates/ui-egui/src/reading/remote.rs crates/ui-egui/src/security.rs
@@ -12304,6 +13259,36 @@ msgstr "对 {folder} 运行所有已启用的规则"
 #, fuzzy
 msgid "Run this rule on mail as it arrives"
 msgstr "在邮件到达时运行此规则"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Running"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Running on this computer, not started by MailCraft"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Runs agents on this computer and passes them to models"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Runs at {address}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Runtimes on this computer read every account, and nothing leaves. A runtime that sends text elsewhere gets an account's mail only after you allow that account here. Turning a runtime on doesn't allow anything."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Runtimes, in the order they're tried"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
@@ -13203,6 +14188,21 @@ msgid "Sends the report to the MailCraft team, as this window shows it."
 msgstr "按此窗口显示的内容向 MailCraft 团队发送报告。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sends to Anthropic"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sends to OpenAI"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sends to {host}"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Sent"
@@ -13599,6 +14599,11 @@ msgid "Show the folder pane"
 msgstr "显示文件夹窗格"
 
 #. interface
+#: crates/ui-egui/src/nav.rs
+msgid "Show the folder pane (closes Answers)"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/mail_view.rs
 #, fuzzy
 msgid "Show the messages of this conversation"
@@ -13617,7 +14622,7 @@ msgid "Show this message's warning"
 msgstr "显示此邮件的警告"
 
 #. interface
-#: crates/ui-egui/src/ai/answers.rs
+#: crates/ui-egui/src/ai/answers_sources.rs
 msgid "Show this message. Double-click to open it in its own window."
 msgstr ""
 
@@ -13716,6 +14721,36 @@ msgstr "再次登录"
 #, fuzzy
 msgid "Sign In Again for Automatic Replies"
 msgstr "重新登录以使用自动回复"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Sign In to Claude Code"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Sign In with ChatGPT"
+msgstr ""
+
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sign In…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Sign Out"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Sign Out of ChatGPT?"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Sign Out of ChatGPT…"
+msgstr ""
 
 #. android, interface
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt crates/ui-egui/src/account_setup.rs
@@ -13825,6 +14860,11 @@ msgid "Sign in to {owner} first (Send/Receive), then add the shared mailbox."
 msgstr "请先登录 {owner}（发送/接收），再添加共享邮箱。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sign in with ChatGPT. Answers use your ChatGPT plan and its limits."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Sign in with Google"
@@ -13854,10 +14894,35 @@ msgid "Sign in with Send/Receive to see when other people are busy."
 msgstr "使用“发送/接收”登录，以查看其他人的忙闲状态。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Sign-in"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Sign-in cancelled"
 msgstr "登录已取消"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/ai/signin.rs
+msgid "Sign-in cancelled. Nothing was changed."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sign-in ended"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sign-in expired"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Sign-in not checked"
+msgstr ""
 
 #. command label, ribbon
 #: crates/engine/src/cmd/compose.rs crates/ui-egui/src/ribbon.rs
@@ -13890,6 +14955,16 @@ msgid "Signatures…"
 msgstr "签名…"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Signed In to ChatGPT"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Signed In to Claude Code"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/reading/signature.rs
 #, fuzzy
 msgid "Signed at:"
@@ -13902,10 +14977,30 @@ msgid "Signed by:"
 msgstr "签署人："
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Signed in as {email}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Signed in as {email} ({plan})"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Signed in to ChatGPT"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Signed in, but Microsoft still won't let MailCraft read the mail of {account}. Try Send/Receive again later."
 msgstr "已登录，但 Microsoft 仍不允许 MailCraft 读取 {account} 的邮件。请稍后重试“发送/接收”。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Signed out"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/lib.rs
@@ -13919,11 +15014,21 @@ msgstr "登录未返回结果"
 msgid "Signing in stopped unexpectedly"
 msgstr "登录意外中断"
 
+#. name
+#: crates/ui-egui/src/control/ai_runtimes.rs
+msgid "Signing in to a ChatGPT plan"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Signing in to {server}"
 msgstr "正在登录 {server}"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Signing in…"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup.rs
@@ -14098,12 +15203,17 @@ msgid "Source of {subject}"
 msgstr "{subject} 的邮件原文"
 
 #. interface
-#: crates/ui-egui/src/ai/answers.rs
+#: crates/ui-egui/src/ai/answers_sources.rs
+msgid "Source {n}: message no longer available"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_sources.rs
 msgid "Source {n}: {sender}, {subject}, {date}"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/ai/answers.rs
+#: crates/ui-egui/src/ai/answers_sources.rs
 msgid "Sources"
 msgstr ""
 
@@ -14162,6 +15272,16 @@ msgid "Start time:"
 msgstr "开始时间："
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Started by"
+msgstr ""
+
+#. name
+#: crates/ui-egui/src/control/ai_runtimes.rs
+msgid "Starting the Universal Agent Runtime"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/sync_panel.rs
 #, fuzzy
 msgid "Starting…"
@@ -14204,20 +15324,35 @@ msgid "Status:"
 msgstr "状态："
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Stays here"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/mail_view.rs
 #, fuzzy
 msgid "Still indexing: some older mail is searched more slowly"
 msgstr "仍在建立索引：某些较旧的邮件搜索速度较慢"
 
 #. interface
-#: crates/ui-egui/src/ai/answers.rs crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/sync_panel.rs
+#: crates/ui-egui/src/ai/answers.rs crates/ui-egui/src/ai/runtime_consent.rs crates/ui-egui/src/ai/settings_page.rs crates/ui-egui/src/sync_panel.rs
 #, fuzzy
 msgid "Stop"
 msgstr "停止"
 
+#. command label, interface
+#: crates/ui-egui/src/ai/agents.rs crates/ui-egui/src/lib.rs
+msgid "Stop Agent Access"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/ai/settings_device.rs
 msgid "Stop Using It"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Stop and tell me"
 msgstr ""
 
 #. interface
@@ -14272,6 +15407,11 @@ msgstr "已停止 ({line})"
 #, fuzzy
 msgid "Stopped before the end. Import the file again to bring the rest."
 msgstr "操作在完成前停止。请再次导入文件以获取剩余内容。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Stopped. No more mail from {account} goes to {runtime}. What was already sent can't be called back."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/answers.rs
@@ -14692,6 +15832,11 @@ msgid "Text Highlight Color"
 msgstr "文本突出显示颜色"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Text only, no tools."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
 msgid "Text to look for"
@@ -14874,6 +16019,26 @@ msgstr "数字签名已过期。"
 #, fuzzy
 msgid "The Entire Series"
 msgstr "整个系列"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "The Sign-in Didn't Finish"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "The Sign-in Took Too Long"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "The Universal Agent Runtime on this computer, which MailCraft didn't start. Where it sends what it receives depends on how it was set up, and MailCraft can't tell."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "The Universal Agent Runtime wasn't changed: {reason}"
+msgstr ""
 
 #. what a command says
 #: crates/mobile/src/sync_api.rs
@@ -15909,6 +17074,11 @@ msgid "The rules sent couldn't be noted: {error}"
 msgstr "无法记录已发送的规则：{error}"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "The runtime uses the model sign-ins you gave it. MailCraft never sees them."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
 #, fuzzy
 msgid "The search for your Exchange server asks to start again with an address in another domain, {host}."
@@ -16203,6 +17373,11 @@ msgstr "共享邮箱的日历“{name}”仅显示所有者的忙闲状态；此
 msgid "The shared mailbox's e-mail address"
 msgstr "共享邮箱的电子邮件地址"
 
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "The sign-in couldn't be started. Nothing was changed."
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Accounts.kt
 msgid "The sign-in didn't go through."
@@ -16398,6 +17573,11 @@ msgstr "主题"
 #, fuzzy
 msgid "Then run it over the mail already in {folder}"
 msgstr "然后对 {folder} 中已有的邮件运行该规则"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "There are no accounts or runtimes to show yet."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_page.rs
@@ -16794,6 +17974,11 @@ msgstr "MailCraft 不支持此证书的密钥类型；此处仅导入 P-256 或 
 #, fuzzy
 msgid "This computer doesn't trust the certificate the server at {host} shows. If this is your organisation's server, you can trust this one certificate for this account."
 msgstr "此计算机不信任 {host} 服务器提供的证书。如果这是您组织的服务器，可以为此账户信任这张证书。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "This computer gives no system sandbox, and {runtime} runs only inside one."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/reading/signature.rs
@@ -17363,6 +18548,11 @@ msgstr "此{what}由 {who} 的服务器保存。在此所做的更改尚不能�
 msgid "Three Weeks Ago"
 msgstr "三周前"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Through the gateway at {host}"
+msgstr ""
+
 #. date and time, name
 #: crates/i18n/src/date.rs crates/time/src/lib.rs
 #, fuzzy
@@ -17478,6 +18668,11 @@ msgstr "时区"
 #, fuzzy
 msgid "Title"
 msgstr "标题"
+
+#. ribbon location
+#: crates/ui-egui/src/lib.rs
+msgid "Title bar"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/advanced_search.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs
@@ -17602,6 +18797,11 @@ msgstr ""
 "您可以查看哪些日历内容由其所有者和您的组织决定，此授权不会改变这些权限。在您授权之前，不会读取 {address} 的任何日历。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "To sign out, run {command} yourself."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "To switch, first save Google's standard IMAP and SMTP servers and an email-matching user name."
@@ -17721,7 +18921,7 @@ msgid "Trusted certificate (SHA-256 fingerprint):"
 msgstr "可信证书（SHA-256 指纹）："
 
 #. interface
-#: crates/ui-egui/src/ai/narrow.rs
+#: crates/ui-egui/src/ai/narrow.rs crates/ui-egui/src/ai/signin.rs
 msgid "Try Again"
 msgstr ""
 
@@ -17730,6 +18930,11 @@ msgstr ""
 #, fuzzy
 msgid "Try Downloading Pictures Again"
 msgstr "尝试再次下载图片"
+
+#. interface
+#: crates/ui-egui/src/ai/answers.rs
+msgid "Try It"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -17748,6 +18953,11 @@ msgstr "重试"
 msgid "Try again in a moment."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Try the next one"
+msgstr ""
+
 #. date and time, name
 #: crates/i18n/src/date.rs crates/time/src/lib.rs
 #, fuzzy
@@ -17759,6 +18969,11 @@ msgstr "星期二"
 #, fuzzy
 msgid "Tuesday"
 msgstr "星期二"
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Turn ChatGPT plan on to use it."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/attachment_preview.rs
@@ -17854,6 +19069,21 @@ msgid "Typing * or - and a space at the start of a line starts a bulleted list, 
 msgstr "在行首输入 * 或 - 并加一个空格可开始项目符号列表；输入 1. 或 1) 并加空格可开始编号列表。撤销可恢复原先输入的内容。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "UAR"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "UAR refused MailCraft"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "UAR refused MailCraft. Check the runtime's own settings, then choose Look Again."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/import_pst.rs
 #, fuzzy
 msgid "Under a folder on this computer:"
@@ -17882,6 +19112,21 @@ msgstr "撤销输入"
 #, fuzzy
 msgid "Undo {what}"
 msgstr "撤销 {what}"
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Universal Agent Runtime"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Universal Agent Runtime is on. No account's mail goes to it until you allow that account under Accounts."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/control/client.rs
+msgid "Unnamed agent"
+msgstr ""
 
 #. android, interface, name
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/MailListModel.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/MailRowParts.kt crates/engine/src/session.rs crates/ui-egui/src/advanced_search.rs crates/ui-egui/src/folder_properties.rs
@@ -18031,13 +19276,18 @@ msgid "Updating {account}"
 msgstr "正在更新 {account}"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Usage"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Use Google sign-in instead"
 msgstr "请改用 Google 登录"
 
-#. interface
-#: crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_device.rs
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs crates/ui-egui/src/ai/settings.rs crates/ui-egui/src/ai/settings_device.rs crates/ui-egui/src/ai/signin.rs
 msgid "Use It"
 msgstr ""
 
@@ -18046,11 +19296,21 @@ msgstr ""
 msgid "Use It: {what}"
 msgstr ""
 
+#. interface, name
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Use It…"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/lib.rs crates/ui-egui/src/shared_mailboxes.rs
 #, fuzzy
 msgid "Use Send/Receive to sign in to {address}"
 msgstr "使用“发送/接收”登录 {address}"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Use This Path"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/narrow.rs
@@ -18125,10 +19385,25 @@ msgid "Use the On-Device Model"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Use the Universal Agent Runtime That's Already Running?"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Use the arrows to change the order. Runtimes that are off are skipped."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Use {address}"
 msgstr "使用 {address}"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Use {runtime}"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_device.rs
@@ -18152,6 +19427,26 @@ msgstr "用户名：{name}"
 #, fuzzy
 msgid "Username"
 msgstr "用户名"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Uses Claude Code's own sign-in"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Uses your Claude plan"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Uses your own Claude Code sign-in"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Uses your own Codex sign-in, which MailCraft doesn't check"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_state.rs
@@ -18226,8 +19521,8 @@ msgstr "验证公钥"
 msgid "Verify…"
 msgstr "验证…"
 
-#. android
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/SettingsScreen.kt
+#. android, interface
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/SettingsScreen.kt crates/ui-egui/src/ai/settings_runtimes.rs
 msgid "Version"
 msgstr ""
 
@@ -18248,6 +19543,11 @@ msgstr "版本 {version} 修复了一个安全问题，现已准备就绪："
 #, fuzzy
 msgid "Version {version} is ready:"
 msgstr "版本 {version} 已准备就绪："
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "Version {version} · {rest}"
+msgstr ""
 
 #. name, ribbon location
 #: crates/engine/src/cmd/calendar_extra.rs crates/engine/src/cmd/calendar_settings.rs crates/engine/src/cmd/people.rs crates/engine/src/cmd/tasks.rs crates/engine/src/cmd/view.rs crates/engine/src/cmd/view/display.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
@@ -18292,16 +19592,31 @@ msgid "Waiting"
 msgstr "等待"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Waiting for Claude Code…"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 #, fuzzy
 msgid "Waiting for MailCraft's Google registration"
 msgstr "等待 MailCraft 的 Google 注册"
 
 #. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Waiting for OpenAI. MailCraft waits up to 10 minutes."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/approval.rs
 #, fuzzy
 msgid "Waiting for the approval stopped unexpectedly"
 msgstr "等待审批的过程意外停止"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Waiting for you to finish signing in"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_ask.rs
@@ -18311,6 +19626,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/ai/settings_state.rs
 msgid "Waiting for your answer: does {address} send your mail to the internet? Nothing is sent to it until you answer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "Waiting for {vendor}"
 msgstr ""
 
 #. interface
@@ -18362,6 +19682,16 @@ msgid "Week starts on"
 msgstr "一周的第一天"
 
 #. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "What agents ask for, and what was decided, shows here."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "What agents did in this session, and how to stop them."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/report_problem.rs
 #, fuzzy
 msgid "What happened"
@@ -18378,6 +19708,11 @@ msgstr "“发生了什么”和“您的期望”合计为 {n} 个字符；报�
 #, fuzzy
 msgid "What happens to mail as it arrives"
 msgstr "邮件到达后会发生什么"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "What is sent."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/ai/settings_ask.rs
@@ -18404,6 +19739,16 @@ msgstr ""
 #, fuzzy
 msgid "What it is made of"
 msgstr "组成部分"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "What it may do"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "What it may do."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/sync_panel.rs
@@ -18514,6 +19859,21 @@ msgid "When"
 msgstr "时间"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "When a runtime can't answer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "When a runtime can't answer: {choice}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "When you ask a question, MailCraft picks up to {n} messages from {account} that seem to answer it, and sends your question with each one's subject, its sender's name and address, its date and the passage of its text that seems to answer. Attachments, pictures, hidden text, passwords and sign-in tokens are never sent, and neither is mail from your other accounts."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/graph_switch.rs
 #, fuzzy
 msgid "When you switch:"
@@ -18560,6 +19920,11 @@ msgstr "哪些人已回复及其回复内容"
 #, fuzzy
 msgid "Who is invited is for its organizer to say."
 msgstr "邀请哪些人由组织者决定。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "Who receives it."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/reading/signature.rs
@@ -18755,24 +20120,6 @@ msgid "Writing…"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/ai/answers.rs
-msgid "Written by a model, from {n} message in your mailbox. It can be wrong: check the sources."
-msgid_plural "Written by a model, from {n} messages in your mailbox. It can be wrong: check the sources."
-msgstr[0] ""
-
-#. interface
-#: crates/ui-egui/src/ai/answers.rs
-msgid "Written by {model} at {host}, from {n} message in your mailbox. It can be wrong: check the sources."
-msgid_plural "Written by {model} at {host}, from {n} messages in your mailbox. It can be wrong: check the sources."
-msgstr[0] ""
-
-#. interface
-#: crates/ui-egui/src/ai/answers.rs
-msgid "Written by {model} on this computer, from {n} message in your mailbox. It can be wrong: check the sources."
-msgid_plural "Written by {model} on this computer, from {n} messages in your mailbox. It can be wrong: check the sources."
-msgstr[0] ""
-
-#. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
 msgid "YYYY-MM-DD"
@@ -18914,6 +20261,11 @@ msgstr "您是此会议的组织者，无需回复。"
 msgid "You replied to this message."
 msgstr "您已回复此邮件。"
 
+#. interface, name
+#: crates/ui-egui/src/agent_log.rs
+msgid "You said yes"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/ai/settings_page.rs
 msgid "You set {n} tokens."
@@ -18937,11 +20289,21 @@ msgstr "您以 {signedIn} 身份登录，而不是 {typed}。"
 msgid "You tentatively accepted this meeting."
 msgstr "您已暂定接受此会议。"
 
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "You're signed in."
+msgstr ""
+
 #. interface, what a command says
 #: crates/engine/src/sync_driver/free_busy.rs crates/ui-egui/src/send_receive.rs
 #, fuzzy
 msgid "You're working offline. Turn off Work Offline (Send / Receive) to connect."
 msgstr "您正在离线工作。请在“发送/接收”中关闭“离线工作”以连接。"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "Your Claude Code sign-in has run out. Sign in again with claude auth login."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/auto_replies.rs
@@ -18966,6 +20328,16 @@ msgstr "您的日历：{day}"
 #, fuzzy
 msgid "Your certificates and keys"
 msgstr "您的证书和密钥"
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Your description goes to {runtime}, which sends it to {vendor}. No mail is sent."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/narrow.rs
+msgid "Your description stays on this computer. No mail is sent."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
@@ -19227,6 +20599,11 @@ msgid "Your own name."
 msgstr "您自己的姓名。"
 
 #. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "Your typed searches may go to {runtime}"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/mail_view.rs
 #, fuzzy
 msgid "Z on top"
@@ -19365,6 +20742,16 @@ msgid "a category needs a name"
 msgstr "类别必须有名称"
 
 #. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "a chain entry is an object"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "a chain entry names its runtime"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/rich.rs
 #, fuzzy
 msgid "a colour is written #rrggbb"
@@ -19436,7 +20823,7 @@ msgid "a message that isn't on the server has no flags there"
 msgstr "服务器上不存在的邮件没有服务器端标记"
 
 #. interface
-#: crates/ui-egui/src/ai/settings_state.rs
+#: crates/ui-egui/src/ai/answers_sources.rs crates/ui-egui/src/ai/settings_state.rs
 msgid "a model"
 msgstr ""
 
@@ -19492,6 +20879,11 @@ msgstr "一个账户的规则不能放到另一个账户的服务器上"
 #, fuzzy
 msgid "a rule waiting to go to the server goes after those there; it can be moved once it is there"
 msgstr "等待发送到服务器的规则将排在服务器现有规则之后；发送后可以移动"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "a service elsewhere"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/account.rs
@@ -19656,7 +21048,7 @@ msgid "and"
 msgstr "和"
 
 #. interface
-#: crates/ui-egui/src/reading.rs
+#: crates/ui-egui/src/ai/settings_runtimes.rs crates/ui-egui/src/ai/status.rs crates/ui-egui/src/reading.rs
 #, fuzzy
 msgid "and {n} more"
 msgid_plural "and {n} more"
@@ -19731,11 +21123,36 @@ msgstr "无法读取"
 msgid "cancelled"
 msgstr "已取消"
 
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "change accounts"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "change settings"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "claude -p, text only, no tools or MCP servers, nothing saved"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "click and type in the window"
+msgstr ""
+
 #. what a command says
 #: crates/engine/src/cmd/mail.rs
 #, fuzzy
 msgid "close a conversation first: each of the 1,000 open has a message selected"
 msgstr "请先关闭一个会话：已打开的 1,000 个会话都选中了邮件"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "codex exec, inside the system sandbox, text only, nothing saved"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/security.rs
@@ -19778,6 +21195,11 @@ msgstr "无法连接到 {host}：{reason}"
 #, fuzzy
 msgid "day"
 msgstr "日"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "delete"
+msgstr ""
 
 #. what a command says
 #: crates/model/src/ai/narrow.rs
@@ -19965,6 +21387,11 @@ msgstr "不是文件夹：未作处理"
 msgid "issued by {issuer}"
 msgstr "颁发者：{issuer}"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "it belongs to another user"
+msgstr ""
+
 #. what a command says
 #: crates/engine/src/cmd/graph_drafts.rs
 #, fuzzy
@@ -19995,11 +21422,36 @@ msgstr "它会在窗口中点击或键入"
 msgid "it could not be removed"
 msgstr "无法删除"
 
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it couldn't answer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "it couldn't be looked at"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it couldn't be reached"
+msgstr ""
+
 #. name
 #: crates/engine/src/agent.rs
 #, fuzzy
 msgid "it deletes for good"
 msgstr "它会永久删除"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "it didn't answer its version check"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "it didn't behave as it should"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/rule_sync.rs
@@ -20048,6 +21500,31 @@ msgstr "图片过大，无法显示"
 msgid "it is too long for the platform"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "it isn't a regular file"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it isn't installed"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it isn't offered on this computer"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it isn't set up"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it isn't working"
+msgstr ""
+
 #. name
 #: crates/engine/src/cmd/rules.rs
 #, fuzzy
@@ -20060,11 +21537,21 @@ msgstr "该规则按名称查找，而服务器只按地址查找"
 msgid "it moves mail to more than one folder"
 msgstr "它会将邮件移动到多个文件夹"
 
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "it only asks Claude Code whether you're signed in. To sign in, run claude auth login; to sign out, run claude auth logout, in a terminal."
+msgstr ""
+
 #. name
 #: crates/engine/src/agent.rs
 #, fuzzy
 msgid "it opens, replaces or saves the mailbox file"
 msgstr "它会打开、替换或保存邮箱文件"
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it refused the request"
+msgstr ""
 
 #. name
 #: crates/engine/src/cmd/rules.rs
@@ -20085,16 +21572,46 @@ msgid "it takes the window off the message the owner is writing"
 msgstr "它会让窗口离开用户正在撰写的邮件"
 
 #. interface
-#: crates/ui-egui/src/reading/remote.rs
+#: crates/ui-egui/src/ai/answers_chain.rs crates/ui-egui/src/reading/remote.rs
 #, fuzzy
 msgid "it took too long"
 msgstr "操作超时"
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it tried to use a tool, so it was stopped"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it was called off"
+msgstr ""
 
 #. name
 #: crates/engine/src/agent.rs
 #, fuzzy
 msgid "it writes to other people or reaches out to the web"
 msgstr "它会给他人发信或访问网络"
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it's signed out"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "it's turned off"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "its folder"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "its folder belongs to another user"
+msgstr ""
 
 #. why a mail server couldn't be used
 #: crates/net/src/transport.rs
@@ -20103,10 +21620,20 @@ msgid "its name isn't one a certificate can be checked against"
 msgstr "其名称无法用于证书验证"
 
 #. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "just now"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/opened_message.rs
 #, fuzzy
 msgid "larger than {mb} MB: bring it in with File › Import"
 msgstr "超过 {mb} MB：请通过文件 › 导入导入"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "leave the message you are writing"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/session.rs
@@ -20423,6 +21950,11 @@ msgstr "没有邀请其他人参加此约会"
 msgid "none of these messages is snoozed"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/signin.rs
+msgid "not MailCraft"
+msgstr ""
+
 #. why a mail server couldn't be used
 #: crates/proto/src/imap/mod.rs
 #, fuzzy
@@ -20542,6 +22074,11 @@ msgstr "此处只有“{subject}”的邮件头，因此无法将其作为附件
 msgid "only your own calendars can be put in a message"
 msgstr "邮件中只能插入您自己的日历"
 
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "open or save the mailbox"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt
 msgid "optional"
@@ -20558,6 +22095,16 @@ msgstr "组织者"
 #, fuzzy
 msgid "other people's calendars open under a Microsoft work or school account"
 msgstr "其他人的日历在 Microsoft 工作或学校账户下打开"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "other users can change it"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "other users can change its folder"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/tasks/status.rs
@@ -20594,6 +22141,16 @@ msgstr "只读"
 #, fuzzy
 msgid "replies can go to at most {n} addresses"
 msgstr "回复最多可发送到 {n} 个地址"
+
+#. interface
+#: crates/ui-egui/src/control/client.rs
+msgid "reported as ‹{name}›"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "runs on this computer; MailCraft didn't start it"
+msgstr ""
 
 #. name
 #: crates/engine/src/agent.rs
@@ -20642,6 +22199,11 @@ msgstr "首先选择一个任务"
 #, fuzzy
 msgid "select an appointment first"
 msgstr "请先选择一项约会"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "send"
+msgstr ""
 
 #. what a command says, why a command can't run
 #: crates/engine/src/cmd/shared.rs
@@ -20701,6 +22263,31 @@ msgstr "这是该账户自己的地址：请输入共享邮箱地址"
 #, fuzzy
 msgid "that is too much to paste into one message"
 msgstr "内容太多，无法粘贴到一封邮件中"
+
+#. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "that isn't a model provider's id"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "that isn't a model's name"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "that isn't a runtime this version knows"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "that isn't an absolute path to a program"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "that isn't an account's address"
+msgstr ""
 
 #. what a command says
 #: crates/model/src/mailbox.rs
@@ -21161,6 +22748,11 @@ msgstr "此邮件为纯文本格式；请先切换为 HTML"
 msgid "the messages to forward are larger than {mb} MB together"
 msgstr "要转发的邮件总大小超过 {mb} MB"
 
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "the model on this computer"
+msgstr ""
+
 #. what a command says
 #: crates/model/src/ai/prompt.rs
 msgid "the model's context window has no room for any message"
@@ -21184,10 +22776,20 @@ msgid "the network couldn't get there"
 msgstr "无法通过网络连接"
 
 #. what a command says
+#: crates/model/src/ai/runtime.rs
+msgid "the order must name each runtime of the chain once"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "the parent folder belongs to another account"
 msgstr "上级文件夹属于另一个账户"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "the path isn't absolute"
+msgstr ""
 
 #. what a command says
 #: crates/mobile/src/message.rs
@@ -21234,6 +22836,11 @@ msgstr ""
 #. what a command says
 #: crates/model/src/ai/prompt.rs
 msgid "the question is empty"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "the question is too long for it"
 msgstr ""
 
 #. what a command says
@@ -21752,6 +23359,11 @@ msgstr "没有可用于本地文件夹的未占用名称"
 msgid "there is no free name for the copy of the mailbox beside it"
 msgstr "邮箱文件旁没有可用于其副本的空闲名称"
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_rows.rs
+msgid "there is no program there"
+msgstr ""
+
 #. why a command can't run
 #: crates/engine/src/cmd/search_server.rs
 #, fuzzy
@@ -21841,6 +23453,11 @@ msgstr "此账户没有 {folder} 文件夹"
 #, fuzzy
 msgid "this account may not save it"
 msgstr "此账户没有保存它的权限"
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "this account's mail isn't allowed to go to it"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/people.rs
@@ -22145,6 +23762,11 @@ msgid "{account} is switching to Microsoft Graph, but MailCraft can't reach its 
 msgstr "{account} 正在切换到 Microsoft Graph，但 MailCraft 无法连接其 IMAP 服务器，以便先发送待处理的内容。"
 
 #. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "{account} may now use {runtime}."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/graph_switch.rs
 #, fuzzy
 msgid "{account} now uses Microsoft Graph, and its mail is downloading again. A copy of your mailbox from before the switch is in {backup}."
@@ -22168,6 +23790,11 @@ msgstr "{account} 暂时继续使用 IMAP。如需稍后切换，请搜索“切
 #, fuzzy
 msgid "{account} · No access"
 msgstr "{account} · 无法访问"
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{account} → {runtime}"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/import_pst.rs
@@ -22337,6 +23964,11 @@ msgid "{done} of {total}"
 msgstr "{total} 中的 {done}"
 
 #. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "{failed} couldn't answer ({reason}). Try {next}?"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/import_tree.rs
 #, fuzzy
 msgid "{folders} will be made under a new folder called {name} on this computer, with {messages}."
@@ -22452,6 +24084,11 @@ msgstr ""
 msgid "{host}'s certificate isn't trusted. Nothing was sent."
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "{host}, over an encrypted connection. It may keep what it receives under its own terms; MailCraft can't see what it does with it."
+msgstr ""
+
 #. date and time
 #: crates/i18n/src/date.rs
 #, fuzzy
@@ -22469,6 +24106,16 @@ msgstr "{hour}:{minute} {ampm}"
 #, fuzzy
 msgid "{h} h {m} min"
 msgstr "{h} 小时 {m} 分钟"
+
+#. interface
+#: crates/ui-egui/src/ai/runtime_consent.rs
+msgid "{label}: {account} mail to {runtime}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{label}: {runtime}"
+msgstr ""
 
 #. what a command says
 #: crates/i18n/src/lib.rs
@@ -22996,6 +24643,12 @@ msgid "{n} hour"
 msgid_plural "{n} hours"
 msgstr[0] "{n}小时"
 
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{n} hour ago"
+msgid_plural "{n} hours ago"
+msgstr[0] ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarMapping.kt
 msgid "{n} hour before"
@@ -23231,6 +24884,12 @@ msgid "{n} minute"
 msgid_plural "{n} minutes"
 msgstr[0] "{n} 分钟"
 
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{n} minute ago"
+msgid_plural "{n} minutes ago"
+msgstr[0] ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarMapping.kt
 msgid "{n} minute before"
@@ -23368,6 +25027,18 @@ msgid_plural "{n} problems"
 msgstr[0] "{n} 个问题"
 
 #. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{n} ran"
+msgid_plural "{n} ran"
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{n} ready and on"
+msgid_plural "{n} ready and on"
+msgstr[0] ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "{n} remembered sign-in could not be removed from the credential store"
@@ -23387,6 +25058,18 @@ msgstr[0] "{n} 个提醒已到期"
 msgid "{n} replacement was made."
 msgid_plural "{n} replacements were made."
 msgstr[0] "已完成 {n} 处替换。"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{n} request"
+msgid_plural "{n} requests"
+msgstr[0] ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{n} result"
+msgid_plural "{n} results"
+msgstr[0] ""
 
 #. interface
 #: crates/ui-egui/src/mail_view.rs
@@ -23568,6 +25251,66 @@ msgid "{rule}, from {day}"
 msgstr "{rule}，从 {day} 开始"
 
 #. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "{runtime} didn't answer: {reason}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} is now number {n} of {total}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} is off."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} is on."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} is on. It's skipped until you add its key."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} is on. It's skipped until you sign in."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} is on. No account's mail goes to it until you allow that account under Accounts."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} tried to use a tool, so MailCraft stopped it. Nothing it did was kept."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "{runtime} was passed over: {reason}."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/answers_chain.rs
+msgid "{runtime} was stopped: it tried to use a tool."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} will be looked for in the usual places."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/settings_runtimes.rs
+msgid "{runtime} will be looked for there."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/lib.rs
 msgid "{said}; {already}"
 msgstr ""
@@ -23626,6 +25369,16 @@ msgstr "{time} 前"
 #, fuzzy
 msgid "{title} (all day)"
 msgstr "{title}（全天）"
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{verdict} · {count}"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/ai/agents.rs
+msgid "{verdict}, with an error"
+msgstr ""
 
 #. date and time
 #: crates/i18n/src/date.rs

@@ -1084,6 +1084,8 @@ fn services(
     let ai_settings =
         ai::settings::Shared::open(mailcraft_control_key::settings_dir().filter(|_| prefs_enabled()).map(|d| d.join(ai::settings::FILE)));
     let (keys_ctx, keys_store) = (ctx.clone(), secrets::store());
+    // Keys still under their version 2 names go to their new ones, on a thread of their own.
+    ai::settings_migrate::spawn_rename(ai_settings.clone(), keys_store.clone());
     let attachment_preview = attachment_render::service(&ctx);
     let (sync_ctx, sign_in_ctx, graph_ctx, mx_ctx, test_ctx) = (ctx.clone(), ctx.clone(), ctx.clone(), ctx.clone(), ctx);
     let sync_cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -1346,6 +1348,8 @@ fn services(
         embed_target: Some(ai::service::embed_target(ai_settings.clone())),
         embed_batch: Some(ai::service::embed_batches(ai_settings.clone(), secrets::store(), ai_ctx.clone())),
         embed_query: Some(ai::service::embed_query(ai_settings.clone(), secrets::store(), ai_ctx.clone())),
+        // The owner's runtimes: the chain, the consents and the fallback in `ai.json` (12.8).
+        ai_runtimes: Some(Box::new(ai::runtimes_host::RuntimesHost::new(ai_settings.clone(), secrets::store()).with_window(ai_ctx.clone()))),
         ai_providers: Some(Box::new(ai::service::Providers::new(ai_settings, secrets::store(), ai_ctx))),
         // A number from the system's own random source, for `ai.ask` (0 only if it failed).
         nonce: Some(Box::new(|| {

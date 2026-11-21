@@ -221,3 +221,21 @@ fn an_answer_about_a_provider_moved_since_the_question_is_refused() {
     assert!(providers.answer_gateway("test-provider", &models, true).is_err());
     assert_eq!(settings.snapshot().providers[0].kind, ProviderKind::Local);
 }
+
+#[test]
+fn the_window_is_never_shown_the_detection_cache_or_the_host_id() {
+    let settings = Shared::open(None);
+    settings
+        .change(|s| {
+            s.set_chatgpt_host_id("Zm9yLXRlc3RzLW9ubHktbm90LWEtcmVhbC1ob3N0LTA")?;
+            s.detected.insert("claude_code".into(), super::settings_v3::Detected::default());
+            Ok(())
+        })
+        .unwrap();
+    let providers = Providers::new(settings.clone(), None, egui::Context::default());
+    let shown = providers.providers();
+    assert!(shown.get("detected").is_none() && shown.get("chatgpt").is_none(), "{shown}");
+    assert!(!shown.to_string().contains("Zm9yLXRlc3Rz"));
+    // What the window reads as before the chain is still there.
+    assert_eq!((shown["primary"].clone(), shown["active"].clone(), shown["version"].clone()), (json!(""), json!(""), json!(3)));
+}

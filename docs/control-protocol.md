@@ -67,7 +67,14 @@ and set `MAILCRAFT_CONTROL_KEY` to that app's key.
 `mailcraft-cli mcp --connect` sets a top-level `"agent": {"allow": [...]}` on every request it
 sends, with what the owner allowed with `--allow` (`send`, `delete`, `accounts`, `mailbox`,
 `settings`, `input`). It is set by the bridge, never from an agent's tool arguments, and a
-`params.agent` means nothing. A request with an `agent` field goes through the window's gate
+`params.agent` means nothing. When the MCP client named itself in `initialize` (`clientInfo`),
+the bridge adds what it said as `"agent": {"allow": [...], "client": {"name", "version"}}`, each
+field a string of at most 64 characters, cleaned as a name is (one line, no control, format or
+bidi characters), and leaves `client` out when the client said nothing. It is the agent's own
+word, never checked: the window cleans it again (anything that read the key could write any
+`client`), shows it as "reported as ‹name›" or "Unnamed agent", and decides nothing by it; a
+request is answered exactly as one without it, no reply carries it, and it is never logged. A
+`client` that is not an object, or fields that are not strings, report nothing. A request with an `agent` field goes through the window's gate
 ([MCP: agents get only what the owner allows](mcp.md#agents-get-only-what-the-owner-allows)):
 
 - a command not for agents, or a param that names a file, is refused;

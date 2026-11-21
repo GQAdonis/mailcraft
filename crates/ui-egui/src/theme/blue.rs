@@ -137,7 +137,7 @@ impl Tokens {
             group_label: dim,
             status_bar: window,
             selection: hex(0x1F2B40),
-            flagged_row: hex(0x34262C),
+            flagged_row: hex(0x28212A),
             off_hours: hex(0x171C24),
             today: hex(0x1B2B45),
             menu: ribbon,
@@ -198,7 +198,7 @@ impl Tokens {
         self.pill_quiet = hex(0x2A3342);
         self.selection_unfocused = hex(0x1A2230);
         self.selection_edge_unfocused = hex(0xA0AEC6);
-        self.flagged_row = hex(0x3E2830);
+        self.flagged_row = hex(0x33242C);
         self.off_hours = hex(0x0E1218);
         self.backstage_column = panel;
         self.ink_on_light = surface;

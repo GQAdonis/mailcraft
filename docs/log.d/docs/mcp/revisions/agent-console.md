@@ -1,0 +1,1 @@
+| 2026-11-17 | minor | Bridged, the client's `clientInfo` goes to the window as `agent.client`: self-reported, cleaned, at most 64 characters a field, shown as reported, never logged and never used to decide anything |

@@ -1,0 +1,15 @@
+[package]
+name = "mailcraft-launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "MailCraft's sandbox launcher for AI runtimes on Linux: restricts itself with Landlock to the paths it is given, then executes the runtime"
+
+[lints]
+workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Landlock through its safe API (Apache-2.0 OR MIT, the Landlock project's): the launcher restricts
+# itself before it executes a runtime, with no `pre_exec` and no `unsafe` of ours.
+landlock = "0.4.7"

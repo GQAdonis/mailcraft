@@ -21,7 +21,7 @@ use serde_json::{Value, json};
 
 use super::device;
 use super::keys::{self, Broker};
-use super::run::{Failure, STORE_SILENT, failure_of, shown_address};
+use super::run::{DeskWatch, Failure, STORE_SILENT, desk, failure_of, shown_address};
 use super::settings::{AiSettings, Backup, GatewayQuestion, Shared, read_ports, route_address, same_address};
 
 /// How many pieces of an answer may wait for the window before the request waits for it.
@@ -29,7 +29,9 @@ const WAITING_PIECES: usize = 64;
 /// What is said when the system has no credential store.
 const NO_STORE: &str = "this system has no credential store to keep the key in";
 
-/// `Services::model_request`: run each job on a thread of its own with the active provider.
+/// `Services::model_request`: run each job on a thread of its own down the owner's chain. What the
+/// walk tells and asks the owner (a tool-use stop, the `ask` policy's question, the provenance)
+/// goes to the window's desk ([`super::run::desk`]), and the window is woken for it.
 pub(crate) fn model_requests(
     settings: Shared,
     store: Option<Arc<dyn SecretStore>>,
@@ -40,7 +42,8 @@ pub(crate) fn model_requests(
         let (settings, store, wake) = (settings.clone(), store.clone(), ctx.clone());
         let spawned = std::thread::Builder::new().name("model request".into()).spawn(move || {
             let cancel = job.cancel.clone();
-            super::run::run(&job, &settings, Broker::global(), store.as_ref(), &mut |event: ModelEvent| {
+            let mut watch = DeskWatch::new(desk(), Some(wake.clone()));
+            super::run::run_with(&job, &settings, Broker::global(), store.as_ref(), &mut watch, &mut |event: ModelEvent| {
                 let sent = tx.send(event).is_ok();
                 wake.request_repaint();
                 // Nobody is listening any more: the request stops at its next read.
@@ -219,10 +222,13 @@ pub(crate) fn test_connection(
 }
 
 impl AiProviders for Providers {
-    /// The settings; for each provider the context window used for it (`contextWindow`, with
-    /// `contextWindowSource`: `owner`, `server` or `default`); `neverConfigured`; and (as
-    /// `gatewayQuestion`, never saved) the gateway question waiting for the owner, when there is
-    /// one.
+    /// The settings (version 3, as `ai.json` holds them), with what the window reads as it did
+    /// before the chain: `primary` and `active` (the first enabled provider of the chain),
+    /// `backup`, and each provider's `consented_accounts` (from the consents); for each provider
+    /// the context window used for it (`contextWindow`, with `contextWindowSource`: `owner`,
+    /// `server` or `default`); `neverConfigured`; and (as `gatewayQuestion`, never saved) the
+    /// gateway question waiting for the owner, when there is one. Never the detection cache or the
+    /// ChatGPT plan's host id.
     fn providers(&self) -> Value {
         let snapshot = self.settings.snapshot();
         let mut shown = snapshot.to_json();
@@ -231,11 +237,18 @@ impl AiProviders for Providers {
                 let id = entry.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
                 let (Some(config), Some(fields)) = (snapshot.provider(&id), entry.as_object_mut()) else { continue };
                 let (window, source) = self.settings.window_of(config);
+                fields.insert("consented_accounts".into(), json!(config.consented_accounts));
                 fields.insert("contextWindow".into(), json!(window));
                 fields.insert("contextWindowSource".into(), json!(source));
             }
         }
         if let Some(fields) = shown.as_object_mut() {
+            // Not for the window or an agent on the control channel: where a runtime's program
+            // was found (a path under the owner's home) and the ChatGPT plan's host id.
+            fields.remove("detected");
+            fields.remove("chatgpt");
+            fields.insert("primary".into(), json!(snapshot.active));
+            fields.insert("active".into(), json!(snapshot.active));
             fields.insert("neverConfigured".into(), json!(snapshot.never_configured));
             fields.insert("backup".into(), json!(snapshot.backup.name()));
             if let Some(question) = self.gateway_question() {
@@ -311,9 +324,11 @@ impl AiProviders for Providers {
                 Ok(())
             })?;
             keys::save(store, &id, &key).map_err(|e| e.to_string())?;
-            // A key given now is for the provider's address now.
+            // A key given now is for the provider's address now, and is the one used: a key still
+            // under its version 2 name is no longer moved over it (it is taken away with this one).
             settings.change(|s| {
                 s.restore_key(&id);
+                s.drop_legacy_key(&id);
                 Ok(())
             })
         })
@@ -339,8 +354,9 @@ impl AiProviders for Providers {
         let (id, store, settings) = (id.to_string(), self.store.clone(), self.settings.clone());
         crate::background(&self.ctx, "model provider key", move || match store {
             Some(store) => {
-                let keep_late = settings.read(|s| s.key_kept(&id));
-                Broker::global().read_for(&store, &id, keep_late).map(|key| key.is_some()).map_err(|e| e.to_string())
+                let kept = settings.read(|s| s.kept_key(&id));
+                let (keep_late, legacy) = (kept != super::keys::Kept::No, kept == super::keys::Kept::Either);
+                Broker::global().read_kept(&store, &id, keep_late, legacy).map(|key| key.is_some()).map_err(|e| e.to_string())
             }
             None => Err(NO_STORE.to_string()),
         })
@@ -427,10 +443,62 @@ impl AiProviders for Providers {
     fn stop_using_on_device(&self) -> Result<(), String> {
         Providers::stop_using_on_device(self)
     }
+
+    /// The fallback question waiting for the owner ([`Providers::fallback_question`]).
+    fn fallback_question(&self) -> Option<Value> {
+        Providers::fallback_question(self)
+    }
+
+    /// The window's own Try It / Don't buttons ([`Providers::answer_fallback`]).
+    fn answer_fallback(&self, request: u64, yes: bool) -> Result<(), String> {
+        Providers::answer_fallback(self, request, yes)
+    }
+
+    /// The question closed unanswered ([`Providers::dismiss_fallback_question`]).
+    fn dismiss_fallback_question(&self) {
+        Providers::dismiss_fallback_question(self);
+    }
+
+    /// Who answered and who was passed over ([`Providers::provenance`]).
+    fn provenance(&self, request: u64) -> Option<Value> {
+        Providers::provenance(self, request)
+    }
+
+    /// The runtimes stopped for trying a tool ([`Providers::tool_use_notices`]).
+    fn tool_use_notices(&self, request: u64) -> Vec<String> {
+        Providers::tool_use_notices(self, request)
+    }
 }
 
 // The host's side of Look on ports and Stop Using It; `AiProviders` forwards to these.
 impl Providers {
+    /// The fallback question waiting for the owner (the `ask` policy), as the window reads it.
+    pub(crate) fn fallback_question(&self) -> Option<Value> {
+        desk().fallback_question().map(|q| q.to_json())
+    }
+
+    /// The owner's answer to the fallback question of `request`. Only the window's own buttons
+    /// call this: an agent can't answer the question (no command, control method or MCP tool).
+    pub(crate) fn answer_fallback(&self, request: u64, yes: bool) -> Result<(), String> {
+        desk().answer_fallback(request, yes)
+    }
+
+    /// The fallback question closed without an answer: nothing more is tried.
+    pub(crate) fn dismiss_fallback_question(&self) {
+        desk().dismiss_fallback();
+    }
+
+    /// The provenance of `request` once its walk is over: who answered and every runtime passed
+    /// over or failed before it, with the reason ([`super::route::Provenance::to_json`]).
+    pub(crate) fn provenance(&self, request: u64) -> Option<Value> {
+        desk().provenance(request).map(|p| p.to_json())
+    }
+
+    /// The runtimes stopped for trying to use a tool while `request` ran, in order.
+    pub(crate) fn tool_use_notices(&self, request: u64) -> Vec<String> {
+        desk().tool_use_notices(request).iter().map(ToString::to_string).collect()
+    }
+
     /// The owner's Stop Using It: the on-device model's confirmation is taken back.
     pub(crate) fn stop_using_on_device(&self) -> Result<(), String> {
         device::stop_using(&self.settings)

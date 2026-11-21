@@ -251,3 +251,50 @@ path = "fuzz_targets/answer_json.rs"
 test = false
 doc = false
 bench = false
+
+# The containment of an AI runtime's stream (`mailcraft_ai::runtime::contain`): any bytes, cut
+# into lines and judged as a run judges them. The shared harness (`contain::drive`) is what each
+# runtime adapter's own target drives its detector with.
+[dependencies.mailcraft-ai]
+path = "../crates/ai"
+
+[[bin]]
+name = "runtime_stream"
+path = "fuzz_targets/runtime_stream.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "uar_agui"
+path = "fuzz_targets/uar_agui.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "codex_jsonl"
+path = "fuzz_targets/codex_jsonl.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "responses_stream"
+path = "fuzz_targets/responses_stream.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "claude_stream"
+path = "fuzz_targets/claude_stream.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "claude_auth"
+path = "fuzz_targets/claude_auth.rs"
+test = false
+doc = false
+bench = false

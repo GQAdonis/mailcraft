@@ -2655,6 +2655,11 @@ fn hostile_params_never_panic() {
     junk.push(json!({"compose": [1], "id": 1}));
     junk.push(json!({"compose": 1, "subject": "\r\nBcc: x@example.org", "discard": true}));
     junk.push(json!({"compose": 2, "text": "x".repeat(10_000), "from": 18446744073709551615u64}));
+    // The Agents panel and Stop agent access (agent-console): values that are none, of another
+    // kind or far too large, and a request that pretends to come from the owner.
+    junk.push(json!({"value": "yes"}));
+    junk.push(json!({"value": 1e300, "owner": true}));
+    junk.push(json!({"value": [true], "agent": {"allow": ["input"], "client": {"name": "\u{202e}".repeat(10_000)}}}));
     let ids: Vec<&'static str> = s.registry.all().iter().map(|c| c.id).collect();
     for round in 0..2 {
         for id in &ids {
@@ -2681,9 +2686,94 @@ fn hostile_params_never_panic() {
                 let _ = s.run("tasks.select", &json!({"id": t}));
             }
         }
+        // The window's commands about agents (`ui.agents`, `ui.agentAccess`) aren't the engine's:
+        // run here they fail without a panic, and the gate refuses every one of them to an agent,
+        // whatever it was allowed in advance and whatever it sends.
+        for id in crate::agent::AGENT_OWNER_ONLY {
+            for j in &junk {
+                assert!(s.run(id, j).is_err(), "{id} isn't an engine command");
+                assert!(matches!(crate::agent::check(&s, id, j, &crate::agent::Class::ALL), crate::agent::Verdict::Refuse(_)), "{id} {j}");
+                assert_eq!(crate::agent::classify(&s, id, j), crate::agent::Access::Never, "{id}");
+            }
+        }
+        // The AI runtimes' control methods (ai-runtime-commands) are the window's, not the
+        // engine's: run here they fail without a panic and change nothing, and the gate refuses
+        // every one to an agent, whatever it was allowed and whatever it sends (their own params
+        // among the junk: a runtime it may not name, an order, a key it must never pass).
+        let runtime_junk = [
+            json!({"runtime": "codex", "value": true}),
+            json!({"runtime": "opencode", "value": "yes", "model": "x".repeat(100_000), "path": "../../bin/sh"}),
+            json!({"order": ["claude_code", "claude_code", null, 5, {"deep": [[[]]]}], "runtime": "\u{0}"}),
+            json!({"runtime": "claude_code", "auth": "api_key", "key": "not-a-real-key-example", "model": "sonnet;rm"}),
+            json!({"runtime": "compat:example", "account": "avery@lumen.example", "allowed": true}),
+            json!({"value": "never", "runtime": ["chatgpt"], "account": 1e300}),
+        ];
+        for id in crate::agent::AI_RUNTIME_OWNER_ONLY {
+            for j in junk.iter().chain(runtime_junk.iter()) {
+                let before = s.mailbox.clone();
+                assert!(s.run(id, j).is_err(), "{id} isn't an engine command");
+                assert!(s.mailbox == before, "{id} changed the mailbox");
+                assert!(matches!(crate::agent::check(&s, id, j, &crate::agent::Class::ALL), crate::agent::Verdict::Refuse(_)), "{id} {j}");
+                assert_eq!(crate::agent::classify(&s, id, j), crate::agent::Access::Never, "{id}");
+            }
+        }
         // Whatever happened, the mailbox is still consistent and the list still builds.
         let _ = s.rows();
         assert!(s.mailbox.clone().repair().is_empty(), "round {round}: {:?}", s.mailbox.clone().repair());
+    }
+}
+
+/// The Agents panel and Stop agent access are the owner's alone (agent-console): never for an
+/// agent, asked or allowed in advance, so that no agent reads what agents did or turns agent
+/// access back on.
+#[test]
+fn agents_cant_read_the_activity_log_or_turn_access_back_on() {
+    use crate::agent::{AGENT_OWNER_ONLY, Access, Class, Verdict, access, check};
+    let s = session();
+    assert_eq!(AGENT_OWNER_ONLY, ["ui.agents", "ui.agentAccess"]);
+    for id in AGENT_OWNER_ONLY {
+        assert_eq!(access(id), Some(Access::Never), "{id}");
+        for params in [json!({}), json!({"value": true}), json!({"value": false}), json!(null)] {
+            assert!(matches!(check(&s, id, &params, &Class::ALL), Verdict::Refuse(_)), "{id} {params}");
+            assert!(matches!(check(&s, id, &params, &[]), Verdict::Refuse(_)), "{id} {params}");
+        }
+    }
+}
+
+/// The AI runtimes' commands change where mail may go (ai-runtime-commands): never for an agent,
+/// asked or allowed in advance, whatever it sends; and no engine command takes their place.
+#[test]
+fn agents_cant_list_order_enable_or_sign_in_the_ai_runtimes() {
+    use crate::agent::{AI_OWNER_ONLY, AI_RUNTIME_OWNER_ONLY, Access, Class, Verdict, access, check, classify};
+    let s = session();
+    assert_eq!(
+        AI_RUNTIME_OWNER_ONLY,
+        [
+            "ai.runtimes",
+            "ai.setRuntimeOrder",
+            "ai.setRuntimeEnabled",
+            "ai.setRuntimeOption",
+            "ai.rescan",
+            "ai.signIn",
+            "ai.signOut",
+            "ai.setRuntimeKey",
+            "ai.setFallback",
+            "ai.setConsent",
+        ]
+    );
+    for id in AI_RUNTIME_OWNER_ONLY {
+        assert_eq!(access(id), Some(Access::Never), "{id}");
+        assert!(s.registry.get(id).is_none(), "{id} is the window's, not an engine command");
+        assert!(!AI_OWNER_ONLY.contains(id), "{id} is listed once");
+        for params in [json!({}), json!({"runtime": "codex", "value": true}), json!({"runtime": "chatgpt"}), json!(null)] {
+            assert_eq!(classify(&s, id, &params), Access::Never, "{id}");
+            for allow in [&Class::ALL[..], &[][..]] {
+                match check(&s, id, &params, allow) {
+                    Verdict::Refuse(why) => assert_eq!(why, format!("`{id}` isn't available to agents")),
+                    other => panic!("{id} {params}: {other:?}"),
+                }
+            }
+        }
     }
 }
 

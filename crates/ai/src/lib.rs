@@ -34,6 +34,7 @@ pub mod error;
 pub mod key;
 pub mod models;
 pub mod on_device;
+pub mod runtime;
 pub mod structured;
 pub mod wire;
 

@@ -31,6 +31,11 @@ const GROUP_TEXT: f32 = 12.0;
 const SENDER_TEXT: f32 = 15.0;
 /// Subject, time and preview: 8 pt.
 const LIST_TEXT: f32 = 11.0;
+/// The smallest text in the list (a conversation's count, the Gmail labels' tags): the Note rung,
+/// the type floor for the list and the status bar.
+fn note_text() -> f32 {
+    crate::theme::TypeRung::Note.size()
+}
 /// How the list is arranged, in its header: 9 pt.
 const SORT_TEXT: f32 = 12.0;
 /// The list's header (the filter's tabs, the arrangement). Its last pixel row is the line under
@@ -78,6 +83,8 @@ const SUBJECT_Y: f32 = 37.5;
 const PREVIEW_TOP: f32 = 45.0;
 /// From one line of preview to the next.
 const PREVIEW_PITCH: f32 = 13.0;
+/// What ends a preview cut short (G9 a).
+pub(crate) const PREVIEW_ELLIPSIS: char = '…';
 /// A row with one line of preview, the line under it included.
 const ROW_H: f32 = 72.0;
 /// What a row loses without a preview: the preview's line and the gap above it.
@@ -112,7 +119,8 @@ fn drag_ghost(ui: &Ui) {
 pub fn show(app: &mut MailApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     drag_ghost(ui);
-    if app.session.view.folder_pane {
+    // The folder pane stands aside as its strip while the Answers pane needs its room (P1).
+    if app.session.view.folder_pane && !app.ai.folders_yield {
         crate::nav::folder_pane(app, ui);
     } else {
         // Hidden: a narrow strip stays, with the button that brings the pane back.
@@ -154,14 +162,46 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
             crate::reading::show(app, ui);
         }
     });
-    // Enter on a selected draft goes on writing it (#651). Only a new press that is the main
-    // window's, with nothing focused: not a text field's, nor a dialog's.
-    if !composing && app.session.sel.messages.len() == 1 {
-        let draft = app.session.sel.focus().and_then(|id| app.session.mailbox.messages.get(&id)).is_some_and(|m| m.draft);
-        if draft && crate::keys::take_enter_alone(ui.ctx(), ui.layer_id()) {
-            let _ = app.run("mail.editDraft", json!({}));
-        }
+    // Enter on the selected message (G18 a): a draft goes on being written (#651), any other
+    // opens in a window of its own, as a double click does. Only a new press that is the main
+    // window's, with nothing focused: not a text field's, nor a dialog's. With nothing selected,
+    // several messages, or a closed conversation's row, Enter is left alone.
+    if !composing
+        && let Some(open) = enter_opens(app)
+        && crate::keys::take_enter_alone(ui.ctx(), ui.layer_id())
+    {
+        let _ = match open {
+            EnterOpens::Draft => app.run("mail.editDraft", json!({})),
+            EnterOpens::Window(id) => app.run("ui.openWindow", json!({"message": id})),
+        };
     }
+}
+
+/// What Enter in the message list opens.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum EnterOpens {
+    /// The selected draft, in the composer (#651).
+    Draft,
+    /// The selected message, in a window of its own.
+    Window(Id),
+}
+
+/// What Enter opens with the list as it is: one selected message that is still in the mailbox,
+/// and not the row of a conversation that is closed (its messages aren't listed, so which one
+/// to open is not the owner's choice yet: the arrow, or Right, opens it first).
+pub(crate) fn enter_opens(app: &mut MailApp) -> Option<EnterOpens> {
+    if app.session.sel.messages.len() != 1 {
+        return None;
+    }
+    let id = app.session.sel.focus()?;
+    let draft = app.session.mailbox.messages.get(&id)?.draft;
+    let copy = app.session.sel.focus_row.filter(|(m, _)| *m == id).map_or(0, |(_, c)| c);
+    let rows = app.session.rows();
+    let closed = rows.iter().find(|r| r.id == id && r.copy == copy).is_some_and(|r| r.under.is_none() && !r.open && r.size() > 1);
+    if closed {
+        return None;
+    }
+    Some(if draft { EnterOpens::Draft } else { EnterOpens::Window(id) })
 }
 
 /// A row and the line under it: 72 with one line of preview (15 clear above the sender's
@@ -260,6 +300,7 @@ fn list_header(app: &mut MailApp, ui: &mut Ui) {
         ui.painter().rect_filled(arrow, 4.0, t.hover);
     }
     paint_direction(ui.painter(), arrow.center(), descending == sort.starts_high(), t.text);
+    crate::chrome::focus_ring(ui, &arrow_resp, 4.0);
     if arrow_resp.clicked() {
         let _ = app.run("view.reverseSort", json!({}));
     }
@@ -275,6 +316,7 @@ fn list_header(app: &mut MailApp, ui: &mut Ui) {
         ui.painter().rect_filled(sr, 4.0, t.hover);
     }
     ui.painter().text(pos2(label_end, r.min.y + 33.5), Align2::RIGHT_CENTER, label, regular(SORT_TEXT), t.text);
+    crate::chrome::focus_ring(ui, &sresp, 4.0);
     let chevron = pos2(rows_end - 36.0, r.min.y + 34.0);
     let line = Stroke::new(1.2, t.text);
     ui.painter().line(vec![chevron + vec2(-4.5, -2.5), chevron + vec2(0.0, 2.5), chevron + vec2(4.5, -2.5)], line);
@@ -487,6 +529,8 @@ fn search_bar(app: &mut MailApp, ui: &mut Ui, found: usize) {
 
 fn list(app: &mut MailApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
+    // The whole list, its header and all: where the type floor is checked (A3).
+    app.hit.add("messageList", 0, ui.max_rect());
     ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
     list_header(app, ui);
     // Gmail's categories, when they are tabs above a Gmail Inbox's list (#911).
@@ -696,9 +740,11 @@ fn plan_tags(p: &egui::Painter, labels: &[&str], more: usize, room: f32) -> TagP
     if labels.is_empty() || room <= 0.0 {
         return TagPlan::default();
     }
-    let mut tags: Vec<std::sync::Arc<egui::Galley>> =
-        labels.iter().map(|label| crate::widgets::label_tag_text(p, mailcraft_model::gmail::label_leaf(label), 10.0, LIST_LABEL_MAX)).collect();
-    let plus = |n: usize| if n == 0 { 0.0 } else { p.layout_no_wrap(format!("+{n}"), regular(10.0), egui::Color32::WHITE).size().x + 4.0 };
+    let mut tags: Vec<std::sync::Arc<egui::Galley>> = labels
+        .iter()
+        .map(|label| crate::widgets::label_tag_text(p, mailcraft_model::gmail::label_leaf(label), note_text(), LIST_LABEL_MAX))
+        .collect();
+    let plus = |n: usize| if n == 0 { 0.0 } else { p.layout_no_wrap(format!("+{n}"), regular(note_text()), egui::Color32::WHITE).size().x + 4.0 };
     loop {
         let more_now = more.saturating_add(labels.len().saturating_sub(tags.len()));
         let width = tags.iter().map(|t| crate::widgets::label_tag_width(t) + 4.0).sum::<f32>() + plus(more_now);
@@ -918,22 +964,21 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
     let follow_up = FollowUp::of(&m, &app.session);
     let fill = row_fill(&t, follow_up, selected, focus);
     // A selected row is a rounded card a little in from the list's edges: its fill and an
-    // accent edge (quieter while the list has no focus); a flag's tint is laid first, so it shows
-    // through the selection rather than being replaced by it.
+    // accent edge (quieter while the list has no focus). Selection wins over a flag's tint (G3):
+    // a selected row is the selection's colour, flagged or not, and the flag says so by its mark.
     let card = body.shrink2(vec2(4.0, 1.0));
-    let flag_tint = matches!(follow_up, FollowUp::Flagged | FollowUp::Overdue);
-    if flag_tint {
+    if let Some(fill) = fill {
+        p.rect_filled(card, 6.0, fill);
         if selected {
-            p.rect_filled(card, 6.0, t.flagged_row);
+            let edge = if focus { t.selection_edge } else { t.selection_edge_unfocused };
+            p.rect_stroke(card, 6.0, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
         } else {
-            p.rect_filled(card, 6.0, t.flagged_row);
             app.hit.add("messageFlagShade", row.id, body);
         }
     }
-    if let (true, Some(fill)) = (selected, fill) {
-        p.rect_filled(card, 6.0, if flag_tint { fill.gamma_multiply(0.72) } else { fill });
-        let edge = if focus { t.selection_edge } else { t.selection_edge_unfocused };
-        p.rect_stroke(card, 6.0, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
+    // Reached by the keyboard (Tab), the row wears the focus ring round its card (G16 a).
+    if resp.has_focus() {
+        p.rect_stroke(card, 6.0, Stroke::new(2.0, t.focus_ring), egui::StrokeKind::Inside);
     }
     if !selected && (resp.hovered() || read_resp.hovered() || arrow.as_ref().is_some_and(egui::Response::hovered) || quick.is_some()) {
         // The pointer's shade goes over a flagged row's tint.
@@ -1025,7 +1070,10 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
         x = delete_rect.min.x - QUICK_GAP;
     } else {
         match m.flag {
-            FlagStatus::Flagged => icons::paint(p, flag_mark, "flag", t.icon, t.accent),
+            FlagStatus::Flagged => {
+                icons::paint(p, flag_mark, "flag", t.icon, t.accent);
+                app.hit.add("messageFlagMark", row.id, flag_mark);
+            }
             FlagStatus::Complete => icons::paint(p, flag_mark, "complete", t.icon, t.accent),
             FlagStatus::None => {}
         }
@@ -1142,7 +1190,7 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
     let after_folder = tail_after - shown_folder.map_or(0.0, |_| FOLDER_W + 6.0);
     let tags = if one { one_tags } else { plan_tags(p, &labels, labels_more, sx - after_folder - (left + PREVIEW_KEPT)) };
     if tags.more > 0 {
-        let w = p.text(pos2(sx, tail_y), Align2::RIGHT_CENTER, format!("+{}", tags.more), regular(10.0), t.text_dim).width();
+        let w = p.text(pos2(sx, tail_y), Align2::RIGHT_CENTER, format!("+{}", tags.more), regular(note_text()), t.text_dim).width();
         sx -= w + 4.0;
     }
     for text in tags.tags.into_iter().rev() {
@@ -1159,11 +1207,11 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
     }
     // How many messages the conversation has, in every folder: what opens under it (#503).
     if conversation {
-        let n = row.size().to_string();
-        let w = n.len() as f32 * 6.5 + 10.0;
-        let br = Rect::from_min_max(pos2(sx - w, tail_y - 7.0), pos2(sx, tail_y + 7.0));
-        p.rect_filled(br, 7.0, t.pressed);
-        p.text(br.center(), Align2::CENTER_CENTER, n, regular(10.0), t.text_dim);
+        let n = p.layout_no_wrap(row.size().to_string(), regular(note_text()), t.text_dim);
+        let w = n.size().x + 10.0;
+        let br = Rect::from_min_max(pos2(sx - w, tail_y - 7.5), pos2(sx, tail_y + 7.5));
+        p.rect_filled(br, 7.5, t.pressed);
+        p.galley(br.center() - n.size() / 2.0, n, t.text_dim);
         sx -= w + 5.0;
     }
     if lines == 0 {
@@ -1178,7 +1226,7 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
     let subject_x = if one { who_end + 10.0 } else { left };
     paint_clipped(p, pos2(subject_x, line2), (subject_end - subject_x).max(0.0), subject, sfont, scolor);
 
-    // Then the preview: whole words, as many lines as asked for, and no mark where it stops.
+    // Then the preview: whole words, as many lines as asked for, and "…" where it stops short.
     let preview_end = text_end.min(sx - 6.0);
     if lines > 0 && preview_end - left > 4.0 {
         let said = preview(ui, &m, usize::from(lines) * 200);
@@ -1186,8 +1234,13 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
             egui::text::TextFormat { font_id: regular(LIST_TEXT), color: t.text_dim, line_height: Some(PREVIEW_PITCH), ..Default::default() };
         let mut job = egui::text::LayoutJob::default();
         job.append(&said, 0.0, format);
-        job.wrap =
-            egui::text::TextWrapping { max_width: preview_end - left, max_rows: usize::from(lines), break_anywhere: false, overflow_character: None };
+        // A preview that doesn't fit its lines ends in an ellipsis (G9 a).
+        job.wrap = egui::text::TextWrapping {
+            max_width: preview_end - left,
+            max_rows: usize::from(lines),
+            break_anywhere: false,
+            overflow_character: Some(PREVIEW_ELLIPSIS),
+        };
         let galley = p.layout_job(job);
         // A word too long for the column runs on: it stops at the column's edge.
         let clip = Rect::from_min_max(pos2(left, rect.min.y), pos2(preview_end, rect.max.y - 1.0)).intersect(p.clip_rect());
@@ -1323,6 +1376,8 @@ mod forward_attachment_tests;
 mod from_sender_menu_tests;
 #[cfg(test)]
 mod hidden_selection_tests;
+#[cfg(test)]
+mod list_polish_tests;
 #[cfg(test)]
 mod open_conversation_tests;
 #[cfg(test)]

@@ -59,9 +59,11 @@ impl From<ErrorKind> for Trouble {
             ErrorKind::Certificate => Trouble::Certificate,
             ErrorKind::Settings => Trouble::Settings,
             ErrorKind::CredentialStore => Trouble::CredentialStore,
-            ErrorKind::Malformed => Trouble::Malformed,
+            ErrorKind::Malformed | ErrorKind::BrokenOff => Trouble::Malformed,
             ErrorKind::TooLarge => Trouble::TooLarge,
             ErrorKind::Cancelled => Trouble::Cancelled,
+            // The runtime kinds get notices of their own with the runtime chain (B10).
+            ErrorKind::SignedOut | ErrorKind::ToolUseStopped | ErrorKind::NoSandbox | ErrorKind::BrokenRuntime => Trouble::Other,
         }
     }
 }
@@ -95,7 +97,7 @@ impl Trouble {
             "certificate" => Trouble::Certificate,
             "settings" => Trouble::Settings,
             "credential_store" => Trouble::CredentialStore,
-            "malformed" => Trouble::Malformed,
+            "malformed" | "broken_off" => Trouble::Malformed,
             "too_large" => Trouble::TooLarge,
             "cancelled" => Trouble::Cancelled,
             _ => Trouble::Other,

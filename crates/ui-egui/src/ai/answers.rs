@@ -14,7 +14,7 @@
 
 use std::sync::mpsc::{Receiver, TryRecvError};
 
-use egui::{Align, Align2, Layout, Rect, RichText, Sense, Stroke, Ui, pos2, vec2};
+use egui::{Align, Layout, RichText, Sense, Stroke, Ui, vec2};
 use mailcraft_engine::Module;
 use mailcraft_html::Block;
 use mailcraft_model::ai::RequestState;
@@ -23,14 +23,34 @@ use serde_json::{Value, json};
 use super::errors::Trouble;
 use super::{Providers, flag, text};
 use crate::MailApp;
-use crate::theme::{Tokens, paint_clipped, regular, semibold};
+use crate::theme::{Tokens, regular, semibold};
+
+/// The runtimes passed over before the answer, and the fallback question.
+#[path = "answers_chain.rs"]
+pub(crate) mod chain;
+#[cfg(test)]
+#[path = "answers_chain_tests.rs"]
+mod chain_tests;
+#[cfg(test)]
+#[path = "answers_layout_tests.rs"]
+mod layout_tests;
+/// The Sources list and the provenance line under an answer.
+#[path = "answers_sources.rs"]
+pub(crate) mod sources;
+#[cfg(test)]
+#[path = "answers_sources_tests.rs"]
+mod sources_tests;
 
 /// The pane's width as it opens, the least and the most it may be given.
 const DEFAULT_W: f32 = 360.0;
 const MIN_W: f32 = 280.0;
 const MAX_W: f32 = 560.0;
-/// What the message list and the reading pane keep beside it at the least.
-const BESIDE: f32 = 240.0 + 260.0;
+/// What the message list and the reading pane beside it keep at the least, and the list alone
+/// when the reading pane is under it or off.
+const BESIDE: f32 = 240.0 + 300.0;
+const LIST_ALONE: f32 = 300.0;
+/// The folder pane's strip while the pane stands aside (`nav::STRIP_W`).
+const STRIP: f32 = 30.0;
 /// Most characters of a question.
 const MAX_QUESTION: usize = 2_000;
 /// How long the question's vector is waited for before the question is asked without it, in ms.
@@ -89,6 +109,8 @@ pub(crate) struct Pane {
     embedding: Option<(Receiver<Option<(Vec<f32>, String)>>, f64)>,
     /// How many messages went to the model with the question.
     pub(crate) sent: usize,
+    /// How many passages of them the model was given to read.
+    pub(crate) passages: usize,
     /// The answer as far as it came, and its blocks.
     pub(crate) text: String,
     blocks: Vec<Block>,
@@ -98,6 +120,8 @@ pub(crate) struct Pane {
     pub(crate) details: String,
     /// Who answered, as the host said (provider, model): data, cut and stripped.
     pub(crate) answered_by: Option<(String, String)>,
+    /// The runtimes passed over or failed before the answer, each with its reason, as said.
+    pub(crate) passed_over: Vec<String>,
     /// The primary in use when the question was asked (its id, and its name as shown).
     pub(crate) primary: Option<(String, String)>,
     /// The answer names no message, and isn't the sentence that says the messages don't answer.
@@ -118,12 +142,14 @@ impl Pane {
             request: None,
             embedding: None,
             sent: 0,
+            passages: 0,
             text: String::new(),
             blocks: Vec::new(),
             blocks_of: String::new(),
             cited: Vec::new(),
             details: String::new(),
             answered_by: None,
+            passed_over: Vec::new(),
             primary: None,
             uncited: false,
             sources_unreadable: false,
@@ -229,6 +255,8 @@ fn send(app: &mut MailApp, vector: Option<(Vec<f32>, String)>) -> Result<(), Str
     }
     pane.request = asked.get("request").and_then(|r| r.get("id")).and_then(Value::as_u64);
     pane.sent = asked.get("sources").and_then(Value::as_array).map_or(0, Vec::len);
+    // The passages the request carries for the model; a host that doesn't say: one a message.
+    pane.passages = asked.pointer("/request/answer/passages").and_then(Value::as_array).map_or(pane.sent, Vec::len);
     if pane.request.is_none() {
         pane.stage = Stage::Trouble(Trouble::Other);
     }
@@ -244,8 +272,12 @@ pub(crate) fn stop(app: &mut MailApp) {
     pane.embedding = None;
     pane.stage = Stage::Stopped;
     pane.focus = Focus::Question;
-    if let Some(request) = pane.request {
-        super::cancel(app, request);
+    let Some(request) = pane.request else { return };
+    super::cancel(app, request);
+    // What came stays, with the sources it named so far; the keyboard stays at the question.
+    finished(app, request, false);
+    if let Some(pane) = app.ai.answers.as_mut() {
+        pane.focus = Focus::Question;
     }
 }
 
@@ -290,6 +322,14 @@ fn answer(app: &MailApp) -> Value {
     };
     let sources: Vec<Value> = pane.cited.iter().map(|c| json!({"number": c.number, "id": c.id})).collect();
     json!({"open": true, "stage": stage, "request": pane.request, "question": pane.question, "sources": sources})
+}
+
+/// Whether the pane is asking the owner the fallback question (the `ask` policy) for the answer
+/// it is waiting on: only the owner's own click answers it, never an agent's input.
+pub(crate) fn fallback_asked(app: &MailApp) -> bool {
+    let Some(request) = app.ai.answers.as_ref().filter(|p| p.working()).and_then(|p| p.request) else { return false };
+    let Some(question) = app.services.ai_providers.as_deref().and_then(|h| h.fallback_question()) else { return false };
+    chain::question_words(&question, request, &Providers::of(app)).is_some()
 }
 
 /// Once a frame: the pane closes with the mailbox it was opened on, and takes in what came.
@@ -364,6 +404,14 @@ fn answered_by(read: &Value) -> Option<(String, String)> {
     (!provider.is_empty() || !model.is_empty()).then_some((provider, model))
 }
 
+/// What the host says of the chain's walk for `request`: the runtimes passed over or failed
+/// before the answer, and those stopped for trying a tool (nothing from a host without a chain).
+fn chain_said(app: &MailApp, request: u64) -> Vec<String> {
+    let Some(host) = app.services.ai_providers.as_deref() else { return Vec::new() };
+    let providers = Providers::of(app);
+    chain::passed_over(host.provenance(request).as_ref(), &host.tool_use_notices(request), &providers)
+}
+
 /// Request `request` failed after its text was shown, because the answer's JSON couldn't be
 /// read: the text stays, marked as having no sources MailCraft could read.
 fn unreadable(app: &mut MailApp, request: u64) {
@@ -391,27 +439,36 @@ fn finished(app: &mut MailApp, request: u64, done: bool) {
     let mut cited = Vec::new();
     for c in read.get("citations").and_then(Value::as_array).into_iter().flatten().take(3) {
         let (Some(number), Some(id)) = (c.get("number").and_then(Value::as_u64), c.get("id").and_then(Value::as_u64)) else { continue };
-        // What the chip says comes from the mailbox, never from the model.
-        let Some(m) = app.session.mailbox.message(id) else { continue };
+        let number = usize::try_from(number).unwrap_or(0);
+        // What the row says comes from the mailbox, never from the model. A message gone since
+        // keeps its row, which says so and opens nothing.
+        let Some(m) = app.session.mailbox.message(id) else {
+            cited.push(Cited { number, id, sender: String::new(), subject: String::new(), date: String::new() });
+            continue;
+        };
         let sender = if m.from.name.trim().is_empty() { m.from.email.clone() } else { m.from.name.clone() };
         let day = mailcraft_time::DateTime::from_timestamp(m.date, app.session.offset_at(m.date)).date;
         cited.push(Cited {
-            number: usize::try_from(number).unwrap_or(0),
+            number,
             id,
             sender: super::cut(sender.trim(), 120),
             subject: super::cut(m.subject.trim(), 200),
             date: crate::dates::medium(day),
         });
     }
-    let n = cited.len();
+    let said = chain_said(app, request);
     let Some(pane) = app.ai.answers.as_mut() else { return };
     if let Some(text) = read.get("text").and_then(Value::as_str) {
         pane.text = text.to_string();
     }
+    // Stopped: only the sources the text named before it stopped.
+    let cited = if done { cited } else { sources::cited_so_far(cited, &pane.text) };
+    let n = cited.len();
     pane.focus = if n > 0 { Focus::FirstSource } else { Focus::Question };
     // A host that doesn't say: an answer with no source shown is taken as naming none.
     pane.uncited = read.get("uncited").and_then(Value::as_bool).unwrap_or(n == 0);
     pane.answered_by = answered_by(&read);
+    pane.passed_over = said;
     pane.cited = cited;
     if done {
         pane.stage = Stage::Done;
@@ -452,6 +509,8 @@ enum Act {
     Show(u64),
     OpenWindow(u64),
     Options,
+    /// The owner's answer to the fallback question of a request: try the next runtime or not.
+    Fallback(u64, bool),
 }
 
 /// A caption in `text_dim`.
@@ -459,92 +518,49 @@ fn caption(ui: &mut Ui, words: &str, t: &Tokens) -> egui::Response {
     ui.add(egui::Label::new(RichText::new(words).font(regular(11.5)).color(t.text_dim)).wrap())
 }
 
-/// The note under every answer: who wrote it, from how many messages, and that it can be wrong.
-fn model_note(providers: &Providers, sent: usize) -> String {
-    let Some(p) = providers.active() else {
-        return tln!(
-            sent,
-            "Written by a model, from {n} message in your mailbox. It can be wrong: check the sources.",
-            "Written by a model, from {n} messages in your mailbox. It can be wrong: check the sources."
-        );
-    };
-    if p.remote() {
-        let said = tln!(
-            sent,
-            "Written by {model} at {host}, from {n} message in your mailbox. It can be wrong: check the sources.",
-            "Written by {model} at {host}, from {n} messages in your mailbox. It can be wrong: check the sources."
-        );
-        crate::i18n::fmt(&said, &[("model", &p.model_name()), ("host", &p.host())])
+/// What Mail keeps beside the pane: the folder pane (its strip when `yield_folders`), then the
+/// list and a reading pane at its right, or the list alone.
+fn beside(app: &MailApp, yield_folders: bool) -> f32 {
+    let folders = if app.session.view.folder_pane && !yield_folders {
+        if app.ui.folder_pane_width.is_finite() { app.ui.folder_pane_width.clamp(160.0, 420.0) } else { 240.0 }
     } else {
-        let said = tln!(
-            sent,
-            "Written by {model} on this computer, from {n} message in your mailbox. It can be wrong: check the sources.",
-            "Written by {model} on this computer, from {n} messages in your mailbox. It can be wrong: check the sources."
-        );
-        crate::i18n::fmt(&said, &[("model", &p.model_name())])
-    }
+        STRIP
+    };
+    let rest = if app.session.view.reading_pane == mailcraft_engine::Pane::Right { BESIDE } else { LIST_ALONE };
+    folders + rest
 }
 
-/// A source: its number, the envelope, the sender and the date, the subject. Enter, Space or a
-/// click shows the message; Ctrl+Enter (⌘ on a Mac) or a double click opens it in a window.
-fn chip(ui: &mut Ui, c: &Cited, focus: bool, t: &Tokens) -> (egui::Response, Option<Act>) {
-    let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 40.0), Sense::click());
-    let name = crate::i18n::fmt(
-        tl!("Source {n}: {sender}, {subject}, {date}"),
-        &[("n", &c.number.to_string()), ("sender", &c.sender), ("subject", &c.subject), ("date", &c.date)],
-    );
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
-    if focus {
-        resp.request_focus();
-    }
-    let fill = if resp.is_pointer_button_down_on() {
-        t.pressed
-    } else if resp.hovered() {
-        t.hover
-    } else {
-        t.input
-    };
-    let p = ui.painter();
-    p.rect(r, 6.0, fill, Stroke::new(1.0, t.input_border), egui::StrokeKind::Inside);
-    if resp.has_focus() {
-        p.rect_stroke(r.shrink(1.0), 5.0, Stroke::new(2.0, t.focus_ring), egui::StrokeKind::Inside);
-    }
-    let disc = pos2(r.min.x + 17.0, r.center().y);
-    p.circle_filled(disc, 9.0, t.accent_soft);
-    p.text(disc, Align2::CENTER_CENTER, c.number.to_string(), semibold(11.0), t.accent_soft_text);
-    crate::icons::paint(p, Rect::from_center_size(pos2(r.min.x + 40.0, r.center().y), vec2(16.0, 16.0)), "mail", t.icon, t.accent);
-    let left = r.min.x + 56.0;
-    let date = p.layout_no_wrap(c.date.clone(), regular(11.0), t.text_dim);
-    let date_x = r.max.x - 10.0 - date.size().x;
-    p.galley(pos2(date_x, r.min.y + 13.0 - date.size().y / 2.0), date, t.text_dim);
-    paint_clipped(p, pos2(left, r.min.y + 13.0), (date_x - left - 8.0).max(0.0), &c.sender, semibold(12.5), t.text);
-    paint_clipped(p, pos2(left, r.min.y + 28.0), (r.max.x - left - 10.0).max(0.0), &c.subject, regular(11.0), t.text_dim);
-    let resp = resp.on_hover_text(format!("{}\n{}\n\n{}", c.sender, c.subject, tl!("Show this message. Double-click to open it in its own window.")));
-    let window = resp.double_clicked() || (resp.clicked() && ui.input(|i| i.modifiers.command));
-    let act = if window {
-        Some(Act::OpenWindow(c.id))
-    } else if resp.clicked() {
-        Some(Act::Show(c.id))
-    } else {
-        None
-    };
-    (resp, act)
+/// How the pane fits beside Mail in `room` points: `Some(false)` with the folder pane as it is,
+/// `Some(true)` with the folder pane standing aside as its strip, `None` when it doesn't fit.
+pub(crate) fn fits(app: &MailApp, room: f32) -> Option<bool> {
+    [false, true].into_iter().find(|&yield_folders| room >= MIN_W + beside(app, yield_folders))
 }
 
 /// The pane at the right of Mail, while it is open: drawn before the folder pane, the list and
-/// the reading pane take the rest. Not drawn when there isn't room for it beside them.
+/// the reading pane take the rest. When the folder pane would leave the reading pane too
+/// narrow, it stands aside as its strip while the pane is open; not drawn when even that leaves
+/// no room.
 pub(crate) fn pane(app: &mut MailApp, ui: &mut Ui) {
-    if app.ai.answers.is_none() || ui.available_width() < MIN_W + BESIDE {
+    app.ai.folders_yield = false;
+    if app.ai.answers.is_none() {
         return;
     }
+    let Some(yield_folders) = fits(app, ui.available_width()) else { return };
+    app.ai.folders_yield = yield_folders;
+    let keep = beside(app, yield_folders);
     let Some(mut pane) = app.ai.answers.take() else { return };
     let t = Tokens::get(ui.ctx());
     let providers = Providers::of(app);
     let ready = super::model_ready(app);
     let address = providers.active().map(|p| p.address()).unwrap_or_default();
-    let max = (ui.available_width() - BESIDE).clamp(MIN_W, MAX_W);
+    let max = (ui.available_width() - keep).clamp(MIN_W, MAX_W);
     let focus = std::mem::replace(&mut pane.focus, Focus::None);
     let mut act: Option<Act> = None;
+    // The `ask` policy's question, while this answer waits on it (only the window answers it).
+    let asked = pane.request.filter(|_| pane.working()).and_then(|request| {
+        let question = app.services.ai_providers.as_deref()?.fallback_question()?;
+        chain::question_words(&question, request, &providers).map(|words| (request, words))
+    });
     let edge = if t.pane_rule { t.border } else { egui::Color32::TRANSPARENT };
     let frame = egui::Frame::NONE.fill(t.panel).stroke(Stroke::new(1.0, edge));
     let shown = egui::Panel::right("answers").default_size(DEFAULT_W.min(max)).size_range(MIN_W..=max).resizable(true).frame(frame).show(ui, |ui| {
@@ -658,6 +674,7 @@ pub(crate) fn pane(app: &mut MailApp, ui: &mut Ui) {
                 }
                 if let Some(n) = drawn.inner
                     && let Some(c) = pane.cited.iter().find(|c| c.number == n)
+                    && app.session.mailbox.message(c.id).is_some()
                 {
                     act = Some(Act::Show(c.id));
                 }
@@ -674,6 +691,25 @@ pub(crate) fn pane(app: &mut MailApp, ui: &mut Ui) {
                             caption(ui, tl!("Writing…"), &t);
                         });
                     }
+                    _ => {}
+                }
+                if let Some((request, words)) = &asked {
+                    let said = sourced(ui, "info", t.blue, words, &t);
+                    app.hit.add("answerFallbackQuestion", 0, said.rect);
+                    ui.horizontal_wrapped(|ui| {
+                        let yes = crate::widgets::primary_button(ui, tl!("Try It"), true);
+                        app.hit.add("answerFallbackYes", 0, yes.rect);
+                        if yes.clicked() {
+                            act = Some(Act::Fallback(*request, true));
+                        }
+                        let no = crate::widgets::plain_button(ui, tl!("Don't"));
+                        app.hit.add("answerFallbackNo", 0, no.rect);
+                        if no.clicked() {
+                            act = Some(Act::Fallback(*request, false));
+                        }
+                    });
+                }
+                match pane.stage {
                     Stage::Stopped => {
                         caption(ui, tl!("Stopped. The answer above is incomplete."), &t);
                     }
@@ -698,40 +734,22 @@ pub(crate) fn pane(app: &mut MailApp, ui: &mut Ui) {
                 } else if pane.cited.is_empty() && pane.uncited {
                     let said = sourced(ui, "info", t.blue, tl!("No message was named as the source"), &t);
                     app.hit.add("answerUncited", 0, said.rect);
-                } else if !pane.cited.is_empty() {
-                    ui.label(RichText::new(tl!("Sources")).font(semibold(11.5)).color(t.text_dim));
-                    let mut chips: Vec<egui::Response> = Vec::new();
-                    for (i, c) in pane.cited.iter().enumerate() {
-                        let (resp, chosen) = chip(ui, c, i == 0 && focus == Focus::FirstSource, &t);
-                        app.hit.add("answerSource", u64::try_from(c.number).unwrap_or(0), resp.rect);
-                        if chosen.is_some() {
-                            act = chosen;
-                        }
-                        chips.push(resp);
-                    }
-                    // Up and Down move between the sources.
-                    if let Some(at) = chips.iter().position(egui::Response::has_focus) {
-                        let (up, down) = ui.input(|i| (i.key_pressed(egui::Key::ArrowUp), i.key_pressed(egui::Key::ArrowDown)));
-                        let to = if up {
-                            at.checked_sub(1)
-                        } else if down {
-                            Some(at.saturating_add(1))
-                        } else {
-                            None
-                        };
-                        if let Some(next) = to.and_then(|i| chips.get(i)) {
-                            next.request_focus();
-                        }
-                    }
+                } else if !pane.cited.is_empty()
+                    && let Some(chosen) = sources::list(app, ui, &pane.cited, focus == Focus::FirstSource, &t)
+                {
+                    act = Some(chosen);
                 }
                 ui.add_space(6.0);
-                if let Some((_, model)) = pane.answered_by.as_ref().filter(|(_, model)| !model.is_empty()) {
-                    let by = caption(ui, &crate::i18n::fmt(tl!("Answered by {model}"), &[("model", model)]), &t);
-                    app.hit.add("answerBy", 0, by.rect);
+                // Which model, where it ran, what it read: after a fallback, the one that answered.
+                let line = sources::provenance(pane.answered_by.as_ref(), &providers, pane.passages);
+                let by = caption(ui, &line, &t);
+                app.hit.add("answerBy", 0, by.rect);
+                // The runtimes passed over or failed before this answer, each with its reason.
+                for (i, words) in pane.passed_over.iter().enumerate() {
+                    let said = caption(ui, words, &t);
+                    app.hit.add("answerPassedOver", u64::try_from(i).unwrap_or(u64::MAX), said.rect);
                 }
-                // After a fallback the model in use didn't write it: the note names none.
-                let noted = if fallback.is_some() { Providers::default() } else { providers.clone() };
-                caption(ui, &model_note(&noted, pane.sent), &t);
+                caption(ui, tl!("A model wrote this answer, and it can be wrong: check the sources."), &t);
             });
         });
     });
@@ -766,6 +784,10 @@ pub(crate) fn pane(app: &mut MailApp, ui: &mut Ui) {
         }
         Act::OpenWindow(id) => app.run("ui.openWindow", json!({"message": id})).map(|_| ()),
         Act::Options => app.run("ui.aiSettings", json!({})).map(|_| ()),
+        Act::Fallback(request, yes) => match app.services.ai_providers.as_deref() {
+            Some(host) => host.answer_fallback(request, yes),
+            None => Ok(()),
+        },
     };
     if let Err(e) = done {
         app.say_refused("ui.answers", &e);

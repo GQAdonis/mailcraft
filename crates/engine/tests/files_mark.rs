@@ -45,6 +45,10 @@ const OTHER_WRITERS: &[(&str, &str)] = &[
     ("apps/mailcraft/src/logging.rs", "the log"),
     ("apps/mailcraft/src/picture_cache.rs", "pictures kept for the window, never handed out"),
     ("apps/mailcraft/src/self_update.rs", "the program's own update"),
+    ("apps/mailcraft/src/ai/runtime/sandbox/macos.rs", "a coding agent's sandbox profile, 0600, in its private run folder"),
+    ("apps/mailcraft/src/ai/runtime/spawn.rs", "a coding agent's instructions file, 0600, in its private run folder"),
+    ("apps/mailcraft/src/ai/runtime/spawn_test_support.rs", "its tests' scripts"),
+    ("apps/mailcraft/src/ai/runtime/uar_sidecar.rs", "the managed agent runtime's config, 0600, in its private run folder"),
     ("apps/mailcraft/src/single_instance.rs", "a lock"),
     ("apps/mailcraft-cli/src/main.rs", "its tests"),
 ];

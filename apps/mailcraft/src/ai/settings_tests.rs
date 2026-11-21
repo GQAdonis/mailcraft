@@ -289,3 +289,78 @@ fn a_yes_to_the_gateway_question_makes_the_provider_a_gateway_with_no_consent() 
     assert!(now.local_lists.is_empty());
     assert!(shared.gateway_question().is_none());
 }
+
+// ---- The ChatGPT plan's host id (ai-runtime-model 11.10) ----
+
+/// A host id as an encoder writes 32 bytes: 43 base64url characters, the last carrying no spare
+/// bits. Made up for the test.
+const HOST_ID: &str = "Zm9yLXRlc3RzLW9ubHktbm90LWEtcmVhbC1ob3N0LTA";
+
+#[test]
+fn the_host_id_is_kept_across_saves_once_set() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(FILE);
+    let shared = Shared::open(Some(path.clone()));
+    assert_eq!(shared.snapshot().chatgpt_host_id, None);
+    shared.change(|s| s.set_chatgpt_host_id(HOST_ID)).unwrap();
+    // Saved and loaded twice: unchanged.
+    for _ in 0..2 {
+        let again = Shared::open(Some(path.clone()));
+        assert_eq!(again.snapshot().chatgpt_host_id.as_ref().map(|h| h.as_str()), Some(HOST_ID));
+        again.change(|s| s.set_active("")).unwrap();
+    }
+    // Made once: another isn't taken in its place, the same one is.
+    assert!(shared.change(|s| s.set_chatgpt_host_id(&HOST_ID.replace('Z', "Y"))).is_err());
+    shared.change(|s| s.set_chatgpt_host_id(HOST_ID)).unwrap();
+    let written: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(written["chatgpt"], json!({"ext_agent_host_id": HOST_ID}));
+}
+
+#[test]
+fn the_file_never_holds_the_client_id_or_the_refresh_token() {
+    let planted = json!({
+        "version": 3,
+        "chain": [{"runtime": "chatgpt", "enabled": true}],
+        "chatgpt": {"ext_agent_host_id": HOST_ID, "client_id": "planted-client-id", "refresh_token": "planted-refresh-token", "access_token": "planted-access"},
+        "keys_kept_for": ["chatgpt"],
+    });
+    let settings = file_of(&planted);
+    assert_eq!(settings.chatgpt_host_id.as_ref().map(|h| h.as_str()), Some(HOST_ID));
+    let written = settings.to_json().to_string();
+    for secret in ["client_id", "refresh_token", "access_token", "planted"] {
+        assert!(!written.contains(secret), "{secret} in {written}");
+    }
+    assert_eq!(settings.to_json()["chatgpt"], json!({"ext_agent_host_id": HOST_ID}));
+}
+
+#[test]
+fn a_hostile_host_id_is_dropped_and_the_next_sign_in_makes_one() {
+    let long = format!("{}\u{0}\u{7}\n{}", "A".repeat(5_000), "B".repeat(5_000));
+    let not_ids = [
+        json!(long),
+        json!(""),
+        json!(&HOST_ID[..42]),
+        json!(format!("{HOST_ID}A")),
+        json!(HOST_ID.replace('Z', "+")),
+        json!(HOST_ID.replace('Z', "=")),
+        // The last character carries bits past the 32nd byte: no encoder writes it.
+        json!(format!("{}B", &HOST_ID[..42])),
+        json!(7),
+        json!(null),
+        json!([HOST_ID]),
+    ];
+    for junk in not_ids {
+        let settings = file_of(&json!({"version": 3, "chatgpt": {"ext_agent_host_id": junk.clone()}}));
+        assert_eq!(settings.chatgpt_host_id, None, "{junk}");
+        assert!(settings.to_json().get("chatgpt").is_none());
+        let mut next = settings.clone();
+        next.set_chatgpt_host_id(HOST_ID).unwrap();
+        assert_eq!(next.chatgpt_host_id.map(|h| h.as_str().to_string()).as_deref(), Some(HOST_ID));
+    }
+    for junk in [json!(7), json!("x"), json!([]), json!(null)] {
+        assert_eq!(file_of(&json!({"version": 3, "chatgpt": junk})).chatgpt_host_id, None);
+    }
+    let mut settings = AiSettings::default();
+    assert!(settings.set_chatgpt_host_id("not one").is_err());
+    assert_eq!(settings.chatgpt_host_id, None);
+}

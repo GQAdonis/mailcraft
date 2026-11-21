@@ -3,24 +3,50 @@
 use super::AiError;
 use super::call::Role;
 use super::narrow::*;
+use mailcraft_time::Date;
+
+fn today() -> Date {
+    Date::new(2026, 11, 21).unwrap()
+}
 
 #[test]
 fn only_the_owners_words_and_the_language_are_sent() {
-    let m = narrow_messages("  invoices from Ada last month with a PDF ").unwrap();
+    let m = narrow_messages("  invoices from Ada last month with a PDF ", today()).unwrap();
     assert_eq!(m.len(), 2);
     assert_eq!(m[0].role, Role::System);
     assert!(m[0].content.contains("query language") && m[0].content.contains("has:attachment"));
     assert_eq!((m[1].role, m[1].content.as_str()), (Role::User, "invoices from Ada last month with a PDF"));
-    assert!(narrow_messages("   ").is_err());
-    assert!(narrow_messages(&"x".repeat(MAX_NARROW_CHARS + 1)).is_err());
+    assert!(narrow_messages("   ", today()).is_err());
+    assert!(narrow_messages(&"x".repeat(MAX_NARROW_CHARS + 1), today()).is_err());
     // Control characters in the description are dropped.
-    assert_eq!(narrow_messages("a\u{0}b\u{202e}").unwrap()[1].content, "ab");
+    assert_eq!(narrow_messages("a\u{0}b\u{202e}", today()).unwrap()[1].content, "ab");
+}
+
+/// SCN-PRIOR-SEARCH-001 diagnostic: "since 29 September" was read as 2025 because the model
+/// wasn't told the date. The date goes in the instructions; the owner's words stay alone in theirs.
+#[test]
+fn todays_date_is_in_the_instructions_and_not_in_the_owners_words() {
+    let m = narrow_messages("mail from ada since 29 September", today()).unwrap();
+    assert!(m[0].content.contains("Today is 2026-11-21."), "{}", m[0].content);
+    assert!(m[0].content.contains("without a year"));
+    assert_eq!(m[1].content, "mail from ada since 29 September");
+    let why = AiError::Invalid("x".into());
+    let r = narrow_retry_messages("mail from ada", today(), &why).unwrap();
+    assert!(r[0].content.contains("Today is 2026-11-21."));
+    assert_eq!(r[1].content, "mail from ada");
+}
+
+/// A negative control: another day gives another date, and never a fixed one.
+#[test]
+fn neg_date_follows_the_day_given() {
+    let m = narrow_messages("mail from ada", Date::new(2027, 1, 2).unwrap()).unwrap();
+    assert!(m[0].content.contains("Today is 2027-01-02.") && !m[0].content.contains("2026-11-21"));
 }
 
 #[test]
 fn a_retry_says_what_was_wrong_in_the_engines_words() {
     let why = AiError::Invalid("`sender:` isn't a keyword of the search".into());
-    let m = narrow_retry_messages("mail from ada", &why).unwrap();
+    let m = narrow_retry_messages("mail from ada", today(), &why).unwrap();
     assert_eq!(m.len(), 3);
     assert!(m[2].content.contains("sender:") && m[2].content.contains("JSON only"));
 }

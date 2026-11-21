@@ -9,6 +9,9 @@
 //! no input from the control channel reaches the window. Other agent commands still run, and
 //! the yes reaches only what the question showed ([`agent::bind`], kept in the question's own
 //! record with the windows as they were): what changed meanwhile makes it do nothing.
+//!
+//! Every request the gate settles goes into the owner's activity log ([`activity`]), memory only,
+//! with who decided: ids and counts, never what the agent sent or got back.
 
 use std::collections::{HashSet, VecDeque};
 use std::sync::mpsc::Sender;
@@ -18,7 +21,7 @@ use mailcraft_engine::agent::{self, Class, Verdict};
 use serde_json::{Value, json};
 
 use crate::MailApp;
-use crate::control::{ControlRequest, Outcome};
+use crate::control::{AgentClient, ControlRequest, Outcome};
 use crate::theme::{Tokens, semibold};
 use crate::widgets::primary_button;
 
@@ -27,6 +30,10 @@ pub const WAIT_MS: f64 = 50_000.0;
 
 /// Most questions waiting at once.
 const MOST: usize = 8;
+
+#[path = "agent_log.rs"]
+pub mod activity;
+use activity::Decided;
 
 /// A question for the owner about what an agent wants.
 pub struct Asking {
@@ -57,10 +64,69 @@ pub struct Asking {
     shown: agent::bind::Shown,
     /// And the windows as it saw them (AU3-20).
     windows: crate::windows::Seen,
+    /// Who the agent said it was, for the activity log when the question is settled; never shown
+    /// in the question and never used to decide it.
+    client: Option<AgentClient>,
 }
 
-/// The questions waiting, the first one on screen.
-pub type Questions = VecDeque<Asking>;
+/// The questions waiting, the first one on screen (the queue itself, through `Deref`), and the
+/// owner's activity log of what agents did ([`activity`]), which is never shown to an agent.
+#[derive(Default)]
+pub struct Questions {
+    waiting: VecDeque<Asking>,
+    /// What agents did, for the Agents panel: memory only, never in `ui.inspect`.
+    pub activity: activity::Log,
+}
+
+impl std::ops::Deref for Questions {
+    type Target = VecDeque<Asking>;
+    fn deref(&self) -> &Self::Target {
+        &self.waiting
+    }
+}
+
+impl std::ops::DerefMut for Questions {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.waiting
+    }
+}
+
+/// Puts what the gate did with an agent's request in the activity log: `command` only when it
+/// is one MailCraft knows, and of the answer only whether it failed and how many things it
+/// named. `Pending` (a question still waiting) is put there when it is settled.
+pub(crate) fn note(app: &mut MailApp, client: Option<&AgentClient>, command: &str, class: Option<Class>, decided: Decided, out: &Outcome) {
+    let Outcome::Done(v) = out else { return };
+    let failed = v.get("ok").and_then(Value::as_bool) != Some(true);
+    let count = if failed { None } else { v.get("result").and_then(activity::count_of) };
+    app.asking.activity.record(activity::Entry {
+        at_ms: crate::now_ms(),
+        client: client.cloned(),
+        command: activity::known_command(command),
+        class,
+        decided,
+        failed,
+        count,
+    });
+}
+
+/// The control methods that only look at the window's state, never at mail, and that an agent
+/// sends after almost every step: not put in the activity log, where they would push out what
+/// the agent did.
+const QUIET: &[&str] = &["engine.commands", "ui.inspect", "ui.alerts", "ui.parity", "app.status"];
+
+/// A request the gate lets go on as anybody's, in the log; what it answers isn't known here.
+fn note_passed(app: &mut MailApp, req: &ControlRequest, class: Option<Class>, decided: Decided) {
+    if !QUIET.contains(&req.method.as_str()) {
+        let passed = json!({"ok": true});
+        note(app, req.client.as_ref(), &req.method, class, decided, &Outcome::Done(passed));
+    }
+}
+
+/// `out`, put in the activity log as `decided` about `req`'s own method.
+fn noted(app: &mut MailApp, req: &ControlRequest, class: Option<Class>, decided: Decided, out: Outcome) -> Outcome {
+    note(app, req.client.as_ref(), &req.method, class, decided, &out);
+    out
+}
 
 fn ok(v: Value) -> Outcome {
     Outcome::Done(json!({"ok": true, "result": v}))
@@ -74,20 +140,48 @@ fn err(e: impl std::fmt::Display) -> Outcome {
 /// here), `None` when it goes on as anybody's (looking, a screenshot into the answer).
 pub fn screen(app: &mut MailApp, req: &ControlRequest, allow: &[Class]) -> Option<Outcome> {
     let p = &req.params;
+    // The owner stopped agent access for the session (`ui.agentAccess`, the Agents panel): every
+    // agent request is refused, whatever it is and whatever it was allowed. Looking at the
+    // window's state isn't put in the log, as when access is on: it would push out the rest.
+    if crate::ai::agents::stopped(app) {
+        let out = err(STOPPED);
+        if !QUIET.contains(&req.method.as_str()) {
+            let id = match req.method.as_str() {
+                "engine.execute" | "command" => p.get("command").or_else(|| p.get("id")).and_then(Value::as_str).unwrap_or(""),
+                other => other,
+            };
+            note(app, req.client.as_ref(), id, None, Decided::Refused, &out);
+        }
+        return Some(out);
+    }
     let given = |k: &str| p.get(k).is_some_and(|v| !v.is_null());
     match req.method.as_str() {
-        "engine.commands" | "mailbox.inspect" | "ui.inspect" | "ui.alerts" | "ui.parity" | "ui.resize" | "ui.focus" | "app.status" => None,
-        "ui.screenshot" if given("path") => Some(err("agents don't name files: the screenshot comes back in the answer (leave out `path`)")),
-        "ui.screenshot" => None,
+        "engine.commands" | "mailbox.inspect" | "ui.inspect" | "ui.alerts" | "ui.parity" | "ui.resize" | "ui.focus" | "app.status" => {
+            note_passed(app, req, None, Decided::NoQuestion);
+            None
+        }
+        "ui.screenshot" if given("path") => {
+            Some(noted(app, req, None, Decided::Refused, err("agents don't name files: the screenshot comes back in the answer (leave out `path`)")))
+        }
+        "ui.screenshot" => {
+            note_passed(app, req, None, Decided::NoQuestion);
+            None
+        }
         "ui.click" | "ui.move" | "ui.drag" | "ui.key" | "ui.text" => {
             if !allow.contains(&Class::Input) {
-                Some(err(format!(
+                let out = err(format!(
                     "clicking and typing in the window needs the owner: {}. Only the owner can let an agent do this, by starting the bridge with `mailcraft-cli mcp --allow input`",
                     Class::Input.what()
-                )))
-            } else if !app.asking.is_empty() {
-                Some(err("the owner is being asked something: no input reaches the window until they answer"))
+                ));
+                Some(noted(app, req, Some(Class::Input), Decided::Refused, out))
+            } else if !app.asking.is_empty() || crate::ai::owner_asks(app) {
+                let out = err("the owner is being asked something: no input reaches the window until they answer");
+                Some(noted(app, req, Some(Class::Input), Decided::Refused, out))
+            } else if on_owner_only(app, &req.method, p) {
+                let out = err("that place is the owner's to answer: an agent's click doesn't reach it");
+                Some(noted(app, req, Some(Class::Input), Decided::Refused, out))
             } else {
+                note_passed(app, req, Some(Class::Input), Decided::AllowedInAdvance);
                 None
             }
         }
@@ -96,41 +190,87 @@ pub fn screen(app: &mut MailApp, req: &ControlRequest, allow: &[Class]) -> Optio
             let params = p.get("params").cloned().filter(|v| !v.is_null()).unwrap_or(json!({}));
             Some(gate(app, req, &id, params, allow))
         }
-        "app.quit" | "auth" | "ui.minimize" | "ai.providers" | "ai.setProvider" | "ai.setActive" | "ai.setConsent" | "ai.removeProvider" => {
-            Some(err(format!("`{}` isn't available to agents", req.method)))
-        }
+        m if refused_to_agents(m) => Some(noted(app, req, None, Decided::Refused, err(format!("`{m}` isn't available to agents")))),
         other => Some(gate(app, req, other, p.clone(), allow)),
     }
 }
 
-fn gate(app: &mut MailApp, req: &ControlRequest, id: &str, mut params: Value, allow: &[Class]) -> Outcome {
+/// Whether an agent's `ui.click` or `ui.drag` would land on an owner-only AI control
+/// ([`crate::ai::OWNER_ONLY_HITS`]): named by its kind, or at a point inside one as last drawn.
+fn on_owner_only(app: &MailApp, method: &str, p: &Value) -> bool {
+    let only = crate::ai::OWNER_ONLY_HITS;
+    let at = |x: &str, y: &str| {
+        let f = |k: &str| p.get(k).and_then(Value::as_f64).map(|v| v as f32).filter(|v| v.is_finite());
+        f(x).zip(f(y)).map(|(x, y)| egui::pos2(x, y))
+    };
+    match method {
+        "ui.click" => {
+            if p.get("kind").and_then(Value::as_str).is_some_and(|k| only.contains(&k)) {
+                return true;
+            }
+            at("x", "y").is_some_and(|pos| app.hit.any_at(pos, only))
+        }
+        "ui.drag" => [at("x", "y"), at("toX", "toY")].into_iter().flatten().any(|pos| app.hit.any_at(pos, only)),
+        _ => false,
+    }
+}
+
+/// The control methods no agent may call, whatever it was allowed: quitting, the sign-in, hiding
+/// the window, and every one of the owner's AI methods (the model providers and the runtimes,
+/// [`crate::control::is_ai_method`]), which change where mail may go.
+pub fn refused_to_agents(method: &str) -> bool {
+    matches!(method, "app.quit" | "auth" | "ui.minimize") || crate::control::is_ai_method(method)
+}
+
+/// The gate for one command, its end put in the activity log (a question, when it is settled).
+fn gate(app: &mut MailApp, req: &ControlRequest, id: &str, params: Value, allow: &[Class]) -> Outcome {
+    let (out, class, decided) = decide(app, req, id, params, allow);
+    if let Some(decided) = decided {
+        note(app, req.client.as_ref(), id, class, decided, &out);
+    }
+    out
+}
+
+/// What the gate does with a command: its answer, the command's class, and who decided (`None`
+/// while a question waits).
+fn decide(app: &mut MailApp, req: &ControlRequest, id: &str, mut params: Value, allow: &[Class]) -> (Outcome, Option<Class>, Option<Decided>) {
+    let refused = |out: Outcome, class: Option<Class>| (out, class, Some(Decided::Refused));
     // The question names the people the window would write to, as the form has them now.
     if id == "ui.eventWindow" && params.is_object() {
         let people = crate::windows::event_window_people(app, &params);
         params["attendees"] = json!(people);
     }
     let params = as_the_window_has_it(app, id, params);
+    let access = agent::classify(&app.session, id, &params);
+    let of = match access {
+        agent::Access::Owner(c) | agent::Access::Asked(c) => Some(c),
+        agent::Access::Safe | agent::Access::Never => None,
+    };
     if let Some(why) = overwrites(app, id, &params) {
-        return err(why);
+        return refused(err(why), of);
     }
     match agent::check(&app.session, id, &params, allow) {
-        Verdict::Run => run(app, id, params, allow, None),
-        Verdict::Refuse(why) => err(why),
+        Verdict::Run => {
+            // Safe needs nobody; anything else ran because its class was allowed in advance.
+            let decided = if access == agent::Access::Safe { Decided::NoQuestion } else { Decided::AllowedInAdvance };
+            (run(app, id, params, allow, None), of, Some(decided))
+        }
+        Verdict::Refuse(why) => refused(err(why), of),
         Verdict::Ask(class, what) => {
             if app.asking.len() >= MOST {
-                return err("too many questions are waiting for the owner; nothing was done");
+                return refused(err("too many questions are waiting for the owner; nothing was done"), Some(class));
             }
             let Some(shown) = agent::bind::Shown::new(&app.session, id, &params, &what) else {
-                return err(format!("`{id}` isn't available to agents: what it acts on can't be shown to the owner"));
+                return refused(err(format!("`{id}` isn't available to agents: what it acts on can't be shown to the owner")), Some(class));
             };
             let counted = match counted(app, id, &params) {
                 Ok(counted) => counted,
-                Err(why) => return err(why),
+                Err(why) => return refused(err(why), Some(class)),
             };
             let also = agent::also(&app.session, id, &params, class);
             let (taken, items) = undo_takes(app, id);
             let steps = app.session.undo_steps_moved();
-            app.asking.push_back(Asking {
+            let asking = Asking {
                 id: id.to_string(),
                 counted,
                 params,
@@ -146,8 +286,10 @@ fn gate(app: &mut MailApp, req: &ControlRequest, id: &str, mut params: Value, al
                 opening: app.session.openings(),
                 shown,
                 windows: crate::windows::seen(app),
-            });
-            Outcome::Pending
+                client: req.client.clone(),
+            };
+            app.asking.push_back(asking);
+            (Outcome::Pending, Some(class), None)
         }
     }
 }
@@ -329,73 +471,91 @@ pub fn answer(app: &mut MailApp, yes: bool) {
     let out = if a.opening != app.session.openings() {
         err(format!("another mailbox was opened before the owner answered about `{}`: nothing was done", a.id))
     } else if yes {
-        // Asked again: what it would do may have changed while the question was up. So may what
-        // the window would lose: another form than the one named isn't lost on this yes.
-        let params = as_the_window_has_it(app, &a.id, a.params.clone());
-        let Some(params) = still_where_counted(app, &a.counted, params) else {
-            let out = err(format!("what `{}` was asked about has gone or moved since the owner was asked: nothing was done", a.id));
-            if let Outcome::Done(v) = out {
-                let _ = a.reply.send(v);
-            }
-            return;
-        };
-        let lost = params.get("unsaved").filter(|u| !u.is_null());
-        let other = lost.is_some() && lost != a.params.get("unsaved");
-        let verdict = agent::answered(&app.session, &a.id, &params, &a.allow, a.class);
-        // What else it needs now, which the yes covers only when the question named it (#473).
-        let also = agent::also(&app.session, &a.id, &params, a.class);
-        // Nor does it cover another step than the one asked about, or other messages, drafts,
-        // contacts and the like than the question named.
-        let undoing = matches!(a.id.as_str(), "edit.undo" | "edit.redo");
-        let more = also.iter().any(|c| !a.also.contains(c) && !a.allow.contains(c))
-            || {
-                let (taken, items) = undo_takes(app, &a.id);
-                !taken.is_subset(&a.taken) || !items.is_subset(&a.items)
-            }
-            || (undoing && (app.session.undo_steps_moved() != a.steps || agent::describe(&app.session, &a.id, &params) != a.what));
-        // Nor anything but what the question showed (AU3-24): what the command would take from the
-        // window, what it names, and the windows, as they were.
-        let reach = if crate::windows::seen(app) != a.windows {
-            Err(format!("the windows `{}` was asked about have changed since the owner was asked: nothing was done. Ask the owner again", a.id))
-        } else {
-            a.shown.check(&app.session, &a.id, &params)
-        };
-        let mut allow = a.allow.clone();
-        allow.push(a.class);
-        allow.extend(also);
-        match verdict {
-            _ if other => err(format!("what `{}` would close without saving has changed since the owner was asked; nothing was done", a.id)),
-            _ if more => err(format!("`{}` would now do more than the owner was asked about; nothing was done", a.id)),
-            _ if let Some(why) = overwrites(app, &a.id, &params) => err(why),
-            _ if let Err(why) = &reach => {
-                app.status(tl!("Nothing was done: what the agent asked about changed after you were asked."));
-                err(why)
-            }
-            Verdict::Run => {
-                let only = match reach {
-                    Ok(agent::bind::Reach::Only(only)) => Some(only),
-                    _ => None,
-                };
-                run(app, &a.id, params, &allow, only)
-            }
-            Verdict::Refuse(why) => err(why),
-            Verdict::Ask(..) => err(format!("`{}` would now do more than the owner was asked about; nothing was done", a.id)),
-        }
+        said_yes(app, &a)
     } else {
         err(format!("the owner said no to `{}`: nothing was done", a.id))
     };
+    let decided = if yes { Decided::SaidYes } else { Decided::SaidNo };
+    note(app, a.client.as_ref(), &a.id, Some(a.class), decided, &out);
     if let Outcome::Done(v) = out {
         let _ = a.reply.send(v);
+    }
+}
+
+/// What the owner's yes to `a` does: it runs only when it still does what the question showed.
+fn said_yes(app: &mut MailApp, a: &Asking) -> Outcome {
+    // Asked again: what it would do may have changed while the question was up. So may what
+    // the window would lose: another form than the one named isn't lost on this yes.
+    let params = as_the_window_has_it(app, &a.id, a.params.clone());
+    let Some(params) = still_where_counted(app, &a.counted, params) else {
+        return err(format!("what `{}` was asked about has gone or moved since the owner was asked: nothing was done", a.id));
+    };
+    let lost = params.get("unsaved").filter(|u| !u.is_null());
+    let other = lost.is_some() && lost != a.params.get("unsaved");
+    let verdict = agent::answered(&app.session, &a.id, &params, &a.allow, a.class);
+    // What else it needs now, which the yes covers only when the question named it (#473).
+    let also = agent::also(&app.session, &a.id, &params, a.class);
+    // Nor does it cover another step than the one asked about, or other messages, drafts,
+    // contacts and the like than the question named.
+    let undoing = matches!(a.id.as_str(), "edit.undo" | "edit.redo");
+    let more = also.iter().any(|c| !a.also.contains(c) && !a.allow.contains(c))
+        || {
+            let (taken, items) = undo_takes(app, &a.id);
+            !taken.is_subset(&a.taken) || !items.is_subset(&a.items)
+        }
+        || (undoing && (app.session.undo_steps_moved() != a.steps || agent::describe(&app.session, &a.id, &params) != a.what));
+    // Nor anything but what the question showed (AU3-24): what the command would take from the
+    // window, what it names, and the windows, as they were.
+    let reach = if crate::windows::seen(app) != a.windows {
+        Err(format!("the windows `{}` was asked about have changed since the owner was asked: nothing was done. Ask the owner again", a.id))
+    } else {
+        a.shown.check(&app.session, &a.id, &params)
+    };
+    let mut allow = a.allow.clone();
+    allow.push(a.class);
+    allow.extend(also);
+    match verdict {
+        _ if other => err(format!("what `{}` would close without saving has changed since the owner was asked; nothing was done", a.id)),
+        _ if more => err(format!("`{}` would now do more than the owner was asked about; nothing was done", a.id)),
+        _ if let Some(why) = overwrites(app, &a.id, &params) => err(why),
+        _ if let Err(why) = &reach => {
+            app.status(tl!("Nothing was done: what the agent asked about changed after you were asked."));
+            err(why)
+        }
+        Verdict::Run => {
+            let only = match reach {
+                Ok(agent::bind::Reach::Only(only)) => Some(only),
+                _ => None,
+            };
+            run(app, &a.id, params, &allow, only)
+        }
+        Verdict::Refuse(why) => err(why),
+        Verdict::Ask(..) => err(format!("`{}` would now do more than the owner was asked about; nothing was done", a.id)),
     }
 }
 
 /// Another mailbox took the place of the one asked about: the questions go with it, unanswered,
 /// since what they name are that mailbox's messages (#503).
 pub fn forget(app: &mut MailApp) {
-    for a in app.asking.drain(..) {
-        let _ = a
-            .reply
-            .send(json!({"ok": false, "error": format!("another mailbox was opened before the owner answered about `{}`: nothing was done", a.id)}));
+    let gone: Vec<Asking> = app.asking.drain(..).collect();
+    for a in gone {
+        let v = json!({"ok": false, "error": format!("another mailbox was opened before the owner answered about `{}`: nothing was done", a.id)});
+        note(app, a.client.as_ref(), &a.id, Some(a.class), Decided::Refused, &Outcome::Done(v.clone()));
+        let _ = a.reply.send(v);
+    }
+}
+
+/// Why an agent's request is refused while the owner has stopped agent access.
+pub(crate) const STOPPED: &str =
+    "the owner stopped agent access for this session: nothing was done. Only the owner can let agents in again, in the window's Agents panel";
+
+/// The owner stopped agent access (`ui.agentAccess`): the questions waiting are answered no, each
+/// put in the activity log as refused, as [`forget`] does.
+pub(crate) fn refuse_waiting(app: &mut MailApp) {
+    while let Some(a) = app.asking.pop_front() {
+        let v = json!({"ok": false, "error": format!("the owner stopped agent access before answering about `{}`: nothing was done", a.id)});
+        note(app, a.client.as_ref(), &a.id, Some(a.class), Decided::Refused, &Outcome::Done(v.clone()));
+        let _ = a.reply.send(v);
     }
 }
 
@@ -403,7 +563,9 @@ pub fn forget(app: &mut MailApp) {
 pub fn expire(app: &mut MailApp, now: f64) {
     while app.asking.front().is_some_and(|a| now >= a.deadline) {
         if let Some(a) = app.asking.pop_front() {
-            let _ = a.reply.send(json!({"ok": false, "error": format!("the owner didn't answer about `{}` in time: nothing was done", a.id)}));
+            let v = json!({"ok": false, "error": format!("the owner didn't answer about `{}` in time: nothing was done", a.id)});
+            note(app, a.client.as_ref(), &a.id, Some(a.class), Decided::NoAnswer, &Outcome::Done(v.clone()));
+            let _ = a.reply.send(v);
         }
     }
 }
@@ -488,6 +650,14 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
         answer(app, yes);
     }
 }
+
+#[cfg(test)]
+#[path = "agent_gate_characterisation_tests.rs"]
+mod agent_gate_characterisation_tests;
+
+#[cfg(test)]
+#[path = "agent_log_tests.rs"]
+mod agent_log_tests;
 
 #[cfg(test)]
 mod tests {

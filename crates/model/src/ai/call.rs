@@ -280,10 +280,24 @@ pub enum ErrorKind {
     CredentialStore,
     /// The provider answered something that isn't what was asked for.
     Malformed,
+    /// The stream of the answer broke off with something that can't be read, after some of it
+    /// was shown: what came is not an answer, and it is said so (never kept as one).
+    BrokenOff,
     /// The answer was larger than is taken.
     TooLarge,
     /// The request was called off.
     Cancelled,
+    /// The runtime isn't signed in: its own login (a CLI's) or MailCraft's sign-in (a ChatGPT
+    /// plan) is missing or has run out.
+    SignedOut,
+    /// The runtime tried to use a tool (a file, a shell, the web, an MCP server) and MailCraft
+    /// stopped the run. Never passed over in silence: the answer pane says it happened.
+    ToolUseStopped,
+    /// The runtime may run only inside an operating-system sandbox, and this computer gave none.
+    NoSandbox,
+    /// The runtime is installed but doesn't behave as it should (it won't start, or what it
+    /// writes isn't what its kind writes).
+    BrokenRuntime,
 }
 
 impl ErrorKind {
@@ -299,8 +313,36 @@ impl ErrorKind {
             ErrorKind::Settings => "settings",
             ErrorKind::CredentialStore => "credential_store",
             ErrorKind::Malformed => "malformed",
+            ErrorKind::BrokenOff => "broken_off",
             ErrorKind::TooLarge => "too_large",
             ErrorKind::Cancelled => "cancelled",
+            ErrorKind::SignedOut => "signed_out",
+            ErrorKind::ToolUseStopped => "tool_use_stopped",
+            ErrorKind::NoSandbox => "no_sandbox",
+            ErrorKind::BrokenRuntime => "broken_runtime",
+        }
+    }
+
+    /// What the owner is told, in English: the source text the window translates (its `tl!`
+    /// key). Nothing of the provider's own words is in it, and nobody reads it to learn the kind.
+    pub fn owner_words(self) -> &'static str {
+        match self {
+            ErrorKind::NotConfigured => "No model is set up, so nothing was sent.",
+            ErrorKind::NoConsent => "This account's mail isn't allowed to go to that model, so nothing was sent.",
+            ErrorKind::Unreachable => "The model couldn't be reached.",
+            ErrorKind::Refused { .. } => "The model refused the request.",
+            ErrorKind::TimedOut { .. } => "The model took too long to answer.",
+            ErrorKind::Certificate => "The model's certificate wasn't accepted.",
+            ErrorKind::Settings => "The model's settings can't be used.",
+            ErrorKind::CredentialStore => "The system's credential store didn't give the model's key.",
+            ErrorKind::Malformed => "The model's answer couldn't be read.",
+            ErrorKind::BrokenOff => "The model's answer broke off with something that couldn't be read.",
+            ErrorKind::TooLarge => "The model's answer was too long.",
+            ErrorKind::Cancelled => "The request was called off.",
+            ErrorKind::SignedOut => "The runtime isn't signed in. Sign in to it in AI assistance.",
+            ErrorKind::ToolUseStopped => "The runtime tried to use a tool; MailCraft stopped it",
+            ErrorKind::NoSandbox => "The runtime can't run here: this computer gave MailCraft no sandbox to keep it in.",
+            ErrorKind::BrokenRuntime => "The runtime is installed but doesn't work as it should.",
         }
     }
 
@@ -316,9 +358,15 @@ impl ErrorKind {
             | ErrorKind::Refused { .. }
             | ErrorKind::Certificate
             | ErrorKind::Settings
-            | ErrorKind::CredentialStore => true,
+            | ErrorKind::CredentialStore
+            | ErrorKind::SignedOut
+            | ErrorKind::NoSandbox
+            | ErrorKind::BrokenRuntime => true,
+            // The next runtime may be asked, but the stop is always told, even with `next`
+            // (spec §9: never passed over in silence).
+            ErrorKind::ToolUseStopped => true,
             ErrorKind::TimedOut { before_first_byte } => before_first_byte,
-            ErrorKind::Malformed | ErrorKind::TooLarge | ErrorKind::Cancelled => false,
+            ErrorKind::Malformed | ErrorKind::BrokenOff | ErrorKind::TooLarge | ErrorKind::Cancelled => false,
         }
     }
 }

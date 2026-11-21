@@ -42,6 +42,9 @@ use crate::theme::{Tokens, mono, regular, semibold};
 pub const BASE_SIZE: f32 = 13.0;
 /// Line height, as a multiple of the font size.
 const LINE: f32 = 1.45;
+/// The readable measure, in `ch`: the most advances of '0' in the window's body font that a line
+/// of flowing text runs to (G13 a: no setting). Tables, pictures and `@media` keep the width.
+pub const MEASURE_CH: f32 = 72.0;
 /// The gap above an ordinary paragraph, and what each further blank line adds.
 const PARAGRAPH_GAP: f32 = 10.0;
 const BLANK_LINE: f32 = 18.0;
@@ -100,6 +103,29 @@ const MAX_TABS: u8 = 64;
 /// What [`Item::seg`] is for a thing that is not selected by itself: a background, a line, a
 /// list's bullet or number.
 pub const NO_SEG: u32 = u32::MAX;
+
+/// The readable measure for flowing text in `width` points: [`MEASURE_CH`] advances of '0' (`zero`
+/// points each), no wider than `width`. A font that has no '0' (or any width that is not a
+/// number) leaves the width as it is.
+pub fn measure_of(zero: f32, width: f32) -> f32 {
+    let measure = zero * MEASURE_CH;
+    if zero.is_finite() && zero > 0.0 && measure.is_finite() { width.min(measure) } else { width }
+}
+
+/// The readable measure in `width` points for text `zoom` times its size, in the window's body
+/// font at [`BASE_SIZE`] ([`measure_of`]). Only once the window has its fonts: in a frame.
+pub fn measure(ctx: &egui::Context, zoom: f32, width: f32) -> f32 {
+    let zoom = if zoom.is_finite() && zoom > 0.0 { zoom } else { 1.0 };
+    let zero = ctx.fonts_mut(|fonts| fonts.glyph_width(&regular(BASE_SIZE * zoom), '0'));
+    measure_of(zero, width)
+}
+
+/// Whether a block is flowing text that wraps at the readable measure: a paragraph, a heading or a
+/// list item set from the left. Preformatted text keeps its lines; text a sender centred or set
+/// to the right keeps the room the sender laid it out in.
+fn measured(block: &Block) -> bool {
+    matches!(block.kind, BlockKind::Paragraph | BlockKind::Heading(_) | BlockKind::ListItem { .. }) && block.align == Align::Left
+}
 
 /// One thing to paint.
 #[derive(Clone, Debug)]
@@ -323,6 +349,9 @@ impl Laid {
         let base = if self.light { Tokens::light() } else { Tokens::get(ctx) };
         let t = Tokens { sender_dark: self.sender_dark && base.dark, ..base };
         let cuts = self.cuts.clone();
+        // (A layout that was never made with `new` has no zoom: as it comes.)
+        let zoom = if self.zoom > 0.0 { self.zoom } else { 1.0 };
+        let measure = measure(ctx, zoom, self.width);
         let mut cx = Cx {
             ctx,
             t,
@@ -338,9 +367,9 @@ impl Laid {
             work: 0,
             stats: self.stats,
             right: self.size.x,
-            // (A layout that was never made with `new` has no zoom: as it comes.)
-            zoom: if self.zoom > 0.0 { self.zoom } else { 1.0 },
+            zoom,
             fonts: Chooser::new(ctx),
+            readable: measure,
         };
         let mut flow = Flow { x: 0.0, width: self.width, y: self.y, paper: Paper::window(&t), prev: self.prev.take() };
         while self.next < blocks.len() && cx.work < budget {
@@ -388,6 +417,8 @@ struct Cx<'a> {
     zoom: f32,
     /// The message's own fonts (#600).
     fonts: Chooser,
+    /// The readable measure ([`measure`]): the widest the message's own flowing text is wrapped.
+    readable: f32,
 }
 
 impl Cx<'_> {
@@ -576,6 +607,9 @@ fn place(cx: &mut Cx<'_>, flow: &mut Flow, blocks: &[Block], index: usize, depth
                 BlockKind::ListItem { .. } => PrevKind::List,
                 _ => PrevKind::Text,
             };
+            // The message's own flowing text wraps at the readable measure, from the left edge
+            // of its column; inside a table it has the cell's room.
+            let width = if depth == 0 && measured(block) { width.min(cx.readable).max(MIN_CELL.min(width)) } else { width };
             (text(cx, block, x, top, width, flow.paper), kind)
         }
     };

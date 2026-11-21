@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: MailCraft contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! The owner's own control methods for the model providers (`ai.providers`, `ai.setProvider`,
-//! `ai.setActive`, `ai.setConsent`, `ai.removeProvider`).
+//! `ai.setActive`, `ai.setConsent`, `ai.removeProvider`) and for the runtimes of the chain
+//! (`ai.runtimes`, `ai.setRuntimeOrder`, `ai.setRuntimeEnabled`, `ai.setRuntimeOption`,
+//! `ai.rescan`, `ai.signIn`, `ai.signOut`, `ai.setRuntimeKey`, `ai.setFallback`, and
+//! `ai.setConsent` with a `runtime`; [`run_runtime`]).
 //!
 //! They are control methods, not engine commands: no command id names them, so `engine.execute`,
 //! the MCP tools and the agent gate never reach them, and an agent's request (one with an `agent`
@@ -18,9 +21,20 @@ use serde_json::{Value, json};
 use super::{Outcome, err, ok};
 use crate::MailApp;
 
-/// The control methods of this module.
-pub(super) fn is_ai_method(method: &str) -> bool {
-    matches!(method, "ai.providers" | "ai.setProvider" | "ai.setActive" | "ai.setConsent" | "ai.removeProvider")
+pub use runtimes::{AiRuntimes, RUNTIME_METHODS, RuntimeSettings, RuntimeState, RuntimeStatus, SignIn, SignOut, Step, run_runtime};
+
+#[path = "ai_runtimes.rs"]
+mod runtimes;
+#[cfg(test)]
+pub(super) use runtimes::finish as runtimes_finish;
+
+/// The model-provider methods (the runtimes' are [`RUNTIME_METHODS`]).
+pub const PROVIDER_METHODS: [&str; 5] = ["ai.providers", "ai.setProvider", "ai.setActive", "ai.setConsent", "ai.removeProvider"];
+
+/// The control methods of this module: every one the owner's own, and refused to agents
+/// ([`crate::agent_gate::screen`]).
+pub fn is_ai_method(method: &str) -> bool {
+    PROVIDER_METHODS.contains(&method) || RUNTIME_METHODS.contains(&method)
 }
 
 /// The longest text taken for an id or an account address.
@@ -34,6 +48,13 @@ const KEY_NAMES: [&str; 6] = ["key", "apikey", "api_key", "apiKey", "secret", "t
 pub(super) fn handle(app: &mut MailApp, agent: bool, method: &str, p: &Value) -> Outcome {
     if agent {
         return err(format!("`{method}` is the owner's own: it isn't available to agents"));
+    }
+    // The runtimes' methods, and `ai.setConsent` that names a runtime rather than a provider.
+    if RUNTIME_METHODS.contains(&method) && (method != "ai.setConsent" || p.get("runtime").is_some()) {
+        return match runtimes::on_app(app, method, p) {
+            Ok(v) => ok(v),
+            Err(e) => err(e),
+        };
     }
     let Some(host) = app.services.ai_providers.as_deref() else {
         return err("model providers aren't available in this build");

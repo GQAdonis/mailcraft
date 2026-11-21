@@ -59,9 +59,26 @@ Every failure has a kind: `not_configured`, `no_consent`, `unreachable`, `refuse
 
 A credential store that doesn't answer within 5 seconds fails the request as `credential_store` instead of freezing it.
 
+## Runtimes beyond model servers
+
+Besides the model servers above, the desktop app can take its answers from other runtimes, each off until you turn it on, tried in the order you set:
+
+| Runtime | Where text goes | Under whose account | What MailCraft holds |
+|---|---|---|---|
+| **Apple's on-device model**, a model server on this computer | Stays on this computer | — | Nothing secret |
+| **A gateway, an internet service** | To that provider | The key's account | The key, in the credential store |
+| **ChatGPT plan** (Sign in with ChatGPT) | OpenAI's Responses API | Your ChatGPT plan | The issued client id and refresh token in the credential store; the access token in memory |
+| **Claude Code** (the `claude` program you installed) | Anthropic | Your own Claude login and plan quota | Nothing: MailCraft never reads the program's login |
+| **Codex** (the `codex` program you installed) | OpenAI | Your own ChatGPT login and plan quota | Nothing: MailCraft never reads your Codex folder's login |
+| **Universal Agent Runtime** you started yourself | Wherever it is set up to send | Its own | Nothing |
+
+Every runtime that leaves this computer needs your yes for each account before that account's mail goes to it, and none needs an API key for Claude or Codex: MailCraft bills nothing by the token. The CLIs are used as text models only: their tools are turned off, and a run that tries to use a tool anyway is stopped with every process it started, its text thrown away, and you are told before another runtime is tried. When one fails before any answer arrives, the next one is tried, you are asked first, or the failure is shown, as you chose. Codex runs only under the operating system's sandbox, so it isn't offered on Windows.
+
+[PRIVACY.md](../PRIVACY.md#ai-runtimes) says what each runtime is sent, where its sign-in lives and how to stop it, including what text of your own Codex skills may reach OpenAI; the [threat model](threat-model.md#local-coding-agents-as-text-models) says how the CLIs are contained and what risk is left.
+
 ## Agents
 
-External agents (MCP, the control channel) may search mail read-only. They can't ask the model, change model servers, answer the gateway question, run Test Connection or confirm the on-device model. Those are the owner's alone.
+External agents (MCP, the control channel) may search mail read-only. They can't ask the model, change model servers, answer the gateway question, run Test Connection or confirm the on-device model. Nor can they list, order, turn on, sign in to, sign out of or give consent for a runtime (the `ai.*` runtime commands are `never` for agents). Those are the owner's alone.
 
 ## Revision history
 

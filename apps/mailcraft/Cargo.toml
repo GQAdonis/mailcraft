@@ -204,3 +204,9 @@ rfd = { workspace = true }
 # being written (egui's own clipboard carries text only). Already in the tree: egui's window
 # layer copies text through it.
 arboard = { version = "3.7", default-features = false, features = ["image-data"] }
+# The AI runtimes (Claude Code, Codex…) are spawned in a process group or session of their own on
+# Unix and a job object on Windows, so that a cancel, a timeout or a tool event kills the runtime
+# with every process it started (`ai/runtime/spawn.rs`, B4). Apache-2.0 OR MIT, from the watchexec
+# maintainers; its `unsafe` stays inside it (nix, and on Windows the `windows` crate already in
+# the tree). No default features: no tracing, no tokio.
+process-wrap = { version = "10.0.1", default-features = false, features = ["std", "process-group", "process-session", "job-object", "kill-on-drop"] }

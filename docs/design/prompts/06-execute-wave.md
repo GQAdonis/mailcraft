@@ -1,5 +1,7 @@
 # 6 — Execute one wave
 
+> **Run once already** for phase `mailcraft-ui-refresh-and-agent-runtimes`: its gate answers, final change ids and frozen scenario ids are in [README.md](README.md#the-record-of-the-phase-these-prompts-ran). OpenCode is cut (G-RT5 b).
+
 Run `/kbd-execute` for `<PHASE>`, **wave `<N>` only**, as listed in `execution.md`.
 
 1. Dispatch each change to its owning role, as routed in `plan.md`. Give every agent:
@@ -18,12 +20,13 @@ Run `/kbd-execute` for `<PHASE>`, **wave `<N>` only**, as listed in `execution.m
      - Use an empty cwd.
      - Kill the whole process group on any tool event.
      - Fakes only in tests.
-   - **Part B OAuth:**
-     - PKCE.
-     - Bind the loopback listener before opening the browser.
+   - **Part B OAuth** (Sign in with ChatGPT, as amended):
+     - PKCE; OpenAI's dynamic registration (`dynamic_agent_client`), no built-in client id.
+     - Bind the loopback listener on 127.0.0.1 before opening the browser; the redirect is exactly `http://127.0.0.1:<port>/siwc/callback`.
      - Constant-time check of `state`.
-     - Keep tokens only in the credential store.
-     - Refresh with compare-and-set; a 4xx from the token endpoint is terminal.
+     - The issued client id and the refresh token only in the credential store; the access token in memory only.
+     - Refresh with compare-and-set; only `invalid_grant`, `invalid_client` and `unauthorized_client` are terminal. 408, 429, other 4xx, 5xx and network errors keep the entry.
+   - **Part B CLIs:** never read a CLI's login, never run `claude auth login`, `codex login` or a logout, and never hand a runtime an API key.
 3. **After the agents finish,** run the wave's **integration task** yourself, or with the named integrator:
    - `UI_COMMANDS`, dispatch, `enabled` rules and panel placement in `lib.rs`;
    - adapter registration;

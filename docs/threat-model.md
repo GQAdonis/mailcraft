@@ -349,6 +349,127 @@ Applies only once the owner configures a model server (none is configured by def
   run `ai.ask`, `ai.narrow`, `ai.request` or `ai.apply` (Never for agents), so no agent can spend the
   owner's model or act through it.
 
+### Local coding agents as text models
+
+Applies only once the owner turns on Claude Code, Codex or the Universal Agent Runtime as an AI
+runtime (each is off by default; Codex is not offered on Windows). These are coding agents: they
+can run commands, read and write files and call connectors. MailCraft uses them as text models
+only, and treats everything they write as hostile. Where each sends text, and under whose account,
+is in [PRIVACY.md](../PRIVACY.md#ai-runtimes).
+
+- **Where text goes is fixed by kind.** `claude_code`, `codex` and `chatgpt` always leave the
+  computer; `uar` leaves unless it is a managed instance whose one model endpoint MailCraft itself
+  configured as a loopback-verified local provider (`mailcraft_model::ai::where_of`). Nothing a
+  runtime says about itself is read for this. Each hop of the chain is admitted at that hop, and a
+  runtime that leaves gets an account's mail only with that account's consent; a runtime the
+  request may not go to is never spawned, not even to ask its status
+  (`apps/mailcraft/src/ai/route.rs`, `run.rs`). Turning a runtime on grants no consent.
+- **No tools.** Each recipe asks for none: Claude Code runs with `-p --tools "" --strict-mcp-config
+  --setting-sources "" --safe-mode --no-session-persistence --output-format stream-json`
+  (`crates/ai/src/runtime/claude_code.rs`); Codex with `exec --ignore-user-config --ignore-rules
+  --disable shell_tool -s read-only --ephemeral --json` and never `-a`, `login` or `logout`
+  (`codex.rs`, `check_args` refuses those); a managed UAR with a configuration MailCraft writes
+  (native file, web and terminal tools, skills and shared connectors off, one model endpoint).
+- **Kill on tool.** Each adapter reads its runtime's stream line by line through one state machine
+  (`crates/ai/src/runtime/contain.rs`, `Judge`). A tool use, a command, a file change, an MCP call,
+  a web search, a plan, any event kind it doesn't know that isn't plain text, an over-long line or
+  one that doesn't parse kills the run: the whole process group (a job object on Windows) is
+  killed, the text is dropped, and the owner is told before any fallback starts. Claude Code's
+  `init` event is checked too: one that lists any tool or MCP server kills the run. Only the
+  event's kind is logged (`&'static str`), never its content. Stdout is capped at 4 MB, stderr at
+  64 KB, a line at 1 MB, a run at 120 s (30 s without output). Covered by SCN-RT-CONTAIN-001 for
+  each stream format and tool class, with a grandchild process proving the group dies.
+- **Environment from nothing.** A child gets `PATH` (the login shell's), `HOME`, `USER`, `LANG`,
+  its run's own temporary folder, and only what its recipe names. No recipe can name a key, a token,
+  a proxy, `NODE_OPTIONS`, `LD_PRELOAD` or any `ANTHROPIC_*`, `OPENAI_*`, `CLAUDE_*`, `CODEX_*`
+  (but `CODEX_HOME`), `UAR_*` or `LLM_*` variable (`contain::build_env`, `is_forbidden_env_name`;
+  SCN-RT-CONTAIN-002).
+- **Nothing secret on argv.** The prompt and mail go on stdin; the instructions in a 0600 file
+  (Claude Code) or ahead of the prompt on stdin (Codex). A spawn whose argv shares 32 bytes with the
+  prompt, the instructions, any mail text or any key or token MailCraft holds is refused
+  (`contain::check_argv`; SCN-RT-ARGV-001), since every program on the computer can read a process
+  list.
+- **An empty working folder.** Each run gets a fresh 0700 folder holding an empty working folder,
+  its instructions file, its sandbox profile and its temporary folder, deleted after the run however
+  it ends (`apps/mailcraft/src/ai/runtime/spawn.rs`). Codex and a managed UAR also get a `HOME` of
+  their own there; Claude Code needs the owner's real `HOME`, where its login is.
+- **Only safe programs run.** The executable is checked at detection and again at every spawn: an
+  absolute path, a regular file after links, owned by the owner or root and writable by nobody else,
+  and the same for its folder (`runtime/detect.rs`, `check_executable`; SCN-RT-PATH-001). The PATH
+  is read from the login shell once and only its absolute entries are used.
+- **The OS sandbox.** On macOS each run is started through `/usr/bin/sandbox-exec` with a
+  Seatbelt profile written for that run: file reads are allowed beneath the system's paths, the
+  program's install folder, the run folder and the recipe's paths; writes only beneath the run
+  folder and the recipe's paths. On Linux, `mailcraft-launcher` restricts itself with Landlock and
+  then executes the runtime; without Landlock, `bwrap` is used by argv; else there is none. No
+  sandbox is applied through `pre_exec` (`runtime/sandbox/`; SCN-RT-SANDBOX-001). Its limits:
+  - `sandbox-exec` is deprecated by Apple and may be removed from a future macOS; then there is no
+    sandbox there.
+  - It limits files only. Network is open (a runtime must reach its vendor), and so are Mach
+    services on macOS, the keychain's among them; a file's metadata stays readable everywhere.
+  - Claude Code needs reads of `~/.claude`, `~/.claude.json` and, on macOS, `~/Library/Keychains`,
+    and writes to `~/.claude`, the keychain folder and its per-user folders under `/tmp`
+    (`claude-<uid>`, `cc-socks…`, `cc-daemon-<uid>`), which it shares with the owner's other Claude
+    Code sessions.
+  - Codex needs reads and writes of the owner's `CODEX_HOME`, where it keeps its login, state
+    databases, logs and caches.
+  - What would run later is kept from being written where the sandbox can say so: on macOS the
+    profile denies writes, after its allows, to Claude Code's settings files, `CLAUDE.md`, and its
+    `hooks`, `plugins`, `agents`, `skills` and `commands` folders, and to Codex's `config.toml`,
+    `AGENTS.md`, `skills` and `agents`; `bwrap` binds the ones that exist read-only. Landlock can
+    only grant, so under it `~/.claude` and `CODEX_HOME` stay writable as a whole (the runs have
+    their tools removed, and a run that tries one is stopped). Landlock reads of `/proc` are
+    limited to `/proc/self` and `/proc/thread-self`.
+  - **Windows and the BSDs have none.** Codex refuses to run without a sandbox (`no_sandbox`), so it
+    is not offered on Windows and does not run on a BSD. Claude Code (whose tools are removed before
+    any run) may run unsandboxed there, with the residuals below and nothing to limit its reads.
+- **Text exfiltration (residual).** A runtime talked by a message into reading a file it *can*
+  read sends that text to its vendor before MailCraft sees any event about it. The sandbox limits
+  what it can read; kill-on-tool limits what happens next; neither makes it impossible. Claude
+  Code's prompt is written at once, not after its `init` event is checked: version 2.1.326 writes
+  that event only after reading its first input, so waiting would stall every run. Its tool-free
+  flags keep the init empty, and an init that lists a tool or MCP server still kills the run before
+  any of its answer is kept.
+- **Contamination from the owner's own files (residuals).**
+  - *Claude Code:* with the real `HOME`, the owner's `CLAUDE.md` memory, skills, plugins, hooks,
+    MCP servers and custom agents could reach the run. `--setting-sources ""` and `--safe-mode`
+    keep them out, as checked on Claude Code 2.1.326 (the owner's `CLAUDE.md` didn't reach the
+    prompt with them). A later CLI may change what those flags cover; the init check is the
+    backstop for tools, not for text.
+  - *Codex:* no flag of Codex 0.169.0 keeps the skills, the agent roles or an `AGENTS.md` in the
+    owner's `CODEX_HOME` out of a run, so their text may be sent to OpenAI with the prompt and may
+    steer the answer. `--ignore-user-config` does keep the owner's `config.toml`, and its MCP
+    servers, out (checked against the real binary). The owner can keep that folder clean, or leave
+    Codex off.
+- **Credentials MailCraft never touches.** MailCraft doesn't read, store or pass a CLI's login:
+  their paths only go into the sandbox profile so that the CLI, in its own process, can read them
+  (SCN-RT-AUTH-001 and SCN-RT-AUTH-002 audit MailCraft's own file access). It never runs
+  `claude auth login`, `codex login` or either logout; sign-in is the owner running the CLI's own
+  command in a terminal, which MailCraft opens with a fixed argv and an environment without keys.
+  Claude Code's status is read from `claude auth status --json`, capped, keeping `loggedIn`,
+  `authMethod`, `subscriptionType` and `planTier` only.
+- **Plan quota, not per-token billing.** Claude Code and Codex answer on the owner's own plan and
+  its quota; MailCraft holds no API key for them and bills nothing by the token. A quota or rate
+  refusal is a `refused` failure, and the chain goes on as the owner's fallback policy says. No
+  statement from OpenAI was verified about another program running the unmodified Codex CLI on a
+  ChatGPT login; Anthropic's terms, as read on 2026-11-17, allow an end user's own
+  subscription in the unmodified Claude Code binary.
+- **An external UAR can't be contained.** An instance already listening on `127.0.0.1:1906` is used
+  only once the owner chooses it, always counts as leaving, and is sent the prompt over loopback
+  only (plain HTTP to a checked loopback address, no redirect). MailCraft can't turn its tools off
+  or see where it sends text; it still stops any answer whose AG-UI stream holds a tool event, but
+  only after the fact: a tool the instance ran because of what a message says may already have
+  done its work, and MailCraft can't undo it. The port is not authenticated, so another local
+  process listening there first would be sent what the owner allowed. The window says this in
+  plain words, and choosing the instance and allowing an account for it each need the owner's
+  explicit tick that they understand it. A managed instance is offered only when the installed program can report a bound port,
+  read a launch token on stdin and print a readiness line; `universal-agent-runtime` 1.4.0-rc.5
+  can't, so it is external-only (`crates/ai/src/runtime/uar.rs`, `ManagedSupport`).
+- **Agents.** The runtime commands (`ai.runtimes`, `ai.setRuntimeOrder`, `ai.setRuntimeEnabled`,
+  `ai.setRuntimeOption`, `ai.rescan`, `ai.signIn`, `ai.signOut`, `ai.setRuntimeKey`,
+  `ai.setFallback`, `ai.setConsent`) are `never` for agents (`crates/engine/src/agent.rs`,
+  `AI_RUNTIME_OWNER_ONLY`), so no agent can list, order, sign in to, consent for or use a runtime.
+
 ### A hostile mailbox or import file
 
 An `.eml`, `.mbox`, `.ics`, `.vcf` or `.mailcraft` file from somewhere else.

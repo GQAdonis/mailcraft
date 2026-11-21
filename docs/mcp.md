@@ -32,7 +32,7 @@ doesn't rely on the agent's judgement: every command has a class for agents (`ag
 |---|---|---|
 | `safe` | reading, searching, flagging, filing, moving within an account or onto this computer, categories, calendar, contacts and tasks (deleting them is `delete`), undo and redo (unless they would put back rules, signatures or accounts, bring back a meeting change that writes to people, remove what was made since: contacts, events, tasks, calendars, categories, messages (a copy or an import undone, a delete for good redone; a copy the server of a Microsoft account or an Exchange server account has made goes to Deleted Items instead, which is no removal), or take away a draft or put back an earlier version of one), writing a message (not sending it), Send/Receive | runs |
 | `owner` | `send`: sending, answering or forwarding a meeting so that people are written to (`"send": true`; also `ui.eventWindow` with `do` `send`, `save` or `saveAndClose`, which the window runs later as the owner; the question lists the people invited), an undo or redo that would bring back such a change, editing, completing, categorising or deleting a to-do in a Microsoft To Do list that is shared with other people, and renaming or deleting a category that such a to-do has (the people the list is shared with see the change; deleting one asks `send` rather than `delete`, as `calendar.delete` with `"send": true` does; also an undo or redo that would change one, and any command that changes one by another way is an overstep; until the account's first tasks download a list counts as not shared; no agent command puts a to-do in a list it names: a new one goes to the default list, which To Do doesn't share; the owner's own changes are as ever), anything put in an Outbox, mail moved or copied onto another account's server (from another account or from this computer; a shared mailbox's too), a new to-do that would go to an account's To Do, unless it is the account the owner sent their local tasks to (`tasks.new`, with `account` or not, and `tasks.fromMessage`; which list the window shows doesn't count, since an agent can change that; an agent's to-do doesn't change where the owner's next one goes), an undo or redo that would put one there or change the owner's answer about their local tasks, pictures from the web, joining a meeting's link · `delete`: deleting for good (also a delete in Deleted Items), emptying or deleting a folder, removing an attachment or a calendar, deleting a contact, task, event or category (also an undo or redo that would remove one, or a message: it swaps the whole mailbox), deleting a rule its server has or may have, putting a rule that deletes mail or moves it to Deleted Items or a folder under it on its server or switching one on there, and switching on a server's rule with parts MailCraft doesn't know (undo doesn't reach a server, and such a rule runs whether MailCraft is open or not), discarding a message being written that only an agent wrote in · `accounts`: adding, changing or removing an account, signing in, the application id, remembering sign-ins, moving calendars to an account · `mailbox`: opening, replacing or saving the mailbox file · `settings`: options, signatures, rules (all but those `delete` names; one never moves mail to an Outbox), how pictures are downloaded; `edit.undo` and `edit.redo` ask for `accounts`, `send`, `delete` or `settings` (in that order) when the step would put back accounts, a meeting change that writes to people, a to-do in an account's To Do or another answer about the owner's local tasks, or rules and signatures, or remove contacts, events, tasks, calendars, categories or messages, or take away a draft or put back an earlier version of one; a step that puts back accounts or a change that writes to people and also takes away messages, drafts, contacts or the like is asked about once (as `delete` when the other class is allowed already), the question names those too, and a yes covers both (headless, the refusal names both classes for `--allow`) | bridged: the owner is asked in the window; headless: refused, unless the server was started with `--allow` for it |
-| `never` | the host's side of a synchronisation (`sync.*`), asking the owner's model and taking in what it says (`ai.ask`, `ai.narrow`, `ai.request`, `ai.apply`, `ai.cancel`), setting up the owner's model servers (`ui.aiSettings`, including its answer to the gateway question and a context window, `ui.testProvider`, `ui.confirmOnDevice`), file pickers (`ui.open`, `ui.import`, `ui.attach`), putting an agent's text or the owner's selected text on the clipboard (`ui.copyLinkAddress`, `ui.copySelection`), the diagnostics text (`ui.copyDiagnostics`), opening an attachment with another program (`mail.openAttachment`: only the owner's double-click or Open; an agent saves it as `data` with `mail.saveAttachment`), the owner's own keys and marking a key Verified (`ui.importPrivateKey`, `ui.removePrivateKey`, `ui.refreshOwnKeys`, `ui.importPublicKey`, `ui.verifyKey`, `ui.markKeyVerified`) | refused |
+| `never` | the host's side of a synchronisation (`sync.*`), asking the owner's model and taking in what it says (`ai.ask`, `ai.narrow`, `ai.request`, `ai.apply`, `ai.cancel`), setting up the owner's model servers (`ui.aiSettings`, including its answer to the gateway question and a context window, `ui.testProvider`, `ui.confirmOnDevice`), the AI runtimes (`ai.runtimes`, `ai.setRuntimeOrder`, `ai.setRuntimeEnabled`, `ai.setRuntimeOption`, `ai.rescan`, `ai.signIn`, `ai.signOut`, `ai.setRuntimeKey`, `ai.setFallback`, `ai.setConsent`), file pickers (`ui.open`, `ui.import`, `ui.attach`), putting an agent's text or the owner's selected text on the clipboard (`ui.copyLinkAddress`, `ui.copySelection`), the diagnostics text (`ui.copyDiagnostics`), opening an attachment with another program (`mail.openAttachment`: only the owner's double-click or Open; an agent saves it as `data` with `mail.saveAttachment`), the owner's own keys and marking a key Verified (`ui.importPrivateKey`, `ui.removePrivateKey`, `ui.refreshOwnKeys`, `ui.importPublicKey`, `ui.verifyKey`, `ui.markKeyVerified`) | refused |
 
 A command without a class is refused; every command MailCraft has carries one, and a test makes
 new commands choose.
@@ -60,7 +60,9 @@ or separated by commas, lets the agent do that class without asking. There is no
 everything at once. Headless, it is the only way to let an agent do the owner's things; bridged,
 it skips the question for that class. `input` (raw clicks and keys in the window, with which an
 agent could press anything, Send too) is never asked about: without `--allow input`, `click` and
-`key` are refused.
+`key` are refused. Even with it, an agent's clicks, keys and text are refused while the window asks
+the owner an AI question (a runtime's consent or sign-in, the fallback question under an answer,
+the gateway question), and an agent's click on one of those controls is refused at any time.
 
 **What the owner is changing.** An agent never takes the window off what the owner is writing or
 changing without the owner's yes in the window, every time: no `--allow` skips this question
@@ -166,6 +168,14 @@ advance (whatever it claims), so the window asks the owner before anything is se
 and refuses clicks and keys. `--allow` then has no effect. It doesn't stop such an agent reading
 the mailbox file or running `mailcraft-cli` on it.
 
+**Who the client says it is.** Bridged (`--connect`), the `clientInfo` the client sends with
+`initialize` (its `name` and `version`) goes to the window with every request, as `agent.client`
+([control protocol: Agents](control-protocol.md#agents)): strings only, at most 64 characters
+each, without control, format or bidi characters. Any program can call itself anything, so the
+window shows it as "reported as ‹name›" (or "Unnamed agent"), never as a fact, and never uses it
+to decide what an agent may do: the classes and `--allow` decide. It is not written to a log
+line and no tool's answer carries it. A client that sends no `clientInfo` is served as before.
+
 **Message text is untrusted.** `read_message`, `list_messages`, `list_events`, `list_contacts`,
 `list_tasks` and the same commands through `execute` (`mail.get`, `mail.list`, `calendar.list`,
 `people.get`, …) answer with `"untrusted": true`, and each piece of text from a message, an event,
@@ -199,6 +209,17 @@ the engine's answer is passed on. A query no message answers has no hits and is 
 request (`ai.request`, `ai.apply`, `ai.cancel`) are `never` for agents: only the owner asks the
 model they set up, from the window, and only the host takes in what it says. An agent that wants
 mail found uses `search_mail`, which asks no model.
+
+**Agents can't touch the AI runtimes.** The runtimes an answer may come from (Apple's on-device
+model, the model servers, the ChatGPT plan, Claude Code, Codex, the Universal Agent Runtime) are
+the owner's alone: an agent can't list them, order the chain, turn one on or off, change its
+options, look for them again, sign in to or out of one, open a key field, set the fallback or give
+an account's consent for one (`ai.runtimes`, `ai.setRuntimeOrder`, `ai.setRuntimeEnabled`,
+`ai.setRuntimeOption`, `ai.rescan`, `ai.signIn`, `ai.signOut`, `ai.setRuntimeKey`,
+`ai.setFallback`, `ai.setConsent` are `never`: never asked, and no `--allow` opens them), and it
+can't use one, since asking a model is `never` too. They are the window's control methods, not
+engine commands, and `list_commands` leaves them out. An agent's attempt is refused and noted in
+the Agents panel's activity log. Each changes where mail may go, so none is open to an agent.
 
 **What a sender hid.** `read_message` and `mail.get` answer, beside `body` (what the owner sees), a `hiddenText` field (#599) when the message has any: the words of what its sender hid (a preheader, the other copy of a desktop and mobile pair), which the owner's reading pane leaves out and search finds. It is message text like the rest: framed as untrusted, data and never instructions. A message read before #599 has none until it is read again from its source.
 

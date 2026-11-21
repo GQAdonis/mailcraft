@@ -3,8 +3,8 @@
 //! Removing everything MailCraft keeps on this computer (#177): File › Info › Remove MailCraft's
 //! data from this computer. The window stops writing and forgets the system's credential store
 //! entries first (`mailcraft_ui_egui::data_removal`); this is the host's part, the folders, and
-//! the keys of the model providers (#ai), which the host alone keeps: `ai-key:<provider id>`,
-//! every piece of it, for each provider `ai.json` names or noted a key for, taken out of the
+//! the keys of the model providers (#ai), which the host alone keeps: `ai.compat:<provider id>`
+//! (and `ai-key:<provider id>`, version 2's name), every piece of it, for each provider `ai.json` names or noted a key for, taken out of the
 //! credential store before the folder (and `ai.json` with it) goes. One that stays is reported.
 //!
 //! ```text
@@ -159,18 +159,32 @@ impl DataWipe for Wipe {
     }
 }
 
-/// Take every model provider's key (#ai) out of `store`: `ai-key:<id>` for each provider id the
-/// settings folder's `ai.json` names or noted a key for, every piece of it (the store's own
-/// `delete`). What is still there afterwards (or can't be looked at) is a line of the report,
-/// named as the window names the entries it couldn't remove.
+/// Take every model provider's key (#ai) out of `store`: `ai.compat:<id>`, and the name version 2
+/// gave it, `ai-key:<id>`, for each provider id the settings folder's `ai.json` names or noted a
+/// key for, and the ChatGPT plan's sign-in, `ai.chatgpt`, every piece of it (the store's own
+/// `delete`). What is still there afterwards (or can't
+/// be looked at) is a line of the report, named as the window names the entries it couldn't
+/// remove.
 pub fn forget_ai_keys(roots: &Roots, store: Option<&dyn SecretStore>) -> Vec<(String, Why)> {
     let (Some(settings), Some(store)) = (roots.settings.as_deref(), store) else { return Vec::new() };
     let mut left = Vec::new();
     for id in crate::ai::settings::key_owners(&settings.join(crate::ai::settings::FILE)) {
-        let Ok(name) = crate::ai::keys::entry_name(&id) else { continue };
-        let gone = crate::ai::keys::forget(store, &id).is_ok() && matches!(store.read(&name), Ok(None));
-        if !gone {
+        let (Ok(name), Ok(old)) = (crate::ai::keys::entry_name(&id), crate::ai::keys::legacy_entry_name(&id)) else { continue };
+        let forgot = crate::ai::keys::forget(store, &id).is_ok();
+        let mut still: Vec<&String> = [&name, &old].into_iter().filter(|n| !matches!(store.read(n), Ok(None))).collect();
+        if still.is_empty() && !forgot {
+            still.push(&name);
+        }
+        for name in still {
             // The window's own words for the entries it couldn't remove, in the interface language.
+            let line = mailcraft_ui_egui::tl!("The system's credential store: {key}").replace("{key}", name);
+            left.push((line, Why::Io(mailcraft_ui_egui::tl!("it could not be removed").to_string())));
+        }
+    }
+    // The ChatGPT plan's sign-in, which MailCraft keeps whether or not the settings say so.
+    if let Some(name) = mailcraft_model::ai::RuntimeId::ChatGpt.credential_entry() {
+        let forgot = store.remove(&name).is_ok();
+        if !forgot || !matches!(store.read(&name), Ok(None)) {
             let line = mailcraft_ui_egui::tl!("The system's credential store: {key}").replace("{key}", &name);
             left.push((line, Why::Io(mailcraft_ui_egui::tl!("it could not be removed").to_string())));
         }

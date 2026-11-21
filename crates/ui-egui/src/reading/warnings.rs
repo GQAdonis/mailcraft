@@ -259,7 +259,7 @@ pub(super) fn external(app: &mut MailApp, m: &Message) -> bool {
 /// The width the External tag takes, its frame and the room before it with it, in the language
 /// the window speaks.
 pub(super) fn external_tag_width(ui: &Ui, t: &Tokens) -> f32 {
-    ui.painter().layout_no_wrap(tl!("External").to_string(), regular(10.5), t.text_dim).size().x + 8.0 + 2.0 + 6.0 + ui.spacing().item_spacing.x
+    ui.painter().layout_no_wrap(tl!("External").to_string(), regular(11.0), t.text_dim).size().x + 8.0 + 2.0 + 6.0 + ui.spacing().item_spacing.x
 }
 
 pub(super) fn external_tag(ui: &mut Ui, t: &Tokens) -> egui::Response {
@@ -267,7 +267,7 @@ pub(super) fn external_tag(ui: &mut Ui, t: &Tokens) -> egui::Response {
         .stroke(egui::Stroke::new(1.0, t.border_strong))
         .corner_radius(3.0)
         .inner_margin(egui::Margin { left: 4, right: 4, top: 0, bottom: 0 })
-        .show(ui, |ui| ui.add(egui::Label::new(egui::RichText::new(tl!("External")).font(regular(10.5)).color(t.text_dim)).selectable(false)))
+        .show(ui, |ui| ui.add(egui::Label::new(egui::RichText::new(tl!("External")).font(regular(11.0)).color(t.text_dim)).selectable(false)))
         .response
         .on_hover_text(tl!("This message came from outside your organisation."))
 }

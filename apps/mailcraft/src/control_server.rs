@@ -266,9 +266,12 @@ fn serve(stream: TcpStream, tx: Sender<ControlRequest>, ctx: egui::Context, key:
         // the window was started with `--control-agents-only`: then every request is an agent's
         // and allowed nothing in advance, whatever it claims, since anything that read the key
         // could claim it.
+        // The name an agent reported for itself (cleaned again here: a request is never trusted)
+        // is shown to the owner and never decides anything.
+        let client = msg.get("agent").and_then(mailcraft_ui_egui::control::agent_client);
         let req = match msg.get("agent") {
-            _ if agents_only => req.from_agent(Vec::new()),
-            Some(a) => req.from_agent(mailcraft_ui_egui::control::agent_allow(a)),
+            _ if agents_only => req.from_agent(Vec::new()).with_client(client),
+            Some(a) => req.from_agent(mailcraft_ui_egui::control::agent_allow(a)).with_client(client),
             None => req,
         };
         if tx.send(req).is_err() {

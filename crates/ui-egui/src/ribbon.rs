@@ -409,7 +409,7 @@ fn home_mail(app: &MailApp) -> Tab {
     // Junk ▾: Block Sender, Never Block…, Not Junk and Junk E-mail Options (#504).
     let junk = Item::small_menu("junk", "junk", "Junk", "Junk", Menu::Junk);
     let pinned = app.session.focused_message().is_some_and(|m| m.pinned);
-    Tab::of(vec![
+    let mut tab = Tab::of(vec![
         g(
             "New",
             vec![
@@ -464,8 +464,45 @@ fn home_mail(app: &MailApp) -> Tab {
                 Item::small("findFromSender", "From Sender", "Messages from Sender", "mail.findFromSender", no()).at(5, 7),
             ],
         ),
-        g("Send/Receive", vec![Item::big("sync", "Send/Receive\nAll Folders", "ui.sync", no()).at(5, 5)]),
-    ])
+        g("Send/Receive", vec![sync_item(app.enabled("ui.sync"))]),
+    ]);
+    // AI (ai-discoverability): only in a window that has a provider service, the chip's own test
+    // ([`crate::ai::status`]). The search box's text never goes to a model from here: each button
+    // opens its own place, and Find by Description sends only what is typed into its field.
+    if app.services.ai_providers.is_some() {
+        tab.groups.push(ai_group());
+    }
+    tab
+}
+
+/// The Home tab's AI group: Ask Mail, Find by Description and AI Settings, after Send/Receive in
+/// the simplified row, where they give way before it does (same rank, further along the row).
+pub(crate) fn ai_group() -> Group {
+    g(
+        "AI",
+        vec![
+            Item::big("spark", "Ask\nMail", "ui.answers", no()).at(6, 5),
+            Item::small("findByDescription", "Find by Description", "", "ui.findByDescription", no()).at(6, 5),
+            Item::small("shield", "AI Settings", "AI Assistance", "ui.aiSettings", no()).at(6, 6),
+        ],
+    )
+}
+
+/// Send/Receive All Folders: a large button while it can run, and a small one while it can't
+/// (G14 a), so that a mailbox with nothing to send or receive doesn't give it the room of the
+/// commands it can use. In the simplified row its label goes too ([`quiet`]).
+pub(crate) fn sync_item(enabled: bool) -> Item {
+    let item = if enabled {
+        Item::big("sync", "Send/Receive\nAll Folders", "ui.sync", no())
+    } else {
+        Item::small("sync", "Send/Receive\nAll Folders", "", "ui.sync", no())
+    };
+    item.at(5, 5)
+}
+
+/// A control the simplified row shows by its icon alone: Send/Receive while it can't run (G14 a).
+fn quiet(app: &MailApp, item: &Item) -> bool {
+    item.key == "ui.sync" && item.size == Size::Small && !usable(app, item)
 }
 
 /// The calendar's four views, the one in use marked, in `section` of the simplified row: Home has
@@ -1847,6 +1884,18 @@ pub(crate) fn drop_mark(ui: &Ui, c: egui::Pos2, color: egui::Color32) {
     ui.painter().add(Shape::line(vec![pos2(c.x - 2.75, c.y - 1.0), pos2(c.x, c.y + 1.25), pos2(c.x + 2.75, c.y - 1.0)], Stroke::new(1.1, color)));
 }
 
+/// The controls a screen reader is told the names of: for now the AI group's alone. (Naming every
+/// control changes what other tests find by label: a hand-over, not part of ai-discoverability.)
+const NAMED: [&str; 3] = ["ui.answers", "ui.findByDescription", "ui.aiSettings"];
+
+/// What a screen reader is told a control is called (its label on one line, also when only its
+/// icon shows) and whether it can be used.
+fn named(resp: &egui::Response, item: &Item, on: bool) {
+    if NAMED.contains(&item.key) {
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, on, item.name()));
+    }
+}
+
 /// One button of the simplified row, in `rect`.
 fn simple_button(app: &mut MailApp, ui: &mut Ui, t: &Tokens, b: &Button<'_>, labelled: bool, rect: Rect) {
     let item = b.item;
@@ -1857,6 +1906,8 @@ fn simple_button(app: &mut MailApp, ui: &mut Ui, t: &Tokens, b: &Button<'_>, lab
     // (A control still to be built takes no clicks and no keyboard.)
     let main = ui.interact(main_rect, id, if item.pending { Sense::hover() } else { Sense::click() });
     app.hit.add("ribbon", hit_id(item.key), main_rect);
+    named(&main, item, !item.pending && on);
+    crate::chrome::focus_ring(ui, &main, 4.0);
     if item.pending {
         let icon = Rect::from_center_size(pos2(rect.min.x + PAD + ICON / 2.0, rect.center().y), vec2(ICON, ICON));
         icons::paint(ui.painter(), icon, item.icon, t.text_disabled, t.text_disabled);
@@ -1897,6 +1948,7 @@ fn simple_button(app: &mut MailApp, ui: &mut Ui, t: &Tokens, b: &Button<'_>, lab
         app.hit.add("ribbonMenu", hit_id(item.key), drop_rect);
     }
     bg(ui, drop_rect, &drop, false, t);
+    crate::chrome::focus_ring(ui, &drop, 4.0);
     drop_mark(ui, drop_rect.center(), t.icon);
     let tip = b.drops.first().map_or_else(|| item.tip_text(), |under| under.tip_text());
     let drop = drop.on_hover_text(tip);
@@ -1916,8 +1968,9 @@ fn simplified(app: &mut MailApp, ui: &mut Ui, t: &Tokens, tab: &Tab, area: Rect)
     let buttons = row(tab);
     let names: Vec<f32> =
         buttons.iter().map(|b| ui.ctx().fonts_mut(|f| f.layout_no_wrap(b.item.name(), regular(LABEL_SIZE), t.text).size().x)).collect();
+    let quiets: Vec<bool> = buttons.iter().map(|b| quiet(app, b.item)).collect();
     let width = |i: usize, labelled: bool| match (buttons.get(i), names.get(i)) {
-        (Some(b), Some(text)) => button_width(b, labelled, *text),
+        (Some(b), Some(text)) => button_width(b, labelled && !quiets.get(i).copied().unwrap_or(false), *text),
         _ => 0.0,
     };
     let plan = plan(&buttons, &width, area.width());
@@ -1936,7 +1989,8 @@ fn simplified(app: &mut MailApp, ui: &mut Ui, t: &Tokens, tab: &Tab, area: Rect)
             }
         }
         let w = width(*i, *labelled);
-        simple_button(app, ui, t, b, *labelled, Rect::from_min_size(pos2(x, area.min.y), vec2(w, area.height())));
+        let labelled = *labelled && !quiets.get(*i).copied().unwrap_or(false);
+        simple_button(app, ui, t, b, labelled, Rect::from_min_size(pos2(x, area.min.y), vec2(w, area.height())));
         x += w;
         before = Some(b.item.section);
     }
@@ -1990,6 +2044,8 @@ fn classic_big(app: &mut MailApp, ui: &mut Ui, item: &Item) {
             let on = usable(app, item);
             let (resp, text) = big_frame(ui, item.icon, label, on, false, true);
             app.hit.add("ribbon", hit_id(item.key), resp.rect);
+            named(&resp, item, resp.sense.senses_click() && !item.pending);
+            crate::chrome::focus_ring(ui, &resp, 4.0);
             app.hit.add("ribbonLabel", hit_id(item.key), text);
             classic_recent_attachments(app, &resp, on);
         }
@@ -1997,6 +2053,8 @@ fn classic_big(app: &mut MailApp, ui: &mut Ui, item: &Item) {
             let on = app.enabled(command);
             let (resp, text) = big_frame(ui, item.icon, label, on, item.checked, false);
             app.hit.add("ribbon", hit_id(item.key), resp.rect);
+            named(&resp, item, resp.sense.senses_click() && !item.pending);
+            crate::chrome::focus_ring(ui, &resp, 4.0);
             app.hit.add("ribbonLabel", hit_id(item.key), text);
             let resp = command_tooltip(app, resp, &item.tip_text(), command);
             if resp.clicked() && on {
@@ -2008,6 +2066,8 @@ fn classic_big(app: &mut MailApp, ui: &mut Ui, item: &Item) {
             let (resp, text) = big_frame(ui, item.icon, label, on, false, true);
             let resp = menu_tooltip(app, resp, item, on);
             app.hit.add("ribbon", hit_id(item.key), resp.rect);
+            named(&resp, item, resp.sense.senses_click() && !item.pending);
+            crate::chrome::focus_ring(ui, &resp, 4.0);
             app.hit.add("ribbonLabel", hit_id(item.key), text);
             if on {
                 egui::Popup::menu(&resp).show(|ui| {
@@ -2019,6 +2079,8 @@ fn classic_big(app: &mut MailApp, ui: &mut Ui, item: &Item) {
         (None, None) if item.pending => {
             let (resp, _) = big_frame(ui, item.icon, label, false, false, false);
             app.hit.add("ribbon", hit_id(item.key), resp.rect);
+            named(&resp, item, resp.sense.senses_click() && !item.pending);
+            crate::chrome::focus_ring(ui, &resp, 4.0);
             pending_tip(resp, item);
         }
         (None, None) => {}
@@ -2040,12 +2102,16 @@ fn classic_column(app: &mut MailApp, ui: &mut Ui, items: &[&Item], labelled: boo
                     let on = usable(app, item);
                     let resp = menu_tooltip(app, small_frame(ui, item.icon, label, on, false, true), item, on);
                     app.hit.add("ribbon", hit_id(item.key), resp.rect);
+                    named(&resp, item, resp.sense.senses_click() && !item.pending);
+                    crate::chrome::focus_ring(ui, &resp, 4.0);
                     classic_recent_attachments(app, &resp, on);
                 }
                 (Some((command, params)), _) => {
                     let on = app.enabled(command);
                     let resp = small_frame(ui, item.icon, label, on, item.checked, false);
                     app.hit.add("ribbon", hit_id(item.key), resp.rect);
+                    named(&resp, item, resp.sense.senses_click() && !item.pending);
+                    crate::chrome::focus_ring(ui, &resp, 4.0);
                     let resp = command_tooltip(app, resp, &item.tip_text(), command);
                     if resp.clicked() && on {
                         let _ = app.run(command, params.clone());
@@ -2055,6 +2121,8 @@ fn classic_column(app: &mut MailApp, ui: &mut Ui, items: &[&Item], labelled: boo
                     let on = usable(app, item);
                     let resp = menu_tooltip(app, small_frame(ui, item.icon, label, on, false, true), item, on);
                     app.hit.add("ribbon", hit_id(item.key), resp.rect);
+                    named(&resp, item, resp.sense.senses_click() && !item.pending);
+                    crate::chrome::focus_ring(ui, &resp, 4.0);
                     if on {
                         egui::Popup::menu(&resp).show(|ui| {
                             ui.set_min_width(200.0);
@@ -2065,6 +2133,8 @@ fn classic_column(app: &mut MailApp, ui: &mut Ui, items: &[&Item], labelled: boo
                 (None, None) if item.pending => {
                     let resp = small_frame(ui, item.icon, label, false, false, false);
                     app.hit.add("ribbon", hit_id(item.key), resp.rect);
+                    named(&resp, item, resp.sense.senses_click() && !item.pending);
+                    crate::chrome::focus_ring(ui, &resp, 4.0);
                     pending_tip(resp, item);
                 }
                 (None, None) => {}
@@ -2339,6 +2409,9 @@ mod fit_tests;
 
 #[cfg(test)]
 mod plain_tests;
+
+#[cfg(test)]
+pub(crate) mod ai_group_tests;
 
 #[cfg(test)]
 mod tests {

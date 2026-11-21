@@ -3,7 +3,9 @@
 Run `/kbd-plan` for `<PHASE>`. The draft change list is already written:
 
 - **Part A:** `docs/design/PLAN.md` §5 (changes 5.1–5.9) and §6 (waves and grants).
-- **Part B:** `docs/design/PLAN.md` §B5 (B5.1–B5.13) and §B6. `docs/design/AI-SETTINGS-SPEC.md` is the normative spec.
+- **Part B:** `docs/design/PLAN.md` §B5 (B5.1–B5.13) and §B6. `docs/design/AI-SETTINGS-SPEC.md` is the normative spec, as amended by the gate answers (B5.8 OpenCode cut).
+
+*Recorded result:* 21 changes and 43 frozen scenario ids, listed in [README.md](README.md#the-record-of-the-phase-these-prompts-ran).
 
 Produce:
 
@@ -26,7 +28,7 @@ Produce:
    - `lib.rs` and the adapter registry are integrator-owned.
    - `agent.rs` belongs to engine-engineer.
    - `theme*` belongs to Part A's 5.1.
-   - `settings.rs` v3 belongs to B5.1.
+   - `settings.rs` v3 belongs to B5.1 (`ai-runtime-model`).
 5. **Adversarial review of `plan.md`.** Cross-model, at most 2 rounds. Any CRITICAL finding must be fixed or recorded under "Unresolved review findings".
 
 Get the owner's sign-off on the adopted contract, then stop.

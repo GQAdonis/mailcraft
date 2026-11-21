@@ -1,0 +1,1 @@
+| 2026-11-17 | minor | `agent.client {name, version}`: what an MCP client reported in `initialize`, passed on by the bridge, cleaned and capped at 64 characters, shown as reported and never used to decide anything |

@@ -15,17 +15,25 @@
 //! server's or the model's.
 //!
 //! Window commands (`UI_COMMANDS`), none of them for agents: `ui.findByDescription`,
-//! `ui.answers`, `ui.aiSettings`, `ui.aiConsent`, `ui.testProvider`, `ui.confirmOnDevice`.
+//! `ui.answers`, `ui.aiSettings`, `ui.aiConsent`, `ui.testProvider`, `ui.confirmOnDevice`, and
+//! the Agents panel's `ui.agents` and `ui.agentAccess` ([`agents`]).
 
+pub(crate) mod agents;
 pub(crate) mod answer_text;
 pub(crate) mod answers;
 pub(crate) mod errors;
 pub(crate) mod narrow;
+pub(crate) mod runtime_consent;
+pub(crate) mod runtime_rows;
+pub(crate) mod runtime_widgets;
 pub(crate) mod settings;
 pub(crate) mod settings_ask;
 pub(crate) mod settings_device;
 pub(crate) mod settings_page;
+pub(crate) mod settings_runtimes;
 pub(crate) mod settings_state;
+pub(crate) mod signin;
+pub(crate) mod status;
 
 use std::hash::{BuildHasher, Hasher};
 
@@ -45,11 +53,18 @@ pub(crate) struct AiUi {
     pub(crate) narrow: Option<narrow::Panel>,
     /// The Answers pane, while it is open.
     pub(crate) answers: Option<answers::Pane>,
+    /// This frame, the folder pane stands aside as its strip so that the Answers pane and a
+    /// readable reading pane both fit (P1): the owner's own setting is left as it is.
+    pub(crate) folders_yield: bool,
     /// File › Options › AI assistance: what is being typed there, and what the host is asked.
     pub(crate) settings: settings::Draft,
     /// What the host said of the providers, and in which pass: asked once a frame
     /// ([`Providers::of`]), and again after the window changed them ([`providers_changed`]).
     providers: std::cell::RefCell<Option<(u64, Providers)>>,
+    /// The Agents panel and whether agent access is stopped (agent-console): memory only.
+    pub(crate) agents: agents::Console,
+    /// File › Options › AI assistance as the runtime chain (B11): memory only.
+    pub(crate) runtimes: settings_runtimes::PageState,
 }
 
 /// The window changed the providers' settings: the next look asks the host again.
@@ -287,10 +302,13 @@ pub(crate) fn cancel_live(app: &mut MailApp, kind: Option<AiKind>) {
 
 /// Calls request `id` off (`ai.cancel`), if it is still under way.
 pub(crate) fn cancel(app: &mut MailApp, id: u64) {
-    if app.session.ai.get(id).is_some_and(|t| t.state.live())
-        && let Err(e) = app.execute("ai.cancel", json!({"requestId": id}))
-    {
-        log::debug!("model request {id} couldn't be called off: {e}");
+    if !app.session.ai.get(id).is_some_and(|t| t.state.live()) {
+        return;
+    }
+    match app.execute("ai.cancel", json!({"requestId": id})) {
+        // The host's run stops at its next read, not at the next frame.
+        Ok(_) => app.model_stop_now(id),
+        Err(e) => log::debug!("model request {id} couldn't be called off: {e}"),
     }
 }
 
@@ -311,6 +329,7 @@ pub(crate) fn command(app: &mut MailApp, id: &str, p: &Value) -> Option<Result<V
         "ui.aiConsent" => settings::consent_command(app, p),
         "ui.testProvider" => settings::test_command(app, p),
         "ui.confirmOnDevice" => settings::confirm_command(app, p),
+        "ui.agents" | "ui.agentAccess" => agents::command(app, id, p),
         _ => return None,
     })
 }
@@ -342,21 +361,68 @@ pub(crate) fn follow(app: &mut MailApp) {
     if matches!(&app.dialog, Some(crate::dialogs::Dialog::Confirm { command, .. }) if command == "ui.aiConsent" || command == "ui.aiSettings") {
         app.synthetic.clear();
     }
+    // Likewise while the runtime chain page asks before an account's mail may go somewhere, or
+    // before a runtime or a sign-in is changed (B11).
+    if app.ai.runtimes.dialog.as_ref().is_some_and(|o| o.dialog.asks()) {
+        app.synthetic.clear();
+    }
     settings::follow_gateway(app);
     narrow::follow(app);
     answers::follow(app);
 }
 
+/// The places of the owner-only AI questions, by their kind in the hit map: an agent's click or
+/// drag that lands on one is refused even when no question is up ([`crate::agent_gate`]).
+pub(crate) const OWNER_ONLY_HITS: &[&str] = &[
+    "aiConsentAllow",
+    "aiConsentDont",
+    "aiConsentCell",
+    "aiUarUnderstood",
+    "aiSignInGo",
+    "aiSignInCancel",
+    "aiSignInOther",
+    "aiSignInCopy",
+    "answerFallbackQuestion",
+    "answerFallbackYes",
+    "answerFallbackNo",
+    "aiGatewayQuestion",
+];
+
+/// Whether an owner-only AI question is up: the consent question of a model service
+/// (`ui.aiConsent`) or the gateway question (`ui.aiSettings`), a dialog of the runtime chain page
+/// that asks before something is sent or changed (the consent dialog, Sign In with ChatGPT, Use
+/// the Universal Agent Runtime, Sign Out), or the answer pane's fallback question. While one is,
+/// no agent's input reaches the window ([`crate::agent_gate`]).
+pub(crate) fn owner_asks(app: &MailApp) -> bool {
+    let dialog =
+        matches!(&app.dialog, Some(crate::dialogs::Dialog::Confirm { command, .. }) if command == "ui.aiConsent" || command == "ui.aiSettings");
+    dialog || app.ai.runtimes.dialog.as_ref().is_some_and(|o| o.dialog.asks()) || answers::fallback_asked(app)
+}
+
 /// Escape for Find by Description, before the window's Escape ends the search.
 pub(crate) fn escape(app: &mut MailApp, ctx: &egui::Context) {
     narrow::escape(app, ctx);
+    agents::escape(app, ctx);
+    settings_runtimes::escape(app, ctx);
 }
 
+#[cfg(test)]
+mod agents_tests;
 #[cfg(test)]
 mod answer_text_tests;
 #[cfg(test)]
 mod errors_tests;
 #[cfg(test)]
+mod owner_input_tests;
+#[cfg(test)]
+mod runtime_rows_tests;
+#[cfg(test)]
+pub(crate) mod settings_runtimes_tests;
+#[cfg(test)]
 mod settings_tests;
+#[cfg(test)]
+mod signin_tests;
+#[cfg(test)]
+mod status_tests;
 #[cfg(test)]
 mod surfaces_tests;

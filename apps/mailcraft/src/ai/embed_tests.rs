@@ -15,11 +15,11 @@ use std::time::{Duration, Instant};
 use mailcraft_ai::{ProviderConfig, ProviderKind, Timeouts};
 use mailcraft_engine::Session;
 use mailcraft_model::Mailbox;
-use mailcraft_model::ai::ErrorKind;
+use mailcraft_model::ai::{Chain, ChainEntry, ErrorKind, RuntimeId};
 use mailcraft_ui_egui::{EmbedJob, EmbedTarget, MailApp, Services};
 use serde_json::{Value, json};
 
-use super::embed::{query, route_allows, run_batch, target};
+use super::embed::{NO_EMBEDDING_RUNTIME, embedding_provider, query, route_allows, run_batch, target};
 use super::settings::{AiSettings, Shared};
 
 /// Wednesday 2026-10-14, 16:00 UTC.
@@ -204,7 +204,7 @@ fn base_002_a_gateway_posing_as_local_gets_no_embeddings_request() {
 }
 
 #[test]
-fn base_002_negative_control_a_plain_local_server_is_sent_the_embeddings() {
+fn neg_f1_a_plain_local_server_is_sent_the_embeddings() {
     let (port, seen, lists) = endpoint_listing(LOCAL_LIST);
     let settings = shared(provider(port, ProviderKind::Local, "test-embed"), &[]);
     assert_eq!(run_batch(&job(&["a passage of mail"], &["owner@example.org"]), &settings, None).unwrap(), vec![vec![0.0, 0.5]]);
@@ -254,4 +254,61 @@ fn an_empty_mailbox_has_no_batch_to_hand_out() {
         app.model_tick(&ctx);
     }
     assert!(jobs.try_recv().is_err(), "no passage, no batch");
+}
+
+// ---------------------------------------------------------------------------------------------
+// ai-runtime-chain 20.4: embeddings go only to a runtime that serves /embeddings
+// ---------------------------------------------------------------------------------------------
+
+/// The settings with `chain` (each entry on) and `providers`.
+fn chained(providers: Vec<ProviderConfig>, chain: &[RuntimeId]) -> Shared {
+    let shared = Shared::open(None);
+    let entries: Vec<ChainEntry> = chain.iter().cloned().map(|r| ChainEntry::new(r).with_enabled(true)).collect();
+    shared
+        .change(|s| {
+            for p in providers {
+                s.set_provider(p)?;
+            }
+            s.set_chain(Chain::new(entries).map_err(|e| e.to_string())?);
+            Ok(())
+        })
+        .unwrap();
+    shared
+}
+
+#[test]
+fn a_chain_of_cli_runtimes_alone_embeds_nothing_and_says_no_embedding_runtime_is_available() {
+    let settings = chained(Vec::new(), &[RuntimeId::ClaudeCode, RuntimeId::Codex, RuntimeId::ChatGpt, RuntimeId::Uar]);
+    assert_eq!(embedding_provider(&settings.snapshot()), None);
+    assert_eq!(target(&settings.snapshot()), None);
+    let refused = run_batch(&job(&["a passage of mail"], &["owner@example.org"]), &settings, None).unwrap_err();
+    assert_eq!(refused, NO_EMBEDDING_RUNTIME);
+    assert_eq!(query("when is the review?", &settings, None), None);
+}
+
+#[test]
+fn the_on_device_model_and_a_provider_without_an_embeddings_model_are_passed_over_for_embeddings() {
+    let (port, seen) = endpoint();
+    let chat_only = ProviderConfig { id: "chat-only".into(), ..provider(1, ProviderKind::Local, "") };
+    let embedding = provider(port, ProviderKind::Local, "test-embed");
+    let settings = chained(
+        vec![chat_only, embedding],
+        &[RuntimeId::ClaudeCode, RuntimeId::OnDevice, RuntimeId::compat("chat-only").unwrap(), RuntimeId::compat("test-provider").unwrap()],
+    );
+    assert_eq!(embedding_provider(&settings.snapshot()).map(|p| p.id.as_str()), Some("test-provider"));
+    assert_eq!(run_batch(&job(&["first passage"], &["owner@example.org"]), &settings, None).unwrap(), vec![vec![0.0, 0.5]]);
+    assert_eq!(seen.lock().unwrap().len(), 1);
+}
+
+#[test]
+fn an_embedding_provider_turned_off_in_the_chain_is_not_asked() {
+    let (port, seen) = endpoint();
+    let settings = chained(vec![provider(port, ProviderKind::Local, "test-embed")], &[RuntimeId::Codex, RuntimeId::compat("test-provider").unwrap()]);
+    settings
+        .change(|s| s.chain.with_enabled(&RuntimeId::compat("test-provider").unwrap(), false).map(|c| s.chain = c).map_err(|e| e.to_string()))
+        .unwrap();
+    let refused = run_batch(&job(&["x"], &["owner@example.org"]), &settings, None).unwrap_err();
+    assert_eq!(refused, NO_EMBEDDING_RUNTIME);
+    std::thread::sleep(Duration::from_millis(100));
+    assert!(seen.lock().unwrap().is_empty());
 }

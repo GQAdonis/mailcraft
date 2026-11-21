@@ -1399,12 +1399,20 @@ pub(crate) fn all_commands(app: &MailApp) -> Vec<(String, String, String, String
             )
         })
         .collect();
-    out.extend(UI_COMMANDS.iter().filter(|c| matches!(c.0, "ui.sync" | "ui.open" | "ui.import" | "ui.attach" | "ui.collapseRibbon")).map(
-        |(id, label, location, _)| {
-            let on = app.enabled(id) && crate::windows::compose_window::acts_here(app, id);
-            ((*id).to_string(), tl!(label).to_string(), crate::i18n::location(location), String::new(), on)
-        },
-    ));
+    // The AI commands are listed only where there is a model to ask, as the ribbon's AI group is.
+    let ai = app.services.ai_providers.is_some();
+    out.extend(
+        UI_COMMANDS
+            .iter()
+            .filter(|c| {
+                matches!(c.0, "ui.sync" | "ui.open" | "ui.import" | "ui.attach" | "ui.collapseRibbon")
+                    || (ai && matches!(c.0, "ui.answers" | "ui.findByDescription" | "ui.aiSettings"))
+            })
+            .map(|(id, label, location, _)| {
+                let on = app.enabled(id) && crate::windows::compose_window::acts_here(app, id);
+                ((*id).to_string(), tl!(label).to_string(), crate::i18n::location(location), String::new(), on)
+            }),
+    );
     out
 }
 

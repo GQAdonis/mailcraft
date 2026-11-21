@@ -80,6 +80,8 @@ pub const TABLE: &[(&str, Class)] = &[
     ("testkit", Class::Testkit),
     // apps and tooling
     ("mailcraft", Class::Exempt),
+    // The Linux sandbox launcher shipped next to the app: Landlock, then exec; no workspace crate.
+    ("launcher", Class::Exempt),
     ("cli", Class::Exempt),
     ("web", Class::Exempt),
     ("xtask", Class::Exempt),

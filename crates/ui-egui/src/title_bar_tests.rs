@@ -4,6 +4,7 @@
 //! row of 36 points, and the tabs and the ribbon start right under it, so the message list and
 //! the reading pane keep the height.
 
+use egui_kittest::kittest::Queryable;
 use serde_json::json;
 
 use crate::people_view::testing;
@@ -30,4 +31,30 @@ fn the_title_row_is_compact_and_the_tabs_follow_it() {
         let below = new_mail.min.y - row_bottom;
         assert!((40.0..46.0).contains(&below), "{theme}: New Email {below} points under the row");
     }
+}
+
+/// At 200 % a 1280- or 1440-pixel window is 640 or 720 points wide: the title bar's buttons are
+/// their icons alone there, so the search box keeps its place in the title row (and with it Find by
+/// Description), and the button is still found by its name. A wide window keeps the word.
+#[test]
+fn at_200_percent_the_search_box_keeps_its_room_beside_the_agents_button() {
+    for width in [1280.0, 1440.0] {
+        let mut h = testing::window("view.mail");
+        let _ = h.state_mut().execute("ui.dismissReminder", json!({"all": true}));
+        h.state_mut().execute("ui.interfaceSize", json!({"value": 200})).unwrap();
+        h.set_size(egui::vec2(width, 900.0));
+        h.run_steps(4);
+        assert!(h.state().search_box_shown, "{width}: the search box is in the row");
+        let button = h.state().hit.rect("agentsButton", 0).expect("the Agents button");
+        assert!(button.width() <= button.height() + 0.5, "{width}: the button is its icon alone, {button:?}");
+        for name in ["Agents", "Copy Diagnostics", "Report a Problem"] {
+            let _ = h.get_by_label(name);
+        }
+        h.state_mut().run("ui.findByDescription", json!({})).expect("Find by Description opens");
+    }
+    let mut h = testing::window("view.mail");
+    h.set_size(egui::vec2(1440.0, 900.0));
+    h.run_steps(4);
+    let button = h.state().hit.rect("agentsButton", 0).expect("the Agents button");
+    assert!(button.width() > button.height() * 2.0, "a wide window keeps the button's word, {button:?}");
 }

@@ -105,6 +105,18 @@
 //! other word: none) has the system refuse them for that reason from that line on, as File ›
 //! Options then says, and `{"host": {"unfocused": true}}` has the window be one that isn't in
 //! front, so that new mail is told of.
+//!
+//! And the runtime chain of File › Options › AI assistance (B11): `{"host": {"aiRuntimes":
+//! {"chain": [{"runtime": "claude_code", "enabled": true}, …], "status": {"claude_code": "ready",
+//! …}, "where": {"uar": "local", …}, "consents": {"ada@example.org": ["claude_code"]}, "fallback":
+//! "next", "version": {"claude_code": "2.1.4"}, "path": {"claude_code": "/usr/local/bin/claude"},
+//! "signIn": "fails"}}}` stands in for the host's runtimes (nothing is looked for, signed in or
+//! run; a status is `ready`, `signedOut`, `notFound`, `checking`, `unavailable` or `unknown`), and
+//! `{"host": {"aiExtra": {"claude_code": {"status": "broken", "reason": "othersWriteFolder", …}}}}`
+//! says what a widened host would say beyond that. `{"host": {"aiDetails": "claude_code"}}` opens
+//! a row's details, and `{"host": {"aiDialog": "consent:codex:team@lumen.example"}}` (or
+//! `chatgpt`, `chatgptWaiting`, `claude`, `claudeNoTerminal`, `uar`, `signOut`) a dialog of the
+//! page, as the owner's click would.
 
 use std::collections::VecDeque;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -238,6 +250,71 @@ impl mailcraft_ui_egui::SecretStore for StandInSecrets {
 }
 
 /// Removing MailCraft's data: nothing is kept by this window, so nothing is removed.
+/// The host's runtimes, stood in for (B11): the settings as the window leaves them, and what was
+/// "found" of each runtime as the script says. Nothing is looked for, signed in or run.
+struct StandInRuntimes {
+    settings: Mutex<mailcraft_ui_egui::control::RuntimeSettings>,
+    said: serde_json::Value,
+}
+
+impl StandInRuntimes {
+    fn new(said: &serde_json::Value) -> StandInRuntimes {
+        use mailcraft_model::ai::{Chain, ChainEntry, Consents, Fallback};
+        let entries: Vec<ChainEntry> =
+            said.get("chain").and_then(|v| v.as_array()).into_iter().flatten().filter_map(|e| ChainEntry::from_value(e).ok()).collect();
+        let settings = mailcraft_ui_egui::control::RuntimeSettings {
+            chain: Chain::new(entries).unwrap_or_default(),
+            consents: said.get("consents").map(Consents::from_value).unwrap_or_default(),
+            fallback: said.get("fallback").and_then(|v| v.as_str()).and_then(Fallback::parse).unwrap_or_default(),
+        };
+        StandInRuntimes { settings: Mutex::new(settings), said: said.clone() }
+    }
+
+    fn word(&self, key: &str, runtime: &mailcraft_model::ai::RuntimeId) -> Option<String> {
+        self.said.get(key)?.get(runtime.to_string())?.as_str().map(str::to_string)
+    }
+}
+
+impl mailcraft_ui_egui::control::AiRuntimes for StandInRuntimes {
+    fn settings(&self) -> mailcraft_ui_egui::control::RuntimeSettings {
+        self.settings.lock().map(|s| s.clone()).unwrap_or_default()
+    }
+    fn save(&self, settings: &mailcraft_ui_egui::control::RuntimeSettings) -> Result<(), String> {
+        let mut kept = self.settings.lock().map_err(|_| "poisoned".to_string())?;
+        *kept = settings.clone();
+        Ok(())
+    }
+    fn status(&self, runtime: &mailcraft_model::ai::RuntimeId) -> mailcraft_ui_egui::control::RuntimeStatus {
+        use mailcraft_ui_egui::control::RuntimeState as S;
+        let state = match self.word("status", runtime).as_deref() {
+            Some("ready") => S::Ready,
+            Some("signedOut") => S::SignedOut,
+            Some("notFound") => S::NotFound,
+            Some("checking") => S::Checking,
+            Some("unavailable") => S::Unavailable,
+            _ => S::Unknown,
+        };
+        mailcraft_ui_egui::control::RuntimeStatus {
+            state,
+            version: self.word("version", runtime),
+            path: self.word("path", runtime).and_then(|p| mailcraft_model::ai::RuntimePath::new(&p).ok()),
+        }
+    }
+    fn where_of(&self, runtime: &mailcraft_model::ai::RuntimeId) -> mailcraft_model::ai::Where {
+        match self.word("where", runtime).as_deref() {
+            Some("local") => mailcraft_model::ai::Where::Local,
+            Some(_) => mailcraft_model::ai::Where::Leaves,
+            None => runtime.kind().fixed_where().unwrap_or(mailcraft_model::ai::Where::Leaves),
+        }
+    }
+    fn rescan(&self) -> Result<(), String> {
+        Ok(())
+    }
+    fn sign_in(&self, _how: mailcraft_ui_egui::control::SignIn) -> Result<(), String> {
+        if self.said.get("signIn").and_then(|v| v.as_str()) == Some("fails") { Err("stood in: no terminal".into()) } else { Ok(()) }
+    }
+}
+
 struct StandInWipe;
 
 impl mailcraft_ui_egui::data_removal::DataWipe for StandInWipe {
@@ -878,6 +955,22 @@ fn main() {
                     app.seed_graph_token(id, tokens);
                 }
             }
+            // The runtime chain (B11): its host, what a widened host would say, a row's details
+            // and a dialog of the page.
+            if let Some(rt) = said.get("aiRuntimes") {
+                harness.state_mut().services.ai_runtimes = Some(Box::new(StandInRuntimes::new(rt)));
+            }
+            if let Some(extra) = said.get("aiExtra").and_then(|v| v.as_object()) {
+                for (runtime, e) in extra {
+                    harness.state_mut().stand_in_runtime_extra(runtime, e);
+                }
+            }
+            if let Some(runtime) = said.get("aiDetails").and_then(|v| v.as_str()) {
+                harness.state_mut().stand_in_runtime_details(runtime);
+            }
+            if let Some(dialog) = said.get("aiDialog").and_then(|v| v.as_str()) {
+                harness.state_mut().stand_in_runtime_dialog(dialog);
+            }
             for full in said.get("fullMessages").and_then(|v| v.as_array()).into_iter().flatten() {
                 let n = |k: usize| full.get(k).and_then(|v| v.as_u64()).unwrap_or(0);
                 let count = |k: usize| u32::try_from(n(k)).unwrap_or(u32::MAX);
@@ -916,7 +1009,7 @@ fn main() {
         } else if let Some(m) = l.get("method").and_then(|v| v.as_str()) {
             let (req, reply) = ControlRequest::new(m, l.get("params").cloned().unwrap_or_default());
             let req = match l.get("agent") {
-                Some(a) => req.from_agent(mailcraft_ui_egui::control::agent_allow(a)),
+                Some(a) => req.from_agent(mailcraft_ui_egui::control::agent_allow(a)).with_client(mailcraft_ui_egui::control::agent_client(a)),
                 None => req,
             };
             tx.send(req).expect("send");

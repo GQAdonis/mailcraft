@@ -231,6 +231,9 @@ pub(crate) struct Draft {
     confirming: Option<Receiver<Result<(), String>>>,
     /// Stop Using It takes the keyboard at the next frame (after Use It).
     pub(crate) focus_stop: bool,
+    /// Add Key was chosen: the Key field is scrolled into view and takes the keyboard at its next
+    /// frame, so that the owner sees where the key goes (the field can be below the window's edge).
+    pub(crate) focus_key: bool,
     /// The pass the page was last drawn in: a gap means it was opened again.
     pub(crate) seen_pass: Option<u64>,
     /// The gateway question this window is showing, by provider.
@@ -249,6 +252,19 @@ impl Draft {
     pub(crate) fn load(&mut self, providers: &Providers, kind: Option<Kind>) {
         let kind = kind.unwrap_or_else(|| providers.active().map_or(Kind::None, Kind::of));
         let p = provider_for(providers, kind).unwrap_or_default();
+        self.load_from(p, kind);
+    }
+
+    /// Fills the page from provider `id` exactly (Add Key on a chain row): its kind, address,
+    /// model and window. `false`, and nothing changed, when there is no such provider.
+    pub(crate) fn load_provider(&mut self, providers: &Providers, id: &str) -> bool {
+        let Some((p, _)) = providers.get(id) else { return false };
+        let kind = Kind::of(p);
+        self.load_from(p.clone(), kind);
+        true
+    }
+
+    fn load_from(&mut self, p: Provider, kind: Kind) {
         self.id = if p.id.is_empty() { kind.new_id().to_string() } else { p.id.clone() };
         self.kind = kind;
         self.address = p.base_url;

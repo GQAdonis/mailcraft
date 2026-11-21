@@ -130,6 +130,10 @@ fn error_kinds_are_read_and_written_as_snake_case_json() {
         ErrorKind::Malformed,
         ErrorKind::TooLarge,
         ErrorKind::Cancelled,
+        ErrorKind::SignedOut,
+        ErrorKind::ToolUseStopped,
+        ErrorKind::NoSandbox,
+        ErrorKind::BrokenRuntime,
     ];
     for kind in all {
         let v = serde_json::to_value(kind).unwrap();
@@ -160,6 +164,10 @@ fn which_kinds_fall_back_to_another_provider() {
         ErrorKind::Certificate,
         ErrorKind::Settings,
         ErrorKind::CredentialStore,
+        ErrorKind::SignedOut,
+        ErrorKind::ToolUseStopped,
+        ErrorKind::NoSandbox,
+        ErrorKind::BrokenRuntime,
     ] {
         assert!(kind.falls_back(), "{kind:?}");
     }
@@ -445,5 +453,38 @@ proptest::proptest! {
         let t = reqs.get(id).unwrap();
         proptest::prop_assert!(t.text.len() <= MAX_RESPONSE_BYTES);
         proptest::prop_assert!(t.cited.as_ref().is_none_or(|c| c.len() <= 3 && c.iter().all(|n| (1..=t.sources().len()).contains(n))));
+    }
+}
+
+#[test]
+fn runtime_failures_have_their_own_kinds_and_words() {
+    // The runtime path's kinds, by the names the host writes.
+    for (json, kind) in [
+        (r#""signed_out""#, ErrorKind::SignedOut),
+        (r#""tool_use_stopped""#, ErrorKind::ToolUseStopped),
+        (r#""no_sandbox""#, ErrorKind::NoSandbox),
+        (r#""broken_runtime""#, ErrorKind::BrokenRuntime),
+    ] {
+        assert_eq!(serde_json::from_str::<ErrorKind>(json).unwrap(), kind, "{json}");
+        assert_eq!(serde_json::to_string(&kind).unwrap(), json);
+    }
+    // A stop for tool use carries its kind, and the owner is told in the spec's words.
+    let mut reqs = Requests::default();
+    let id = reqs.start(request()).unwrap().id;
+    reqs.apply(id, ModelEvent::Error { kind: ErrorKind::ToolUseStopped, message: "m".into(), provider_text: None }).unwrap();
+    assert_eq!(reqs.get(id).unwrap().error_kind, Some(ErrorKind::ToolUseStopped));
+    assert_eq!(ErrorKind::ToolUseStopped.owner_words(), "The runtime tried to use a tool; MailCraft stopped it");
+    // Every kind has words, one line, and none names a provider's own text.
+    for kind in [
+        ErrorKind::NotConfigured,
+        ErrorKind::Refused { status: 500 },
+        ErrorKind::TimedOut { before_first_byte: true },
+        ErrorKind::SignedOut,
+        ErrorKind::NoSandbox,
+        ErrorKind::BrokenRuntime,
+        ErrorKind::Cancelled,
+    ] {
+        let words = kind.owner_words();
+        assert!(!words.is_empty() && !words.contains('\n'), "{kind:?}");
     }
 }

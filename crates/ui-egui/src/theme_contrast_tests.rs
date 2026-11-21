@@ -74,6 +74,18 @@ const PAIRS: &[Pair] = &[
     ("text_dim on accent_soft", |t| t.text_dim, |t| t.accent_soft, TEXT),
     ("backstage_ink on column", |t| t.backstage_ink, |t| t.backstage_column, TEXT),
     ("text_disabled on window", |t| t.text_disabled, |t| t.canvas, GRAPHIC),
+    // The flag on a flagged row (the row's text, dim text and overdue text are above).
+    ("icon_red on flagged_row", |t| t.icon_red, |t| t.flagged_row, GRAPHIC),
+    // The AI status chip and the narrowing badge: their words, in the location's colour or in
+    // `text`, on its soft fill; and the location's colour as a mark on the window and a sheet.
+    ("ai_local on ai_local_soft", |t| t.ai_local, |t| t.ai_local_soft, TEXT),
+    ("text on ai_local_soft", |t| t.text, |t| t.ai_local_soft, TEXT),
+    ("ai_remote on ai_remote_soft", |t| t.ai_remote, |t| t.ai_remote_soft, TEXT),
+    ("text on ai_remote_soft", |t| t.text, |t| t.ai_remote_soft, TEXT),
+    ("ai_local on window", |t| t.ai_local, |t| t.canvas, GRAPHIC),
+    ("ai_local on surface", |t| t.ai_local, |t| t.surface, GRAPHIC),
+    ("ai_remote on window", |t| t.ai_remote, |t| t.canvas, GRAPHIC),
+    ("ai_remote on surface", |t| t.ai_remote, |t| t.surface, GRAPHIC),
 ];
 
 /// Pairs that only high contrast promises: its borders and hairlines are lines you can see.
@@ -116,14 +128,20 @@ fn blue_normal_is_the_look_that_shipped() {
     assert_eq!(light.selection, Tokens::light().selection);
     assert_eq!(dark.accent_soft, Tokens::dark().accent_soft);
     assert_eq!(dark.text_selection, Tokens::dark().text_selection);
+    // Re-pinned on purpose (gate G3 a, ui-theme-additions): the flagged row is a quieter wash
+    // than the one that shipped (#FCF0F2 light, #3A2A2E dark). Only this token moved.
+    assert_eq!(light.flagged_row, Color32::from_rgb(0xFE, 0xF7, 0xF8));
+    assert_eq!(dark.flagged_row, Color32::from_rgb(0x2A, 0x22, 0x24));
+    assert_eq!(light.flagged_row, Tokens::light().flagged_row);
+    assert_eq!(dark.flagged_row, Tokens::dark().flagged_row);
 }
 
-#[test]
-fn token_pairs_meet_their_contrast() {
+/// What falls short among `pairs` in every theme: one line per pair and theme.
+fn shortfalls(pairs: &[Pair]) -> Vec<String> {
     let mut wrong = Vec::new();
     for (mode, t, high) in every_theme() {
         let extra: &[Pair] = if high { STRONG_PAIRS } else { &[] };
-        for (name, fg, bg, min) in PAIRS.iter().chain(extra) {
+        for (name, fg, bg, min) in pairs.iter().chain(extra) {
             // Disabled controls are exempt: they stay at 3:1 in both. In high contrast text and
             // outlines need 7:1; icons stay at 3:1.
             let outline = name.contains("border") || name.contains("edge") || name.starts_with("accent on");
@@ -142,5 +160,19 @@ fn token_pairs_meet_their_contrast() {
             }
         }
     }
+    wrong
+}
+
+#[test]
+fn token_pairs_meet_their_contrast() {
+    let wrong = shortfalls(PAIRS);
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+/// The check itself fails a pair that falls short: a colour on itself is 1:1 in every theme.
+#[test]
+fn neg_a_pair_below_its_contrast_is_reported() {
+    let fixture: &[Pair] = &[("ai_local_soft on ai_local_soft", |t| t.ai_local_soft, |t| t.ai_local_soft, TEXT)];
+    let wrong: Vec<String> = shortfalls(fixture).into_iter().filter(|w| w.starts_with("ai_local_soft on")).collect();
+    assert_eq!(wrong.len(), every_theme().len(), "{}", wrong.join("\n"));
 }

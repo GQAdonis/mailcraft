@@ -1571,20 +1571,7 @@ fn same(a: &str, b: &str) -> bool {
 /// and values the provider's page sent back with `state`. Otherwise the page it is answered
 /// with, and the wait goes on.
 fn brought(request: &[u8], state: &str) -> Result<Vec<(String, String)>, &'static Page> {
-    // `GET /?code=…&state=… HTTP/1.1`.
-    let line = request.split(|b| *b == b'\n').next().unwrap_or(&[]);
-    let line = String::from_utf8_lossy(line);
-    let mut words = line.split_ascii_whitespace();
-    let (method, target) = (words.next().unwrap_or(""), words.next().unwrap_or(""));
-    if method != "GET" {
-        return Err(&NOT_ALLOWED);
-    }
-    let (path, query) = target.split_once('?').unwrap_or((target, ""));
-    // A browser also asks for `/favicon.ico`.
-    if path != "/" {
-        return Err(&NOT_FOUND);
-    }
-    let fields = http::pairs(query);
+    let fields = arrived_at(request, "/")?;
     // Only the page that was given the state can send it back. Anything else on this machine
     // that finds the port can neither slip a code in nor call the sign-in off.
     let sent = fields.iter().find(|(name, _)| name == "state").map_or("", |(_, value)| value.as_str());
@@ -1592,6 +1579,24 @@ fn brought(request: &[u8], state: &str) -> Result<Vec<(String, String)>, &'stati
         return Err(&NOT_OURS);
     }
     Ok(fields)
+}
+
+/// The names and values of a `GET` to `path` on the loopback port (`GET /path?code=…&state=… HTTP/1.1`),
+/// not yet checked for anything; otherwise the page a request of another method or for another
+/// path (a browser also asks for `/favicon.ico`) is answered with, and the wait goes on.
+fn arrived_at(request: &[u8], path: &str) -> Result<Vec<(String, String)>, &'static Page> {
+    let line = request.split(|b| *b == b'\n').next().unwrap_or(&[]);
+    let line = String::from_utf8_lossy(line);
+    let mut words = line.split_ascii_whitespace();
+    let (method, target) = (words.next().unwrap_or(""), words.next().unwrap_or(""));
+    if method != "GET" {
+        return Err(&NOT_ALLOWED);
+    }
+    let (asked, query) = target.split_once('?').unwrap_or((target, ""));
+    if asked != path {
+        return Err(&NOT_FOUND);
+    }
+    Ok(http::pairs(query))
 }
 
 /// The no a provider's page came back with (`error` and what goes with it), when it is one.
@@ -1791,6 +1796,27 @@ impl Redirect {
         Err(failed())
     }
 
+    /// Listen on a free port of 127.0.0.1 alone, for a provider that wants the redirect to be
+    /// exactly `http://127.0.0.1:<port>/<path>` ([`openai`]): no `::1`, since the browser is sent
+    /// to the IPv4 literal and to nothing else.
+    fn listen_exact() -> Result<Redirect, NetError> {
+        let failed = || NetError::Config("couldn't open a port on this computer for the sign-in to come back to".into());
+        let v4 = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).map_err(|_| failed())?;
+        let port = v4.local_addr().map_err(|_| failed())?.port();
+        v4.set_nonblocking(true).map_err(|_| failed())?;
+        Ok(Redirect { listeners: vec![v4], port })
+    }
+
+    /// [`Redirect::listen_exact`], on `port` of 127.0.0.1 when it is free (a provider's
+    /// documented example port), else on a port the system chooses.
+    fn listen_exact_preferring(port: u16) -> Result<Redirect, NetError> {
+        let Ok(v4) = TcpListener::bind((Ipv4Addr::LOCALHOST, port)) else { return Redirect::listen_exact() };
+        if v4.set_nonblocking(true).is_err() {
+            return Redirect::listen_exact();
+        }
+        Ok(Redirect { listeners: vec![v4], port })
+    }
+
     /// Let in whoever is at the door.
     fn admit(&self, visitors: &mut Vec<Visitor>) {
         for listener in &self.listeners {
@@ -1914,6 +1940,7 @@ pub fn sign_in_explained_via(
 
 mod google;
 pub use google::{refresh_google_at, sign_in_google_at};
+pub mod openai;
 
 #[cfg(test)]
 mod google_tests;

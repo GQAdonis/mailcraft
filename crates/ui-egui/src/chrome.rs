@@ -28,26 +28,29 @@ fn qat_button(ui: &mut Ui, app: &mut MailApp, icon: &str, tip: &str, id: &str) -
 
 /// "Copy Diagnostics", beside the window's own buttons, so a tester finds it (D1): the same command
 /// as Help › Copy Diagnostics.
-fn diagnostics_pill(ui: &mut Ui, app: &mut MailApp, h: f32) {
+fn diagnostics_pill(ui: &mut Ui, app: &mut MailApp, h: f32, compact: bool) {
     let tip = tl!(
         "Copy the version, the platform and the end of MailCraft's own record, to paste into a problem report. No message, address, password or token is in it, and nothing is sent."
     );
-    pill(ui, app, h, "copy", tl!("Copy Diagnostics"), tip, "ui.copyDiagnostics");
+    pill(ui, app, h, compact, "copy", tl!("Copy Diagnostics"), tip, "ui.copyDiagnostics");
 }
 
 /// "Report a Problem", beside Copy Diagnostics: the same command as Help › Report a Problem,
 /// which opens its window ([`crate::report_problem`]).
-fn report_pill(ui: &mut Ui, app: &mut MailApp, h: f32) {
+fn report_pill(ui: &mut Ui, app: &mut MailApp, h: f32, compact: bool) {
     let tip = tl!("Tell MailCraft's makers what went wrong, on GitHub or by email. You check the report and send it yourself.");
-    pill(ui, app, h, "report", tl!("Report a Problem"), tip, "ui.reportProblem");
+    pill(ui, app, h, compact, "report", tl!("Report a Problem"), tip, "ui.reportProblem");
 }
 
-/// A rounded button of the title bar, with its icon and its label, that runs `id` by hand.
-fn pill(ui: &mut Ui, app: &mut MailApp, h: f32, icon: &str, label: &str, tip: &str, id: &str) {
+/// A rounded button of the title bar, with its icon and its label (its icon alone when `compact`,
+/// in a narrow window, its label then being its name and the head of its tip), that runs `id` by
+/// hand.
+#[allow(clippy::too_many_arguments)]
+fn pill(ui: &mut Ui, app: &mut MailApp, h: f32, compact: bool, icon: &str, label: &str, tip: &str, id: &str) {
     let t = Tokens::get(ui.ctx());
     let font = medium(11.5);
     let w = ui.ctx().fonts_mut(|f| f.layout_no_wrap(label.to_string(), font.clone(), t.text).size().x);
-    let (r, resp) = ui.allocate_exact_size(vec2(w + 34.0, h), Sense::click());
+    let (r, resp) = ui.allocate_exact_size(vec2(if compact { h } else { w + 34.0 }, h), Sense::click());
     let fill = if resp.is_pointer_button_down_on() {
         t.pressed
     } else if resp.hovered() {
@@ -56,9 +59,13 @@ fn pill(ui: &mut Ui, app: &mut MailApp, h: f32, icon: &str, label: &str, tip: &s
         t.title_bar
     };
     ui.painter().rect(r, h / 2.0, fill, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
-    icons::paint(ui.painter(), Rect::from_center_size(pos2(r.min.x + 15.0, r.center().y), vec2(16.0, 16.0)), icon, t.icon, t.accent);
-    ui.painter().text(pos2(r.min.x + 26.0, r.center().y), Align2::LEFT_CENTER, label, font, t.text);
+    let at = if compact { r.center() } else { pos2(r.min.x + 15.0, r.center().y) };
+    icons::paint(ui.painter(), Rect::from_center_size(at, vec2(16.0, 16.0)), icon, t.icon, t.accent);
+    if !compact {
+        ui.painter().text(pos2(r.min.x + 26.0, r.center().y), Align2::LEFT_CENTER, label, font, t.text);
+    }
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
+    let tip = if compact { format!("{label}\n\n{tip}") } else { tip.to_string() };
     if resp.on_hover_text(tip).clicked() {
         let _ = app.run(id, json!({}));
     }
@@ -380,9 +387,13 @@ pub fn title_bar(app: &mut MailApp, ui: &mut Ui) {
                         let _ = app.run("ui.backstage", json!({"value": true, "page": "info"}));
                     }
                     ui.add_space(8.0);
-                    diagnostics_pill(ui, app, avatar_h.min(PILL));
+                    // The buttons are their icons alone in a narrow window, so the search box keeps its room.
+                    let compact = full.width() < crate::ai::agents::COMPACT_BELOW;
+                    crate::ai::agents::title_button(app, ui, avatar_h.min(PILL), compact);
                     ui.add_space(4.0);
-                    report_pill(ui, app, avatar_h.min(PILL));
+                    diagnostics_pill(ui, app, avatar_h.min(PILL), compact);
+                    ui.add_space(4.0);
+                    report_pill(ui, app, avatar_h.min(PILL), compact);
                     right_start = ui.min_rect().min.x;
                 });
             });
@@ -443,7 +454,7 @@ pub(crate) fn sync_shown(app: &MailApp) -> SyncShown {
 /// The status bar, across the foot of the window.
 pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    egui::Panel::bottom("status")
+    let bar = egui::Panel::bottom("status")
         .exact_size(STATUS_BAR_H)
         // No line around it: the bar is the window's own colour, and the panes above it are not.
         .show_separator_line(false)
@@ -522,6 +533,7 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                                 ui.painter().rect_filled(r, 3.0, t.hover);
                             }
                             icons::paint(ui.painter(), r.shrink(3.0), icon, t.icon, t.accent);
+                            focus_ring(ui, &resp, 3.0);
                             if resp.on_hover_text(tl!(tip)).clicked() {
                                 let _ = app.run("view.readingPane", json!({"value": value}));
                             }
@@ -551,6 +563,7 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
                             .on_hover_text(tl!("Nothing is sent or received. Click to connect again."));
                         app.hit.add("workingOffline", 0, offline.rect);
+                        focus_ring(ui, &offline, 3.0);
                         if offline.clicked() {
                             let _ = app.run("sync.offline", json!({"value": false}));
                         }
@@ -594,6 +607,7 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                         };
                         let shown = shown.interact(Sense::click()).on_hover_cursor(egui::CursorIcon::PointingHand);
                         app.hit.add("syncStatus", 0, shown.rect);
+                        focus_ring(ui, &shown, 3.0);
                         if shown.hovered() {
                             ui.painter().hline(shown.rect.x_range(), shown.rect.max.y - 1.0, egui::Stroke::new(1.0, t.text_dim));
                         }
@@ -615,6 +629,9 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                         st(ui, tl!("This mailbox is on this device only"), t.text_dim)
                             .on_hover_text(tl!("Add a mail server account in File › Add Account to send and receive."));
                     }
+                    // Where AI runs: off, on this computer, or allowed elsewhere for some
+                    // accounts; a click opens AI assistance (none without a provider service).
+                    crate::ai::status::status_item(app, ui, &t);
                     // Messages being fetched whole in the background (R3.2).
                     let fetching = app.fetching.progress.clone();
                     if !fetching.is_empty() {
@@ -631,6 +648,18 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                 });
             });
         });
+    // The whole bar: where the type floor is checked (A3).
+    app.hit.add("statusBar", 0, bar.response.rect);
+}
+
+/// The focus ring (G16 a): a control drawn by hand that the keyboard has reached (Tab) wears
+/// `Tokens.focus_ring` inside its edge. A click gives a button no focus, so the ring is the
+/// keyboard's alone. For the list, its header, the status bar and the ribbon, not `widgets.rs`.
+pub(crate) fn focus_ring(ui: &Ui, resp: &egui::Response, radius: f32) {
+    if resp.has_focus() {
+        let t = Tokens::get(ui.ctx());
+        ui.painter().rect_stroke(resp.rect.shrink(1.0), radius, Stroke::new(2.0, t.focus_ring), egui::StrokeKind::Inside);
+    }
 }
 
 /// A Send/Receive under way, in the status bar: its label, then a bar that fills as the run goes
@@ -743,6 +772,10 @@ mod search_box_tests;
 #[cfg(test)]
 #[path = "title_bar_tests.rs"]
 mod title_bar_tests;
+/// The type floor (A3.0), for every change's tests: `crate::chrome::type_floor_tests`.
+#[cfg(test)]
+#[path = "type_floor_tests.rs"]
+pub(crate) mod type_floor_tests;
 
 #[cfg(test)]
 mod tests {

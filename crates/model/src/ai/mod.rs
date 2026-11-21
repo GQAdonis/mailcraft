@@ -21,6 +21,9 @@
 //!   at the end ([`read_answer_json`]) and its text read as it streams ([`AnswerExtractor`]).
 //! - **Structured answers** ([`schema`]): every JSON schema sent to a model, held to the subset
 //!   of JSON Schema that every provider takes.
+//! - **Runtimes** ([`runtime`]): the runtimes an answer may come from, the owner's chain of them
+//!   and the fallback, where each sends what it is given ([`where_of`], never what a runtime says
+//!   of itself), and per-account consent ([`may_send`]); turning a runtime on grants nothing.
 //! - **Model calls** ([`call`]): what the engine asks a host to send to a model
 //!   ([`ModelRequest`]), what the host hands back ([`ModelEvent`]; a failure with its
 //!   [`ErrorKind`]), and the requests under way ([`Requests`]). The engine never talks to a
@@ -38,6 +41,7 @@ pub mod extract;
 pub mod narrow;
 pub mod prompt;
 pub mod retrieval;
+pub mod runtime;
 pub mod schema;
 
 pub use answer::{
@@ -57,6 +61,10 @@ pub use prompt::{
     answer_prompt, answer_tokens_for, cited_numbers, estimate_tokens, marker,
 };
 pub use retrieval::{DEFAULT_LIMIT, MAX_LIMIT, MAX_QUERY_CHARS, RRF_K, RetrievalRequest, RetrievalResult, ScoredHit, fuse};
+pub use runtime::{
+    Carries, Chain, ChainEntry, CompatKind, CompatProvider, Consents, Fallback, MAX_CHAIN, ManagedUar, ModelName, ProviderId, RuntimeId, RuntimeKind,
+    RuntimePath, UarEndpoint, UarInstance, Where, may_send, where_of,
+};
 pub use schema::{PRODUCT_SCHEMAS, portable_problems};
 
 use crate::Id;
@@ -98,5 +106,7 @@ mod narrow_tests;
 mod prompt_tests;
 #[cfg(test)]
 mod retrieval_tests;
+#[cfg(test)]
+mod runtime_tests;
 #[cfg(test)]
 mod schema_tests;

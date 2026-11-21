@@ -34,6 +34,8 @@ pub(crate) mod images;
 mod images_tests;
 mod invitation;
 mod layout;
+#[cfg(test)]
+mod measure_tests;
 pub(crate) mod remote;
 mod select;
 mod sharing;
@@ -137,6 +139,8 @@ pub fn show_file_message(app: &mut MailApp, ui: &mut Ui, m: &Arc<Message>, place
 /// The reading pane: the selected message, or a word on why there is none to show.
 pub fn show(app: &mut MailApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
+    // Where the pane is, for the control channel and for tests of what it draws.
+    app.hit.add("readingPane", 0, ui.available_rect_before_wrap());
     let picked = app.session.sel.messages.len();
     let preview_message = if picked == 1 { app.session.sel.focus() } else { None };
     crate::attachment_preview::follow_message(app, ui.ctx().viewport_id(), preview_message);
@@ -455,12 +459,25 @@ pub(crate) fn header_date_on_own_line(row: f32, date: f32) -> bool {
     row - date < 220.0
 }
 
+/// The room between the sender's name and the address after it, in points.
+pub(crate) const SENDER_ADDRESS_GAP: f32 = 8.0;
+
+/// The width the header block and the attachment strip take of `width` points: the readable
+/// measure of the body's text as it comes ([`layout::measure`]), so the header stands in the
+/// body's column.
+pub(crate) fn header_measure(ctx: &egui::Context, width: f32) -> f32 {
+    layout::measure(ctx, 1.0, width)
+}
+
 fn header(app: &mut MailApp, ui: &mut Ui, m: &Arc<Message>, place: Place, pictures: impl FnOnce(&mut MailApp, &mut Ui, &Tokens)) {
     let t = Tokens::get(ui.ctx());
     // The texts that can be selected are laid out here and painted once the pointer has had its
     // say ([`select::header`]).
     let mut fields = select::Fields::default();
     let around = egui::Frame::NONE.inner_margin(egui::Margin { left: 20, right: 12, top: 12, bottom: 10 }).show(ui, |ui| {
+        // The header and its attachments stand in the body's column: no wider than the readable
+        // measure of its text, from the same left edge.
+        ui.set_max_width(header_measure(ui.ctx(), ui.available_width()));
         ui.spacing_mut().item_spacing = vec2(6.0, 4.0);
         // What may not be what it seems about it, above everything else (#508).
         warnings::banner(app, ui, m, place, &t);
@@ -508,7 +525,7 @@ fn header(app: &mut MailApp, ui: &mut Ui, m: &Arc<Message>, place: Place, pictur
                     fields.add(ui, select::Field::Date, egui::Label::new(egui::RichText::new(when.clone()).font(regular(11.5)).color(t.text_dim)));
                 };
                 let sender = |app: &mut MailApp, fields: &mut select::Fields, ui: &mut Ui| {
-                    const ADDRESS_GAP: f32 = 4.0;
+                    const ADDRESS_GAP: f32 = SENDER_ADDRESS_GAP;
                     const TAG_GAP: f32 = 6.0;
                     let room = ui.available_width();
                     let external = warnings::external(app, m);
@@ -757,7 +774,7 @@ fn attachments(app: &mut MailApp, ui: &mut Ui, m: &Message, t: &Tokens) {
                 pos2(r.min.x + 34.0, r.min.y + 27.0),
                 Align2::LEFT_CENTER,
                 mailcraft_model::size_label_in(crate::i18n::current(), a.size() as u64),
-                regular(10.5),
+                regular(11.0),
                 t.text_dim,
             );
             // Double-click opens it, as in Outlook; its menu opens or saves it.

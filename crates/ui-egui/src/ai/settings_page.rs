@@ -112,6 +112,11 @@ pub(crate) fn options(app: &mut MailApp, ui: &mut Ui, t: &Tokens) {
     }
     settings::visit(app, Some(ui.ctx().cumulative_pass_nr()));
     settings::poll(app);
+    // With a runtime chain, the chain page (B11) in place of Primary and Backup.
+    if app.services.ai_runtimes.is_some() {
+        super::settings_runtimes::page(app, ui, t);
+        return;
+    }
     let providers = Providers::of(app);
     let has_host = app.services.ai_providers.is_some() && app.services.can_ask_models();
     for (i, line) in st::status_lines(&status_input(app, &providers, has_host)).iter().enumerate() {
@@ -130,8 +135,8 @@ pub(crate) fn options(app: &mut MailApp, ui: &mut Ui, t: &Tokens) {
     super::settings_device::backup(app, ui, t);
 }
 
-/// The Primary group.
-fn primary(app: &mut MailApp, ui: &mut Ui, t: &Tokens, providers: &Providers) {
+/// The Primary group (and, on the chain page, Add OpenAI-Compatible Provider).
+pub(crate) fn primary(app: &mut MailApp, ui: &mut Ui, t: &Tokens, providers: &Providers) {
     kind_row(app, ui, t, providers);
     let kind = app.ai.settings.kind;
     if kind == Kind::None {
@@ -235,6 +240,12 @@ fn key_rows(app: &mut MailApp, ui: &mut Ui, t: &Tokens, providers: &Providers) {
                 edit.id_salt("opt_ai_key").char_limit(MAX_KEY).hint_text(hint).interactive(!store_trouble)
             });
             resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::PasswordInput, !store_trouble, tl!("Key")));
+            if std::mem::take(&mut app.ai.settings.focus_key) {
+                resp.scroll_to_me(Some(egui::Align::Center));
+                if !store_trouble {
+                    resp.request_focus();
+                }
+            }
             app.hit.add("aiKey", 0, resp.rect);
             save = resp.lost_focus();
         });

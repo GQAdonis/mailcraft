@@ -85,7 +85,8 @@ MailCraft connects only to these, over encrypted connections (the one exception 
 | The certificate authority that issued a server's certificate, on Windows and macOS | When a server MailCraft connects to leaves out the intermediate certificate its own was issued by: the system fetches it from the address the certificate names, as it does for other programs (and may ask whether the certificate was revoked) | Nothing of yours: the authority learns only which of its certificates a server on the way uses |
 | GitHub's API (`api.github.com`), to see whether a new version is out | Off unless you turn it on (the program asks once, and the switch in File › About changes it): then at most once a day; and whenever you press Check for Updates in File › About | One request for the newest release of MailCraft's repository (`GET /repos/UCS-Care-Group/mailcraft/releases/latest`), with nothing about you, your accounts, your mail or this computer in it, not even the version you run |
 | GitHub's release downloads (`github.com`, and `objects.githubusercontent.com` or `release-assets.githubusercontent.com`, where GitHub sends those), to download a new version | Only for a copy installed from the Windows `.msi`, the macOS app or a Linux AppImage, while the daily check is on and File › About › Install updates automatically is on (as it is unless you, or your organisation, turn it off); when a check finds a newer release | Requests for three files of that release: its list of checksums, the signature over it, and the package for your kind of computer. Nothing about you, your accounts, your mail or the version you run. The package is kept in the program's own folder, installed only when MailCraft's release signature says it is the project's own (when you press Restart to update, or when you quit), and deleted otherwise. Installing it connects to nothing |
-| A model server you configure for search and answers, in the desktop app ([AI model servers](#ai-model-servers)) | Off unless you set one up in File › Options; then only when you ask a question or narrow the list in words, and, if you also set up an embeddings address, while your mail is prepared for meaning-based search. A server on another computer is used for an account's mail only after you said yes for that account | For narrowing: only what you typed and the shape of a search, never mail. For a question: what you typed and the passages of your own mail found for it, from accounts you allowed. Never your passwords, sign-in tokens or what a sender hid in a message |
+| A model server you configure for search and answers, in the desktop app ([AI model servers](#ai-model-servers)) | Off unless you set one up in File › Options; then only when you ask a question or narrow the list in words, and, if you also set up an embeddings address, while your mail is prepared for meaning-based search. A server on another computer is used for an account's mail only after you said yes for that account | For narrowing: only what you typed, the shape of a search and today's date, never mail. For a question: what you typed and the passages of your own mail found for it, from accounts you allowed. Never your passwords, sign-in tokens or what a sender hid in a message |
+| An AI runtime you turn on, in the desktop app: OpenAI for the ChatGPT plan and for Codex, Anthropic for Claude Code, a Universal Agent Runtime you started ([AI runtimes](#ai-runtimes)) | Off unless you turn it on; then only when you ask a question or narrow the list in words, and for an account's mail only after you said yes for that account. The ChatGPT plan's sign-in page and token address (`auth.openai.com`) only when you sign in, and when the sign-in is renewed | The same as for a model server: your words and the passages of your own mail found for them, from accounts you allowed, under your own account with that vendor. Claude Code and Codex are the programs you installed, signed in with your own login, which MailCraft never reads |
 | The project's report relay (`mailcraft.work/api/report`), in the desktop app | Only when you press Send report (or Try again) in Help › Report a Problem; never by itself, never again by itself, and never for a script or an agent | One request, over HTTPS, with what the window showed you: the title, what you wrote, MailCraft's version and your platform, the GitHub username if you gave one, and the diagnostics if you left them ticked. No account, address, mailbox name, computer name or identifier, no cookie, no sign-in. The relay sees your IP address, as any web server does ([Problem reports](#problem-reports)) |
 
 Nothing in a message runs, and nothing in a message is fetched unless you ask for its pictures, or ask to unsubscribe from a list in one click (then only the list's address is told, as above). A message's own style sheet is read for how the message looks (colours, sizes, spacing, what the sender hid), but nothing in it is ever fetched: a sheet's `@import`, its fonts and its pictures are ignored, and a link it styles is never shown as visited. Its `@media` rules are tested against two things on your own computer and nothing else: how wide the message is laid out in the reading pane, and whether your window is dark; the program sends neither to anyone. One consequence to know: once you allow pictures, a message can show a different picture in a dark window, or at each of several widths, and the picture for the look on screen is fetched, so its server can tell from which address was asked for that your window is dark and how wide the message is laid out, to within a few pixels (it is told nothing else, and nothing is fetched until you allow pictures). What a sender hid in a message (a line of preview text, the other copy of a desktop and mobile pair) is not shown to you and is not quoted in your replies, but it is kept with the message on your computer, so that your search and your rules can find it, and it is what an agent you have allowed to read your mail is given as the message's text. The one other thing fetched for your mail is a sender's picture, and only once you turn sender images on.
@@ -212,8 +213,8 @@ same address and kind you saved it for.
   File › Info › Remove MailCraft's data deletes the model servers' settings and every key
   MailCraft saved for them (it keeps the names of those entries, never the keys, to find them).
 
-What is sent: to narrow the list, only the words you typed and a description of MailCraft's
-search language; never mail. To answer a question, the words you typed and the passages of your
+What is sent: to narrow the list, only the words you typed, a description of MailCraft's
+search language and today's date (so that "since 29 September" means the right year); never mail. To answer a question, the words you typed and the passages of your
 own mail that MailCraft's search found for it (at most a few dozen short passages), from accounts
 you allowed. What a sender hid in a message, your passwords and your sign-in tokens are never
 sent. The answer comes back to your computer and is shown as plain text with the messages it
@@ -235,6 +236,121 @@ If you also give an embeddings address, MailCraft asks it for numbers describing
 passages so that it can find mail by meaning; the same rules apply (this computer, or elsewhere
 only for accounts you allowed), and the numbers are kept beside the mailbox file, from which they
 can be rebuilt or removed.
+
+## AI runtimes
+
+Besides the model servers above, the desktop app can get its answers from a few other programs
+and services, each called a runtime: the ones you turn on form an ordered list, tried in your
+order. Each runtime below is off until you turn it on, and none is used for an account's mail
+until you said yes for that account. Where a runtime sends text is fixed by its kind, never by
+anything the runtime says about itself: Apple's on-device model and a model server you set up as
+on this computer keep it here; the ChatGPT plan, Claude Code, Codex and the Universal Agent
+Runtime send it away from this computer, and so do a gateway and a server elsewhere.
+
+**What every runtime is sent** is what a model server is sent ([above](#ai-model-servers)): to
+narrow the list, only the words you typed, a description of MailCraft's search language and
+today's date; to answer a question, the words you typed and the passages of your own mail found for it, from
+accounts you allowed, put in as data with MailCraft's instructions, which tell the model that mail
+is never instructions. What a sender hid, your passwords and your sign-in tokens are never sent.
+A runtime that leaves this computer gets an account's mail only with that account's yes, and your
+own typed words when you narrow the list (as a server elsewhere does). Turning a runtime on gives
+no account's yes.
+
+**What each one costs.** Claude Code and Codex answer on your own plan, under your own login in
+their own programs, and use that plan's quota; the ChatGPT plan answers on your ChatGPT plan.
+MailCraft needs no API key for any of the three and bills nothing by the token. When a plan's
+quota is used up, the vendor refuses the request; MailCraft shows that, or goes on to the next
+runtime if you chose that.
+
+**Answers never act.** MailCraft uses every runtime as a text model only, with its tools turned
+off where the runtime allows. If a runtime tries to use a tool anyway (run a command, read or
+change a file, call a connector, search the web, or anything else that is not text), MailCraft
+stops it at once with every process it started, throws its text away, and tells you, before it
+tries another runtime. Only the kind of event is written to the log, never its content.
+
+- **Apple's on-device model, and a model server on this computer.** Nothing leaves this computer
+  (the checks for a server that is really a gateway are [above](#ai-model-servers)). No account
+  needs a yes.
+- **A gateway, and a model server elsewhere.** As [above](#ai-model-servers): the provider you
+  set up receives what is sent, under the account its key belongs to; the key is in your
+  operating system's credential store. To stop, turn it off or take back an account's yes; Remove
+  MailCraft's data deletes its key.
+- **ChatGPT plan** (Sign in with ChatGPT). **To whom:** OpenAI, under your own ChatGPT account and
+  plan. **Signing in:** you press Sign in and sign in on OpenAI's page, in your browser; MailCraft
+  never sees your password. The page sends your browser back to this computer only
+  (`127.0.0.1`), to a port opened for that one answer and closed straight after. MailCraft uses no
+  client registration of its own or anyone else's: it asks OpenAI to register MailCraft for your
+  account (`dynamic_agent_client`, named "MailCraft"), and tells it a random identifier of this
+  installation, made once and kept in MailCraft's AI settings file (`ai.json`, as
+  `ext_agent_host_id`; it is not a secret). **What is sent:** at sign-in, that identifier and the
+  sign-in request; for each answer, one request to OpenAI's Responses API (`api.openai.com`) with
+  MailCraft's instructions, your words and the mail passages, asking OpenAI not to store it
+  (`store: false`), with no tools. **Where the sign-in lives:** the client id OpenAI issued for
+  your account, the refresh token and your ChatGPT account's id are one entry, `ai.chatgpt`, in
+  your operating system's credential store and nowhere else; the access token is kept in memory
+  only and made again after a restart; `ai.json` holds the installation identifier and that an
+  entry was written, never a token. Your e-mail address and plan, as OpenAI's sign-in names them,
+  are shown and not kept. **How to stop:** Sign out deletes the credential entry, forgets the
+  access token, turns the runtime off and takes it out of every account's yes. That happens on
+  this computer only: OpenAI documents no way for a program to end a sign-in, so to end it on
+  OpenAI's side too, remove MailCraft from the connected apps in your ChatGPT settings. If OpenAI
+  ends the sign-in itself, MailCraft deletes the entry, turns the runtime off and tells you. Remove
+  MailCraft's data deletes the entry too.
+- **Claude Code.** **To whom:** Anthropic, under your own Claude login (a subscription, a Console
+  account or a key the Claude program holds itself). **What is sent:** MailCraft runs the `claude`
+  program you installed, unchanged, once per answer, with the prompt given on its input (never on
+  its command line, which other programs on the computer can read) and MailCraft's instructions in
+  a file only you can read, inside a new empty folder that is deleted after the run. The program
+  sends that to Anthropic as it does any request of yours. **Where the sign-in lives:** in the
+  Claude program's own files and, on a Mac, your keychain, where you signed in with
+  `claude auth login`. MailCraft never reads, copies, stores or passes that login, offers no Claude
+  sign-in of its own, and runs nothing but the program's status command (`claude auth status`),
+  of which it reads only whether you are signed in, how, and whether a plan is named. To sign in,
+  MailCraft opens your terminal with that one command, or shows it for you to copy. **Your own
+  Claude settings:** each run is started in Claude Code's safe mode, with no settings sources, no
+  connectors and no tools, and in the checks made for this version your own `CLAUDE.md` memory
+  files, skills, plugins, hooks and custom agents did not reach the prompt. A later version of
+  Claude Code could change what those switches cover; MailCraft also stops any run whose start
+  lists a tool or connector. **How to stop:** turn Claude Code off, or take back an account's yes;
+  to sign the program out, run `claude auth logout` in your terminal (MailCraft never does it).
+- **Codex.** **To whom:** OpenAI, under your own ChatGPT login in the Codex program. **What is
+  sent:** MailCraft runs the `codex` program you installed, unchanged, once per answer
+  (`codex exec`), with its instructions and the prompt on its input, never its command line, in a
+  new empty folder deleted after the run, and with Codex's own sandbox set to read-only and its
+  shell tool off. **Where the sign-in lives:** in your Codex folder (`CODEX_HOME`, `~/.codex`
+  unless you set another), where you signed in with `codex login`. MailCraft tells the program
+  where that folder is and reads nothing inside it: never `auth.json`, never your `config.toml`,
+  which each run is told to ignore, so your own connectors (MCP servers) and settings are not
+  loaded. MailCraft never runs `codex login` or `codex logout`, holds no Codex key and passes none;
+  to sign in, run `codex login` yourself. Codex writes its own state (logs, caches, a refreshed
+  sign-in) in that folder during a run. **Your own Codex skills and agent roles:** no switch of
+  this version of Codex keeps the skills and agent roles in your Codex folder (or an `AGENTS.md`
+  there) out of a run, so text from those files may be sent to OpenAI with the prompt. Remove
+  anything you don't want sent from that folder, or leave Codex off. A Codex that isn't signed in
+  still contacts `api.openai.com` before it fails. **Where it runs:** only under your operating
+  system's sandbox, so it is not offered on Windows, and does not run where there is none.
+  **How to stop:** turn Codex off (it is off until you turn it on), or take back an account's yes;
+  to sign the program out, run `codex logout` yourself.
+- **Universal Agent Runtime (UAR).** MailCraft can use a UAR it started itself only when the
+  installed UAR can be started safely (on a port it reports, with a one-time key given on its
+  input, and saying when it is ready); the version found when this was written can't, so for it
+  only an instance you started yourself, listening at `127.0.0.1:1906`, can be used, and only once
+  you choose it. **To whom:** that instance, on this computer, and from there wherever it is set up
+  to send text: MailCraft can't see that or turn its tools off, so it always counts as leaving this
+  computer and needs each account's yes. Because its tools stay on, a message's text could lead it to
+  run a command, open a file or browse: MailCraft stops the answer when it sees a tool used, but the
+  tool may already have run, and MailCraft can't undo it, so choosing it and allowing an account for
+  it each ask you to tick that you understand this first. **What is sent:** the prompt, over the loopback address
+  only. **Credentials:** MailCraft never reads UAR's own files or keys and sends it none; if it
+  refuses MailCraft, that is shown. **How to stop:** turn it off, take back an account's yes, or
+  stop the instance.
+
+**What stays on this computer.** With only Apple's on-device model and model servers set up as on
+this computer turned on, nothing of a question or your mail leaves the computer. For the
+runtimes MailCraft starts, the run's folder, instructions file and temporary files are deleted
+after each run, and nothing a runtime writes is kept but the answer you see. The list of runtimes
+found (each program's path and version) is kept in `ai.json` to show them and to know which
+program to start when you haven't named one; each program is checked again before it is run.
 
 ## Problem reports
 
@@ -358,7 +474,8 @@ MailCraft can be driven by scripts and AI agents through a control channel and a
 Both are off unless you start the program with them, listen on your own computer only, and take
 requests only with a key the program keeps in a file in your settings folder. An agent can search
 your mail (it receives what it finds, marked as message text, never instructions), but it cannot
-ask your model server anything or act on an answer: questions to a model server are yours alone.
+ask your model server or any AI runtime anything, act on an answer, or list, order, turn on, sign in to or
+sign out of a runtime: questions to a model and where they go are yours alone.
 
 ## Changes and contact
 

@@ -426,13 +426,22 @@ pub(crate) fn test_result(answer: Result<Value, String>, waiting: bool) -> TestS
                 Some(ErrorKind::Refused { status }) => TestFailure::Refused(status),
                 Some(ErrorKind::TimedOut { .. }) => TestFailure::TimedOut,
                 Some(ErrorKind::Certificate) => TestFailure::Certificate,
-                Some(ErrorKind::Malformed | ErrorKind::TooLarge) => TestFailure::Malformed,
+                Some(ErrorKind::Malformed | ErrorKind::BrokenOff | ErrorKind::TooLarge) => TestFailure::Malformed,
                 Some(ErrorKind::CredentialStore) => TestFailure::CredentialStore,
                 Some(ErrorKind::Settings) if waiting => TestFailure::SeveralPublishers,
                 Some(ErrorKind::Settings) => TestFailure::HostedModels(
                     v.get("refusedModel").and_then(Value::as_str).map(|id| clean(id, SHOWN_REFUSED_ID)).filter(|id| !id.is_empty()),
                 ),
-                Some(ErrorKind::NotConfigured | ErrorKind::NoConsent | ErrorKind::Cancelled) | None => TestFailure::Other,
+                Some(
+                    ErrorKind::NotConfigured
+                    | ErrorKind::NoConsent
+                    | ErrorKind::Cancelled
+                    | ErrorKind::SignedOut
+                    | ErrorKind::ToolUseStopped
+                    | ErrorKind::NoSandbox
+                    | ErrorKind::BrokenRuntime,
+                )
+                | None => TestFailure::Other,
             };
             // Only the provider's own words (`providerText`) go under "The server said:"; our own
             // `message` never does.

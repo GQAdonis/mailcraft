@@ -175,7 +175,7 @@ pub(crate) fn fit(widths: &[[f32; 4]], priority: &[u8], note: f32, available: f3
 /// the groups that are used most highest. `which` names the tab (`Home` is told apart by module).
 fn priorities(which: &str) -> &'static [(&'static str, u8)] {
     match which {
-        "Home mail" => &[("New", 9), ("Delete", 9), ("Respond", 9), ("Move", 7), ("Tags", 6), ("Find", 2), ("Send/Receive", 1)],
+        "Home mail" => &[("New", 9), ("Delete", 9), ("Respond", 9), ("Move", 7), ("Tags", 6), ("Find", 2), ("Send/Receive", 1), ("AI", 1)],
         "Home calendar" => {
             &[("New", 9), ("Arrange", 8), ("Go To", 7), ("Respond", 7), ("Appointment", 6), ("Manage Calendars", 4), ("Share", 3), ("Find", 2)]
         }

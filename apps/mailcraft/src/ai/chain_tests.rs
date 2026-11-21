@@ -344,7 +344,8 @@ fn nothing_falls_back_after_the_first_byte() {
         std::thread::sleep(Duration::from_millis(2_500));
     });
     for (primary, expected) in [
-        (primary_at(cut.port, ProviderKind::Local), ErrorKind::Malformed),
+        // A stream cut short after some of it was shown broke off: it is never kept as an answer.
+        (primary_at(cut.port, ProviderKind::Local), ErrorKind::BrokenOff),
         (
             ProviderConfig { timeouts: Timeouts { idle_secs: 1, ..quick() }, ..primary_at(stalls.port, ProviderKind::Local) },
             ErrorKind::TimedOut { before_first_byte: false },

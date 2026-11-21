@@ -12,12 +12,14 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod backend;
+pub mod client;
 pub mod files;
 pub mod search;
 pub mod server;
 pub mod tools;
 
 pub use backend::{Backend, Remote};
+pub use client::ClientInfo;
 pub use mailcraft_engine::agent::Class;
 pub use server::Server;
 
@@ -103,6 +105,10 @@ impl Backend for Headless {
     }
 }
 
+#[cfg(test)]
+mod ai_runtime_tests;
+#[cfg(test)]
+mod client_tests;
 #[cfg(test)]
 mod files_tests;
 #[cfg(test)]

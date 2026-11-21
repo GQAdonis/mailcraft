@@ -185,6 +185,14 @@ pub struct Tokens {
     pub flagged_row: Color32,
     /// The text of a flagged message whose follow-up is past its due date.
     pub overdue: Color32,
+    /// Where an AI request is answered: on this computer (`ai_local`) or by a model elsewhere
+    /// (`ai_remote`). The ink of the AI status chip's and the narrowing badge's words and icon,
+    /// and the soft fill behind them. Colour never says it alone: the chip and the badge carry an
+    /// icon and words too.
+    pub ai_local: Color32,
+    pub ai_local_soft: Color32,
+    pub ai_remote: Color32,
+    pub ai_remote_soft: Color32,
     /// Calendar: hours outside the working day, and days outside the month in view.
     pub off_hours: Color32,
     /// Calendar: today's column or cell.
@@ -315,8 +323,12 @@ impl Tokens {
             status_bar: window,
             selection,
             find_highlight: Color32::from_rgba_unmultiplied(0xFF, 0xE0, 0x3D, 0x90),
-            flagged_row: c(0xFC, 0xF0, 0xF2),
+            flagged_row: c(0xFE, 0xF7, 0xF8),
             overdue: c(0xB4, 0x23, 0x18),
+            ai_local: c(0x1A, 0x6E, 0x45),
+            ai_local_soft: c(0xE6, 0xF4, 0xEC),
+            ai_remote: c(0x8A, 0x5A, 0x00),
+            ai_remote_soft: c(0xFF, 0xF6, 0xE0),
             off_hours: c(0xF5, 0xF7, 0xFA),
             today: c(0xEA, 0xF1, 0xFF),
             menu: Color32::WHITE,
@@ -415,8 +427,12 @@ impl Tokens {
             status_bar: window,
             selection,
             find_highlight: Color32::from_rgba_unmultiplied(0xC8, 0xA8, 0x00, 0x70),
-            flagged_row: c(0x3A, 0x2A, 0x2E),
+            flagged_row: c(0x2A, 0x22, 0x24),
             overdue: c(0xFF, 0x99, 0x99),
+            ai_local: c(0x5B, 0xC0, 0x8A),
+            ai_local_soft: c(0x1F, 0x33, 0x28),
+            ai_remote: c(0xE8, 0xB7, 0x4A),
+            ai_remote_soft: c(0x3A, 0x30, 0x20),
             off_hours: c(0x1E, 0x1E, 0x20),
             today: c(0x22, 0x2C, 0x3E),
             menu: ribbon,
@@ -1226,6 +1242,26 @@ pub fn mono(size: f32) -> FontId {
     FontId::monospace(size)
 }
 
+/// Corner radii the AI and reading surfaces use (DESIGN.md, Layout).
+pub struct Radius;
+
+impl Radius {
+    /// A control: a button's hover, the search box, a field, the narrowing badge.
+    pub const CONTROL: f32 = 4.0;
+    /// A card: the AI status chip, a citation chip, a flagged row's card.
+    pub const CARD: f32 = 6.0;
+}
+
+/// Gaps the AI and reading surfaces use, on the 4 pt grid.
+pub struct Space;
+
+impl Space {
+    /// Between an icon and its words, and inside a chip or badge.
+    pub const TIGHT: f32 = 4.0;
+    /// Between items of a row and between rows of a dialog.
+    pub const GAP: f32 = 8.0;
+}
+
 /// A UI type rung: size, weight pairing, and size-specific letter-spacing (large text is
 /// tightened, small text opened). Use these instead of raw `regular(size)`/`semibold(size)`.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1236,6 +1272,10 @@ pub enum TypeRung {
     Control,
     /// Group labels, status bar, tooltips.
     Caption,
+    /// The floor for text on the surfaces the AI and reading changes touch: notes, badges and
+    /// the status chip's words, and what was 10.5 pt there. The global `Small` style stays 10.5
+    /// pt for every other module.
+    Note,
 }
 
 impl TypeRung {
@@ -1245,6 +1285,7 @@ impl TypeRung {
             TypeRung::Chrome => 12.5,
             TypeRung::Control => 11.5,
             TypeRung::Caption => 11.0,
+            TypeRung::Note => 11.0,
         }
     }
     /// Extra letter-spacing in points (em-relative, so it scales with the size).
@@ -1253,6 +1294,7 @@ impl TypeRung {
             TypeRung::Chrome => -0.012 * self.size(),
             TypeRung::Control => 0.0,
             TypeRung::Caption => 0.018 * self.size(),
+            TypeRung::Note => 0.0,
         }
     }
     /// Line height in points; tighter leading as the text grows.
@@ -1261,6 +1303,7 @@ impl TypeRung {
             TypeRung::Chrome => 1.25 * self.size(),
             TypeRung::Control => 1.42 * self.size(),
             TypeRung::Caption => 1.5 * self.size(),
+            TypeRung::Note => 1.42 * self.size(),
         }
     }
 
@@ -1433,6 +1476,10 @@ mod theme_font_tests;
 #[cfg(test)]
 #[path = "theme_document_tests.rs"]
 mod theme_document_tests;
+
+#[cfg(test)]
+#[path = "theme_type_tests.rs"]
+mod theme_type_tests;
 
 #[cfg(test)]
 mod tests {

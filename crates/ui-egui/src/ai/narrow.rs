@@ -12,6 +12,11 @@
 //! front, File or a dialog opening (but not the gateway question its own request is waiting on),
 //! another mailbox, or Advanced Search opening. Closing it calls off a request under way. When a proposal arrives the keyboard goes to the proposal, never to
 //! Use This Search, so a second Enter can't accept a search the owner hasn't seen.
+//!
+//! A proposal the model made carries a badge saying where the description went (A7): "On this
+//! computer", "Gateway: {host}" or "Remote: {host}", from the provider that actually answered
+//! (the on-device backup counts as this computer). Only the host is shown, and a non-default
+//! port: never a user name, password, path, query, fragment or key ([`badge_host`]).
 
 use egui::{Area, Frame, Id, Key, LayerId, Order, Rect, Stroke, Ui, pos2, vec2};
 use mailcraft_engine::{Module, Scope};
@@ -21,7 +26,7 @@ use serde_json::{Value, json};
 use super::errors::Trouble;
 use super::{Providers, flag, text};
 use crate::MailApp;
-use crate::theme::{Tokens, regular, semibold};
+use crate::theme::{Radius, Space, Tokens, TypeRung, regular, semibold};
 
 /// The panel's width as it would have it.
 const PANEL_W: f32 = 480.0;
@@ -29,6 +34,172 @@ const PANEL_W: f32 = 480.0;
 pub(crate) const MAX_TEXT: usize = 500;
 /// Most characters of a proposal kept in the field.
 const MAX_QUERY: usize = 1_000;
+/// Most characters of a host on the badge (a DNS name is at most 253).
+const MAX_BADGE_HOST: usize = 64;
+/// The id the host gives the on-device model when it answers ([`super::Providers::backup`]).
+const ON_DEVICE: &str = "apple-on-device";
+
+/// Where the request that made a proposal was answered, for the badge.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum Route {
+    /// On this computer: a local provider, or the on-device backup.
+    Local,
+    /// A gateway, by host (`None`: its address couldn't be read).
+    Gateway(Option<String>),
+    /// A service elsewhere, by host (`None`: its address couldn't be read).
+    Remote(Option<String>),
+    /// A runtime of the chain, by its short name ([`super::runtime_rows::short_name`]): whether
+    /// it keeps text on this computer, and who it sends to when it doesn't.
+    Runtime { name: String, local: bool, vendor: String },
+}
+
+impl Route {
+    /// The route of a provider of `kind` at `base_url`. A kind this window doesn't know is taken
+    /// as remote: the badge never says "this computer" without knowing it.
+    pub(crate) fn of(kind: &str, base_url: &str) -> Route {
+        match kind {
+            "local" => Route::Local,
+            "gateway" => Route::Gateway(badge_host(base_url)),
+            _ => Route::Remote(badge_host(base_url)),
+        }
+    }
+
+    /// The badge's words, which are also its accessible label.
+    pub(crate) fn words(&self) -> String {
+        match self {
+            Route::Local => tl!("On this computer").to_string(),
+            Route::Gateway(Some(host)) => crate::i18n::fmt(tl!("Gateway: {host}"), &[("host", host)]),
+            Route::Gateway(None) => tl!("Gateway").to_string(),
+            Route::Remote(Some(host)) => crate::i18n::fmt(tl!("Remote: {host}"), &[("host", host)]),
+            Route::Remote(None) => tl!("Remote").to_string(),
+            Route::Runtime { name, .. } => name.clone(),
+        }
+    }
+
+    /// What it says under the pointer: where the description went, and that no mail did.
+    pub(crate) fn tip(&self) -> Option<String> {
+        match self {
+            Route::Runtime { local: true, .. } => Some(tl!("Your description stays on this computer. No mail is sent.").to_string()),
+            Route::Runtime { name, vendor, .. } => Some(crate::i18n::fmt(
+                tl!("Your description goes to {runtime}, which sends it to {vendor}. No mail is sent."),
+                &[("runtime", name), ("vendor", vendor)],
+            )),
+            _ => None,
+        }
+    }
+
+    /// Whether it keeps the description on this computer.
+    fn local(&self) -> bool {
+        matches!(self, Route::Local | Route::Runtime { local: true, .. })
+    }
+
+    /// The route of the runtime that would answer an owner-text-only request first: the first
+    /// enabled, usable runtime of the chain. `None` when nothing can answer.
+    pub(crate) fn of_chain(facts: &super::runtime_rows::Facts) -> Option<Route> {
+        let first = facts.first_usable()?;
+        let local = first.place == mailcraft_model::ai::Where::Local;
+        Some(Route::Runtime { name: super::runtime_rows::short_name(&first.id), local, vendor: super::runtime_rows::vendor(first) })
+    }
+
+    /// The badge's icon: the status chip's chip on this computer, a server for a gateway, the
+    /// chip's cloud for a service elsewhere.
+    fn icon(&self) -> &'static str {
+        match self {
+            Route::Local => "aiLocal",
+            Route::Gateway(_) => "server",
+            Route::Remote(_) => "aiRemote",
+            Route::Runtime { local: true, .. } => "aiLocal",
+            Route::Runtime { .. } => "aiRemote",
+        }
+    }
+}
+
+/// The host (and a port that isn't the scheme's own) of a configured `base` URL, for the badge:
+/// never the user name or password, path, query, fragment or anything after them. `None` when
+/// the URL can't be read as `scheme://host[:port]…` with a host of letters, digits, `-` and `.`
+/// (or a bracketed IPv6 address) and a port of digits: the badge then names the kind alone.
+pub(crate) fn badge_host(base: &str) -> Option<String> {
+    let (scheme, rest) = base.trim().split_once("://")?;
+    let scheme = scheme.to_ascii_lowercase();
+    if scheme.is_empty() || !scheme.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')) {
+        return None;
+    }
+    // A backslash ends the authority too, as a browser reads it.
+    let authority = rest.split(['/', '\\', '?', '#']).next().unwrap_or_default();
+    let authority = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let (host, port) = if let Some(inner) = authority.strip_prefix('[') {
+        let (v6, after) = inner.split_once(']')?;
+        if v6.is_empty() || !v6.chars().all(|c| c.is_ascii_hexdigit() || matches!(c, ':' | '.')) {
+            return None;
+        }
+        let port = match after {
+            "" => None,
+            p => Some(p.strip_prefix(':')?),
+        };
+        (format!("[{}]", v6.to_ascii_lowercase()), port)
+    } else {
+        let (host, port) = match authority.split_once(':') {
+            Some((host, port)) => (host, Some(port)),
+            None => (authority, None),
+        };
+        let host = host.trim_end_matches('.');
+        let fine = |c: char| c.is_ascii_alphanumeric() || matches!(c, '-' | '.');
+        if host.is_empty() || host.len() > 253 || !host.chars().all(fine) || host.starts_with('.') || host.contains("..") {
+            return None;
+        }
+        (host.to_ascii_lowercase(), port)
+    };
+    let port = match port {
+        None | Some("") => None,
+        Some(p) => Some(p.parse::<u16>().ok().filter(|_| p.len() <= 5 && p.chars().all(|c| c.is_ascii_digit()))?),
+    };
+    let default = match scheme.as_str() {
+        "https" => Some(443),
+        "http" => Some(80),
+        _ => None,
+    };
+    let shown = match port {
+        Some(p) if Some(p) != default => format!("{host}:{p}"),
+        _ => host,
+    };
+    Some(super::cut(&shown, MAX_BADGE_HOST))
+}
+
+/// The route request `request` took: the provider the host said answered it, else the one in
+/// use (or the confirmed on-device backup when there is none). `None` when nothing says.
+fn route_of(app: &MailApp, request: u64) -> Option<Route> {
+    // With a runtime chain, the runtime that answers (B11): the one the host said, else the first.
+    if app.services.ai_runtimes.is_some() {
+        let facts = super::settings_runtimes::facts_of(app);
+        let by = app
+            .session
+            .ai
+            .get(request)
+            .and_then(|t| t.answered_by.as_ref())
+            .and_then(|b| mailcraft_model::ai::RuntimeId::parse(b.provider.trim()).ok());
+        if let Some(f) = by.and_then(|id| facts.rows.iter().find(|f| f.id == id)) {
+            let local = f.place == mailcraft_model::ai::Where::Local;
+            return Some(Route::Runtime { name: super::runtime_rows::short_name(&f.id), local, vendor: super::runtime_rows::vendor(f) });
+        }
+        if let Some(route) = Route::of_chain(&facts) {
+            return Some(route);
+        }
+    }
+    let providers = Providers::of(app);
+    let by = app.session.ai.get(request).and_then(|t| t.answered_by.as_ref()).map(|b| b.provider.trim().to_string());
+    if let Some(by) = by.filter(|b| !b.is_empty()) {
+        if by == ON_DEVICE {
+            return Some(Route::Local);
+        }
+        if let Some((p, _)) = providers.get(&by) {
+            return Some(Route::of(&p.kind, &p.base_url));
+        }
+    }
+    match providers.active() {
+        Some(p) => Some(Route::of(&p.kind, &p.base_url)),
+        None => providers.backup_confirmed().map(|_| Route::Local),
+    }
+}
 
 /// Where the panel is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -61,6 +232,8 @@ pub(crate) struct Panel {
     pub(crate) stage: Stage,
     /// What the provider itself said of a failure, for the notice's details: data, never read.
     pub(crate) details: String,
+    /// Where the proposal in view was made, for its badge: `None` for one the owner wrote.
+    pub(crate) route: Option<Route>,
     focus: Focus,
     /// The mailbox it was opened on ([`mailcraft_engine::Session::openings`]).
     openings: u64,
@@ -73,6 +246,7 @@ impl Panel {
             query: String::new(),
             stage: Stage::Ready,
             details: String::new(),
+            route: None,
             focus: Focus::Request,
             openings: app.session.openings(),
         }
@@ -164,6 +338,7 @@ pub(crate) fn suggest(app: &mut MailApp) -> Result<(), String> {
     if let Some(panel) = app.ai.narrow.as_mut() {
         panel.stage = Stage::Asking { request };
         panel.query.clear();
+        panel.route = None;
     }
     Ok(())
 }
@@ -226,6 +401,7 @@ pub(crate) fn command(app: &mut MailApp, p: &Value) -> Result<Value, String> {
         }
         if let Some(query) = query {
             panel.query = query;
+            panel.route = None;
             panel.stage = Stage::Proposal;
             panel.focus = Focus::Proposal;
         }
@@ -248,7 +424,8 @@ fn answer(app: &MailApp) -> Value {
         Stage::Proposal => ("proposal", None),
         Stage::Trouble(_) => ("trouble", None),
     };
-    json!({"open": true, "stage": stage, "request": request, "text": panel.text, "proposal": panel.query})
+    let badge = panel.route.as_ref().filter(|_| panel.stage == Stage::Proposal).map(Route::words);
+    json!({"open": true, "stage": stage, "request": request, "text": panel.text, "proposal": panel.query, "badge": badge})
 }
 
 /// Once a frame, before anything is drawn: closes the panel when what it was opened for has gone,
@@ -324,8 +501,10 @@ fn took(app: &mut MailApp, request: u64) {
     let query = read.get("query").and_then(Value::as_str).filter(|_| read.get("valid").and_then(Value::as_bool) == Some(true));
     if let Some(query) = query {
         let query: String = query.chars().take(MAX_QUERY).collect();
+        let route = route_of(app, request);
         if let Some(panel) = app.ai.narrow.as_mut() {
             panel.query = query;
+            panel.route = route;
         }
         set_stage(app, Stage::Proposal, Focus::Proposal);
         app.status(tl!("Suggested a search."));
@@ -418,6 +597,32 @@ pub(crate) fn notice(ui: &mut Ui, trouble: Trouble, lead: &str, rest: &str, t: &
     });
 }
 
+/// The badge saying where the proposal was made: an icon and words in the route's ink on its soft
+/// fill (`ai_local*` on this computer, `ai_remote*` for a gateway or a service elsewhere), so the
+/// colour never says it alone. Its accessible label is its words.
+pub(crate) fn badge(ui: &mut Ui, route: &Route, t: &Tokens) -> egui::Response {
+    let words = route.words();
+    let (ink, fill) = match route {
+        r if r.local() => (t.ai_local, t.ai_local_soft),
+        _ => (t.ai_remote, t.ai_remote_soft),
+    };
+    let font = TypeRung::Note.medium();
+    let icon = 14.0;
+    let galley = ui.painter().layout_no_wrap(words.clone(), font, ink);
+    let pad = vec2(Space::TIGHT + 2.0, 2.0);
+    let size = vec2(pad.x * 2.0 + icon + Space::TIGHT + galley.size().x, (pad.y * 2.0 + galley.size().y).max(icon + pad.y * 2.0));
+    let (r, resp) = ui.allocate_exact_size(size, egui::Sense::hover());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &words));
+    if ui.is_rect_visible(r) {
+        let p = ui.painter();
+        p.rect_filled(r, Radius::CONTROL, fill);
+        let icon_r = Rect::from_min_size(pos2(r.min.x + pad.x, r.center().y - icon / 2.0), vec2(icon, icon));
+        crate::icons::paint(p, icon_r, route.icon(), ink, ink);
+        p.galley(pos2(icon_r.max.x + Space::TIGHT, r.center().y - galley.size().y / 2.0), galley, ink);
+    }
+    resp
+}
+
 /// The proposal's field, its keywords drawn as the search box draws them. Enter in it uses it.
 fn proposal(ui: &mut Ui, query: &mut String, label: egui::Id, focus: bool, t: &Tokens) -> bool {
     let font = regular(13.0);
@@ -466,7 +671,12 @@ pub(crate) fn show(app: &mut MailApp, ctx: &egui::Context, anchor: Rect, button:
     let area = Area::new(panel_id()).order(Order::Background).fixed_pos(pos2(x, top)).show(ctx, |ui| {
         Frame::popup(ui.style()).fill(t.menu).stroke(Stroke::new(1.0, t.border_strong)).inner_margin(12.0).show(ui, |ui| {
             ui.set_width(width - 24.0);
-            egui::ScrollArea::vertical().max_height((screen.max.y - top - 80.0).max(120.0)).show(ui, |ui| {
+            // The room the panel may take: an `Area` hands its contents last frame's size, and a
+            // scroll area takes no more room than it is handed, so without this the panel would
+            // keep the height it had while asking and cut the proposal off under its caption.
+            let tall = (screen.max.y - top - 80.0).max(120.0);
+            ui.set_max_height(tall);
+            egui::ScrollArea::vertical().max_height(tall).show(ui, |ui| {
                 ui.spacing_mut().item_spacing = vec2(8.0, 6.0);
                 // No model, and nothing asked: nothing can be sent, and the panel says where to
                 // set one up instead of offering a field.
@@ -544,7 +754,25 @@ pub(crate) fn show(app: &mut MailApp, ctx: &egui::Context, anchor: Rect, button:
                     }
                     Stage::Proposal => {
                         let named = crate::i18n::fmt(tl!("Suggested search, in {scope}"), &[("scope", scope)]);
-                        let label = caption(ui, &named, &t).id;
+                        // The caption on the left, the badge (when the model made it) on the right.
+                        // A row of its own (a layout from right to left would take the panel's
+                        // whole height otherwise).
+                        let label = ui
+                            .horizontal(|ui| {
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                    if let Some(route) = &panel.route {
+                                        let shown = badge(ui, route, &t);
+                                        let shown = match route.tip() {
+                                            Some(tip) => shown.on_hover_text(tip),
+                                            None => shown,
+                                        };
+                                        app.hit.add("narrowBadge", 0, shown.rect);
+                                    }
+                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| caption(ui, &named, &t).id).inner
+                                })
+                                .inner
+                            })
+                            .inner;
                         let enter = proposal(ui, &mut panel.query, label, focus == Focus::Proposal, &t);
                         let some = !panel.query.trim().is_empty();
                         if enter && some {
@@ -610,6 +838,7 @@ pub(crate) fn show(app: &mut MailApp, ctx: &egui::Context, anchor: Rect, button:
         Act::WriteOwn => {
             if let Some(panel) = app.ai.narrow.as_mut() {
                 panel.query.clear();
+                panel.route = None;
                 panel.stage = Stage::Proposal;
                 panel.focus = Focus::Proposal;
             }
@@ -636,3 +865,7 @@ pub(crate) fn show(app: &mut MailApp, ctx: &egui::Context, anchor: Rect, button:
         app.say_refused("ui.findByDescription", &e);
     }
 }
+
+#[cfg(test)]
+#[path = "narrow_tests.rs"]
+mod narrow_tests;

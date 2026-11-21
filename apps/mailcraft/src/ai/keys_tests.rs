@@ -59,9 +59,9 @@ fn a_key_is_filed_under_its_provider_and_comes_back() {
     let store = Memory::default();
     let key = ApiKey::new(KEY).unwrap();
     save(&store, "mailcraft-boundary-20261116a", &key).unwrap();
-    assert_eq!(entry_name("mailcraft-boundary-20261116a").unwrap(), "ai-key:mailcraft-boundary-20261116a");
+    assert_eq!(entry_name("mailcraft-boundary-20261116a").unwrap(), "ai.compat:mailcraft-boundary-20261116a");
     let entries = store.entries.lock().unwrap().clone();
-    assert_eq!(entries.keys().collect::<Vec<_>>(), ["ai-key:mailcraft-boundary-20261116a"]);
+    assert_eq!(entries.keys().collect::<Vec<_>>(), ["ai.compat:mailcraft-boundary-20261116a"]);
     assert!(entries.keys().all(|name| name.starts_with(PREFIX) && !name.contains(KEY)));
     assert_eq!(load(&store, "mailcraft-boundary-20261116a").unwrap(), Some(key.clone()));
     assert_eq!(load(&store, "another-provider").unwrap(), None);
@@ -108,7 +108,7 @@ fn a_store_that_refuses_or_holds_something_else_is_an_error_not_a_key() {
     let refusing = Memory { refuse: true, ..Memory::default() };
     assert_eq!(save(&refusing, "remote-1", &ApiKey::new(KEY).unwrap()), Err(KeyError::Store(SecretError::Refused)));
     let damaged = Memory::default();
-    damaged.entries.lock().unwrap().insert("ai-key:remote-1".into(), "not a key\nat all".into());
+    damaged.entries.lock().unwrap().insert("ai.compat:remote-1".into(), "not a key\nat all".into());
     assert_eq!(load(&damaged, "remote-1"), Err(KeyError::Damaged));
     let damaged = shared(damaged);
     assert_eq!(with_key(provider("remote-1"), true, &Broker::new(READ_WAIT), Some(&damaged)).map(|c| c.api_key.is_some()), Err(KeyError::Damaged));
@@ -270,4 +270,41 @@ fn a_store_that_panics_is_an_error_and_the_thread_goes_on() {
     // The busy flag was let go: the next read is made.
     assert!(when_free(&broker, &memory, "remote-1").is_some());
     assert_eq!(broker.read(&shared(Memory::default()), "bad/id"), Err(KeyError::BadProvider));
+}
+
+#[test]
+fn a_request_whose_read_finds_the_thread_busy_waits_it_out_and_gets_the_key() {
+    // A question's embedding reads the key; its chat reads it a moment later (SCN-PRIOR-OPTIN-001).
+    let (store, gate) = slow(Some(KEY));
+    let broker = Arc::new(Broker::new(Duration::from_secs(2)));
+    let (b, s) = (broker.clone(), dyn_store(&store));
+    let first = std::thread::spawn(move || b.read(&s, "remote-1"));
+    while store.reads.load(Ordering::SeqCst) == 0 {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    // The first read is under way; both reads are let through shortly.
+    let opener = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        gate.send(()).unwrap();
+        gate.send(()).unwrap();
+    });
+    let config = with_key(provider("remote-1"), true, &broker, Some(&dyn_store(&store))).unwrap();
+    assert!(config.api_key.is_some(), "the chat gets the key, not a credential-store error");
+    assert!(first.join().unwrap().unwrap().is_some());
+    opener.join().unwrap();
+}
+
+#[test]
+fn neg_a_store_that_stays_busy_still_ends_the_request_within_the_wait() {
+    let (store, gate) = slow(Some(KEY));
+    let broker = Arc::new(Broker::new(Duration::from_millis(300)));
+    let (b, s) = (broker.clone(), dyn_store(&store));
+    let _first = std::thread::spawn(move || b.read(&s, "remote-1"));
+    while store.reads.load(Ordering::SeqCst) == 0 {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let started = Instant::now();
+    assert_eq!(with_key(provider("remote-1"), true, &broker, Some(&dyn_store(&store))).map(|c| c.api_key.is_some()), Err(KeyError::Busy));
+    assert!(started.elapsed() < Duration::from_secs(2), "{:?}", started.elapsed());
+    drop(gate);
 }

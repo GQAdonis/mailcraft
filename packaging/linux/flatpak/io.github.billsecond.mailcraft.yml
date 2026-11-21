@@ -51,9 +51,10 @@ modules:
         CARGO_HOME: /run/build/mailcraft/cargo
         CARGO_NET_OFFLINE: 'true'
     build-commands:
-      - cargo --offline build --release --locked -p mailcraft -p mailcraft-cli
+      - cargo --offline build --release --locked -p mailcraft -p mailcraft-cli -p mailcraft-launcher
       - install -Dm755 target/release/mailcraft /app/bin/mailcraft
       - install -Dm755 target/release/mailcraft-cli /app/bin/mailcraft-cli
+      - install -Dm755 target/release/mailcraft-launcher /app/bin/mailcraft-launcher
       - install -Dm644 packaging/linux/io.github.billsecond.mailcraft.desktop /app/share/applications/io.github.billsecond.mailcraft.desktop
       - install -Dm644 packaging/linux/io.github.billsecond.mailcraft.mime.xml /app/share/mime/packages/io.github.billsecond.mailcraft.xml
       - mkdir -p /app/share/icons && cp -R assets/app-icon/hicolor /app/share/icons/

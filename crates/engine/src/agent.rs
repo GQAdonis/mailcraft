@@ -652,7 +652,48 @@ const NEVER: &[&str] = &[
     // computer: setting up where mail may go is the owner's alone (ai-settings-ux).
     "ui.testProvider",
     "ui.confirmOnDevice",
+    // The Agents panel and its kill switch (agent-console): what agents did is the owner's to
+    // read, and an agent must never be able to turn agent access back on.
+    "ui.agents",
+    "ui.agentAccess",
+    // The runtimes an answer may come from (ai-runtime-commands): which there are, their order,
+    // which are on, their options, looking for them again, signing in and out, their keys, what
+    // happens when one fails, and which account's mail may go to which. Each changes where mail
+    // may go or what is held for the owner, so it is the owner's alone.
+    "ai.runtimes",
+    "ai.setRuntimeOrder",
+    "ai.setRuntimeEnabled",
+    "ai.setRuntimeOption",
+    "ai.rescan",
+    "ai.signIn",
+    "ai.signOut",
+    "ai.setRuntimeKey",
+    "ai.setFallback",
+    "ai.setConsent",
 ];
+
+/// The window's control methods about the AI runtimes, which no agent may run, asked or allowed in
+/// advance (ai-runtime-commands): listing them, ordering the chain, turning one on or off, its
+/// options, looking for them again, signing in and out, its key, the fallback, and consent by
+/// runtime id. They are the host's, not the engine's (no command is registered for them), and each
+/// is [`Access::Never`]; a test holds them to it.
+pub const AI_RUNTIME_OWNER_ONLY: &[&str] = &[
+    "ai.runtimes",
+    "ai.setRuntimeOrder",
+    "ai.setRuntimeEnabled",
+    "ai.setRuntimeOption",
+    "ai.rescan",
+    "ai.signIn",
+    "ai.signOut",
+    "ai.setRuntimeKey",
+    "ai.setFallback",
+    "ai.setConsent",
+];
+
+/// The window's commands about agents themselves, which no agent may run, asked or not: the
+/// Agents panel (its activity log) and Stop agent access. Each is [`Access::Never`]; a test holds
+/// them to it.
+pub const AGENT_OWNER_ONLY: &[&str] = &["ui.agents", "ui.agentAccess"];
 
 /// The AI commands no agent may run, asked or not (SAFETY-001): asking a model, what the host
 /// sends and takes back (with `ai.ask`'s `contextWindow`, the window of the provider that is to

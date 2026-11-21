@@ -459,6 +459,8 @@ pub fn call_tool(b: &mut dyn Backend, pol: &Policy, name: &str, a: &Value) -> To
                 Ok(Value::Array(v)) => {
                     let f: Vec<Value> = v
                         .into_iter()
+                        // The owner's AI runtime commands are never offered to an agent.
+                        .filter(|c| !c.get("id").and_then(Value::as_str).is_some_and(|id| agent::AI_RUNTIME_OWNER_ONLY.contains(&id)))
                         .filter(|c| {
                             q.is_empty()
                                 || ["id", "label", "location"]

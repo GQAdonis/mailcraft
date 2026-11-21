@@ -2,6 +2,8 @@
 
 Paste everything inside the fence into Claude Code (Opus 5.5), started in the MailCraft repo root. It creates **one** KBD phase that delivers Part A and Part B of `PLAN.md` from the repository as it is now. Prompts `02`–`07` stay the detailed instructions for each stage.
 
+> **Run.** This kickoff created the phase `mailcraft-ui-refresh-and-agent-runtimes`. Its gate answers, its 21 final change ids and its 43 frozen scenario ids are in [README.md](README.md#the-record-of-the-phase-these-prompts-ran), and `AI-SETTINGS-SPEC.md` carries the amendments. The text in the fence is kept as it was pasted, except the rules that the gate answers changed (marked **Amended**). OpenCode is cut (G-RT5 b).
+
 ```text
 /kbd-new-phase mailcraft-ui-refresh-and-agent-runtimes Deliver everything in docs/design: the window refresh, AI and agent surfaces (PLAN.md Part A) and the multi-runtime AI settings and sign-in (PLAN.md Part B), starting from the repository as it is now.
 
@@ -9,7 +11,7 @@ You are the KBD lead for MailCraft, running Opus 5.5. Run the full loop for this
 
 ## Sources of truth (read in this order before anything else)
 1. AGENTS.md. It is the authority. If anything in docs/design conflicts with it, AGENTS.md wins and you raise the conflict with me.
-2. .kbd-orchestrator/constraints.md and .kbd-orchestrator/position-reminder.txt.
+2. The KBD constraints file and position reminder in the KBD state folder.
 3. docs/design/PLAN.md: all of Part A (§0-§11) and Part B (§B0-§B11).
 4. docs/design/AI-SETTINGS-SPEC.md: normative for Part B (config v3, detection, sign-in, containment, commands, scenarios SCN-RT-*).
 5. docs/design/research/AGENT-RUNTIMES.md: vendor facts, policy quotes and the verification list.
@@ -21,7 +23,7 @@ You are the KBD lead for MailCraft, running Opus 5.5. Run the full loop for this
 - The earlier phase agentic-ai-integration (and its child agentic-ai-scenario-repair) is marked cancelled in KBD state. PLAN.md §4 and §B1 assumed it would close normally, so treat those entry criteria as superseded by this baseline step, not as met.
 - The working tree has uncommitted changes, including AI code PLAN.md builds on (ai.json v2, route.rs, settings_page.rs, settings_device.rs). Never discard, stash, reset or overwrite them.
 - Baseline step, before assess:
-  a. Record git log -1, git status --short and the KBD state in .kbd-orchestrator/phases/<this phase>/prior-context.md, with links to every docs/design file above and the line "The plan in docs/design is a proposal; gates are unanswered until decision-log.md records them."
+  a. Record git log -1, git status --short and the KBD state in this phase's prior-context.md in the KBD state folder, with links to every docs/design file above and the line "The plan in docs/design is a proposal; gates are unanswered until decision-log.md records them."
   b. Run cargo xtask ci on the current tree with a fresh CARGO_TARGET_DIR and record the result.
   c. List which items PLAN.md §1 and §B2 say exist, and check each one in code: present, partial or missing. Pay special attention to the child-phase tasks PLAN.md depends on (6.4, 6.6, 7.2-7.6).
   d. Ask me one question: how to baseline the uncommitted work. Recommend: I commit it myself as a separate baseline commit on a new branch before execute. Any missing dependency from (c) becomes a change in this phase's plan; don't assume it.
@@ -40,7 +42,7 @@ You are the KBD lead for MailCraft, running Opus 5.5. Run the full loop for this
 - ASSESS (prompt 02):
   - Re-verify the code inventory.
   - Run the verification list in research/AGENT-RUNTIMES.md against current vendor docs, with sources.
-  - Then present ALL open gates in one question form, each with its recommendation pre-selected: G1-G15 and G-RT0-G-RT13 (prompt 03). G-RT2, G-RT3 and G-RT12 need my answer in my own words; don't pre-fill them.
+  - Then present ALL open gates in one question form, each with its recommendation pre-selected: G1-G18 and G-RT0-G-RT13 (prompt 03). G-RT2, G-RT3 and G-RT12 need my answer in my own words; don't pre-fill them.
   - Record every answer in decision-log.md.
   - CHECKPOINT: stop until I answer.
 - ANALYZE (prompt 04): build vs adopt for each change. Covers safe-Rust sandbox, keychain, OAuth/PKCE and process-group crates (G-RT13). No unsafe, and wasm must keep building.
@@ -58,10 +60,10 @@ You are the KBD lead for MailCraft, running Opus 5.5. Run the full loop for this
   - Then my acceptance, then /kbd-reflect.
 
 ## Rules that are easy to get wrong here
-- Never commit plan/, openspec/ or .kbd-orchestrator/. docs/design/ is public in this fork.
+- Never commit the private planning folders (plans, OpenSpec changes, KBD state); quote nothing of them in public docs beyond a change or task id. docs/design/ is public in this fork.
 - Commit only when I say so. Run cargo xtask ci before every commit. Commit messages end with "Human-reviewed, AI-assisted, nobody's mailbox harmed." and carry no AI Co-Authored-By trailer.
 - Colours come only from Tokens; text goes through tl!; every ui.* action is a CommandSpec in UI_COMMANDS; unsafe_code stays forbidden.
-- Claude subscriptions are never used. Codex uses a MailCraft-held API key only, with a per-run CODEX_HOME and HOME. Never read another CLI's credentials. Every runtime runs tool-free under the containment in spec §7, and any tool event kills the run.
+- **Amended (G-RT2 b, G-RT6 b, G-RT12 owner-specified, no per-token billing):** Claude Code runs unmodified on the owner's own login (a subscription included) with the real HOME; MailCraft offers no claude.ai login. Codex runs unmodified on the owner's own ChatGPT login in the owner's CODEX_HOME, with a per-run HOME and --ignore-user-config; MailCraft never runs codex login and holds no Codex key. No runtime needs an API key for Claude or Codex. Never read another CLI's credentials. Every runtime runs tool-free under the containment in spec §7, and any tool event kills the run.
 - Keep the agent approval modal, bound, defaulting to No, with its 50 s timeout.
 - If a fact in docs/design turns out wrong in code or vendor docs, record it in decision-log.md and tell me. Don't build on it.
 

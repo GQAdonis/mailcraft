@@ -833,8 +833,11 @@ pub fn folder_pane_strip(app: &mut MailApp, ui: &mut Ui) {
         ui.painter()
             .add(Shape::line(vec![pos2(c.x - 1.75, c.y - 3.4), pos2(c.x + 1.65, c.y), pos2(c.x - 1.75, c.y + 3.4)], Stroke::new(1.5, t.text)));
         app.hit.add("folderPaneShow", 0, button);
-        if resp.on_hover_text(tl!("Show the folder pane")).clicked() {
-            let _ = app.run("view.folderPane", json!({"value": true}));
+        // Standing aside for the Answers pane (P1): the pane is shown again by closing it.
+        let tip = if app.ai.folders_yield { tl!("Show the folder pane (closes Answers)") } else { tl!("Show the folder pane") };
+        if resp.on_hover_text(tip).clicked() {
+            let _ =
+                if app.ai.folders_yield { app.run("ui.answers", json!({"open": false})) } else { app.run("view.folderPane", json!({"value": true})) };
         }
     });
 }

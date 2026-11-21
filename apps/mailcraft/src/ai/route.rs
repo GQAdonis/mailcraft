@@ -21,15 +21,29 @@
 //! a list that isn't one (a server without `/v1/models`) leaves the owner's choice as it is, and is
 //! asked for again at the next request. A gateway or a provider elsewhere isn't checked: the owner
 //! already said its mail leaves this computer.
+//!
+//! **The walk of the chain** (ai-runtime-chain 20.2): [`admit`] says, for one hop, whether the
+//! owner's chain lets a request go to that runtime now, read from the settings as they are at that
+//! hop (never once for the whole walk): an entry that is gone or off is passed over
+//! ([`Skip::Disabled`]), and so is one that `leaves` while any account of the request hasn't
+//! allowed it ([`Skip::NoConsent`]). Where a runtime sends text is
+//! `mailcraft_model::ai::where_of` over the providers the owner set up, never anything a runtime
+//! says of itself. Whether the runtime can be used ([`Unusable`]) is asked by the walk only after
+//! [`admit`] let it through, so that a runtime the request may not go to is never spawned, not
+//! even to ask its status. Every skip is kept, with its reason, for the answer's provenance
+//! ([`Provenance`]).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use mailcraft_ai::{AiError, ProviderConfig, ProviderKind, Route, fingerprint, route_of};
-use mailcraft_model::ai::{ErrorKind, clean_provider_text};
+use mailcraft_model::ai::{
+    AiKind, Carries, ChainEntry, CompatKind, CompatProvider, ErrorKind, ProviderId, RuntimeId, Where, clean_provider_text, may_send, where_of,
+};
+use serde_json::{Value, json};
 
 use super::run::{Failure, failure_of, shown_address};
-use super::settings::{GatewayQuestion, Shared, route_address};
+use super::settings::{AiSettings, GatewayQuestion, Shared, route_address};
 
 /// The longest a request waits for the owner's answer to the gateway question.
 pub(crate) const QUESTION_WAIT: Duration = Duration::from_secs(120);
@@ -172,5 +186,188 @@ fn wait_for_answer(settings: &Shared, question: GatewayQuestion, cancel: &Atomic
             return Err(unanswered);
         }
         std::thread::sleep(POLL);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// The walk of the chain
+// ---------------------------------------------------------------------------------------------
+
+/// Why a runtime that may be sent the request can't be used now: what its status said at its hop.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Unusable {
+    /// It isn't set up (a provider that is gone, an on-device model not confirmed, no model chosen).
+    NotSetUp,
+    /// It isn't signed in (or its vendor ended the sign-in).
+    SignedOut,
+    /// Its program wasn't found.
+    NotInstalled,
+    /// It is there but doesn't work as its kind does.
+    Broken,
+    /// It isn't running (a server that doesn't answer, an on-device model that changed).
+    NotRunning,
+    /// It isn't offered on this computer (no sandbox for it, or a kind this version doesn't run).
+    NotOffered,
+    /// Its context window can't hold the request.
+    NoRoom,
+}
+
+#[allow(dead_code, reason = "the window reads it once the integrator wires the chain into the window (ai-runtime-chain 20.5, 20.8)")]
+impl Unusable {
+    /// Its name, as JSON writes it.
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Unusable::NotSetUp => "not_set_up",
+            Unusable::SignedOut => "signed_out",
+            Unusable::NotInstalled => "not_installed",
+            Unusable::Broken => "broken",
+            Unusable::NotRunning => "not_running",
+            Unusable::NotOffered => "not_offered",
+            Unusable::NoRoom => "no_room",
+        }
+    }
+
+    /// The error kind a request ends with when this is the reason nothing could answer.
+    pub(crate) fn kind(self) -> ErrorKind {
+        match self {
+            Unusable::NotSetUp => ErrorKind::NotConfigured,
+            Unusable::SignedOut => ErrorKind::SignedOut,
+            Unusable::NotInstalled | Unusable::Broken => ErrorKind::BrokenRuntime,
+            Unusable::NotRunning => ErrorKind::Unreachable,
+            Unusable::NotOffered => ErrorKind::NoSandbox,
+            Unusable::NoRoom => ErrorKind::TooLarge,
+        }
+    }
+}
+
+/// Why a hop of the chain was passed over without the runtime being sent anything.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Skip {
+    /// The entry is off, or no longer in the chain.
+    Disabled,
+    /// The runtime `leaves`, and an account of the request hasn't allowed it.
+    NoConsent,
+    /// The runtime can't be used now.
+    Unusable(Unusable),
+}
+
+#[allow(dead_code, reason = "the window reads it once the integrator wires the chain into the window (ai-runtime-chain 20.5, 20.8)")]
+impl Skip {
+    /// Its name, as JSON writes it.
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Skip::Disabled => "disabled",
+            Skip::NoConsent => "no_consent",
+            Skip::Unusable(why) => why.name(),
+        }
+    }
+}
+
+/// A hop [`admit`] let through: the entry as the settings hold it now, and where it sends text.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Admitted {
+    pub(crate) entry: ChainEntry,
+    pub(crate) place: Where,
+}
+
+/// The providers the owner set up, as `where_of` takes them.
+pub(crate) fn compat_providers(settings: &AiSettings) -> Vec<CompatProvider> {
+    settings
+        .providers
+        .iter()
+        .filter_map(|p| {
+            let kind = match p.kind {
+                ProviderKind::Local => CompatKind::Local,
+                ProviderKind::Remote => CompatKind::Remote,
+                ProviderKind::Gateway => CompatKind::Gateway,
+            };
+            ProviderId::new(&p.id).ok().map(|id| CompatProvider { id, kind })
+        })
+        .collect()
+}
+
+/// What a request of `kind` for the mail of `accounts` carries, as consent reads it: a search
+/// proposed from the owner's words carries nothing of any message; an answer carries the mail of
+/// `accounts` (an empty list allows no runtime that leaves).
+pub(crate) fn carried(kind: AiKind, accounts: &[String]) -> Carries<'_> {
+    match kind {
+        AiKind::Narrow => Carries::OwnerTextOnly,
+        AiKind::Answer => Carries::MailOf(accounts),
+    }
+}
+
+/// Whether the hop at `runtime` may be sent a request that carries `carries`, read from `settings`
+/// as they are now: the entry must be in the chain and on, and a runtime that `leaves` must be
+/// allowed by every account of the request. Where it sends text comes from its kind and the
+/// owner's settings ([`where_of`]); there is no managed UAR configuration, so UAR always leaves.
+pub(crate) fn admit(settings: &AiSettings, runtime: &RuntimeId, carries: Carries<'_>) -> Result<Admitted, Skip> {
+    let entry = settings.chain.get(runtime).filter(|e| e.enabled()).cloned().ok_or(Skip::Disabled)?;
+    let place = where_of(&entry, &compat_providers(settings), None);
+    if !may_send(runtime, place, carries, &settings.consents) {
+        return Err(Skip::NoConsent);
+    }
+    Ok(Admitted { entry, place })
+}
+
+/// What happened at one hop that didn't answer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum HopOutcome {
+    /// Passed over before anything was sent.
+    Skipped(Skip),
+    /// Asked, and it failed with this kind.
+    Failed(ErrorKind),
+}
+
+/// One runtime the request passed over or that failed, for the answer's provenance.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct HopNote {
+    pub(crate) runtime: RuntimeId,
+    pub(crate) outcome: HopOutcome,
+}
+
+/// The answer's provenance (ai-runtime-chain, for "Answered by …"): the runtime that answered,
+/// if one did, and, in the order of the chain, every runtime that was passed over or failed
+/// before it, each with its reason. Only ids and kinds: nothing a runtime said.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Provenance {
+    pub(crate) request: u64,
+    pub(crate) answered_by: Option<RuntimeId>,
+    pub(crate) notes: Vec<HopNote>,
+}
+
+#[allow(dead_code, reason = "the window reads it once the integrator wires the chain into the window (ai-runtime-chain 20.5, 20.8)")]
+impl Provenance {
+    /// The runtimes passed over, with their reason.
+    pub(crate) fn skipped(&self) -> impl Iterator<Item = (&RuntimeId, Skip)> {
+        self.notes.iter().filter_map(|n| match n.outcome {
+            HopOutcome::Skipped(skip) => Some((&n.runtime, skip)),
+            HopOutcome::Failed(_) => None,
+        })
+    }
+
+    /// The runtimes that were asked and failed, with the kind.
+    pub(crate) fn failed(&self) -> impl Iterator<Item = (&RuntimeId, ErrorKind)> {
+        self.notes.iter().filter_map(|n| match n.outcome {
+            HopOutcome::Failed(kind) => Some((&n.runtime, kind)),
+            HopOutcome::Skipped(_) => None,
+        })
+    }
+
+    /// As the window reads it: `{"request": n, "answeredBy": "<runtime>" | null, "passedOver":
+    /// [{"runtime": "<id>", "skipped": "<reason>"} | {"runtime": "<id>", "failed": "<kind>"}]}`.
+    pub(crate) fn to_json(&self) -> Value {
+        let notes: Vec<Value> = self
+            .notes
+            .iter()
+            .map(|n| match n.outcome {
+                HopOutcome::Skipped(skip) => json!({"runtime": n.runtime.to_string(), "skipped": skip.name()}),
+                HopOutcome::Failed(kind) => json!({"runtime": n.runtime.to_string(), "failed": kind.name()}),
+            })
+            .collect();
+        json!({
+            "request": self.request,
+            "answeredBy": self.answered_by.as_ref().map(ToString::to_string),
+            "passedOver": notes,
+        })
     }
 }

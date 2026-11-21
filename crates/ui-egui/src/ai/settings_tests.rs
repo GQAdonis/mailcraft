@@ -686,11 +686,41 @@ fn base_003_narrowing_survives_the_gateway_question() {
 }
 
 #[test]
-fn base_003_negative_control_escape_still_cancels_narrowing() {
+fn neg_m1_escape_still_cancels_narrowing() {
     let host = Host::default();
     let (mut w, request) = narrowing(&host);
     assert!(live(&w, request));
     testing::key(&mut w, egui::Key::Escape);
     assert!(!live(&w, request), "called off");
     assert!(matches!(w.state().ai.narrow.as_ref().map(|p| p.stage), Some(super::narrow::Stage::Ready)));
+}
+
+/// SCN-PRIOR-OPTIN-001 (B5): after the runtimes section grew, the Key field sat below the edge of
+/// a 900-pixel window, so Add Key looked like it did nothing and a key typed went nowhere. Add Key
+/// now brings the field into view with the keyboard in it.
+#[test]
+fn add_key_brings_the_key_field_into_view_with_the_keyboard() {
+    let host = Host::default();
+    host.set_provider(&json!({"id": "office", "kind": "remote", "base_url": "https://models.example/v1", "model": "m"})).unwrap();
+    let mut w = window_with(&host);
+    w.set_size(egui::vec2(1440.0, 900.0));
+    w.run_steps(2);
+    let provider = mailcraft_model::ai::ProviderId::new("office").unwrap();
+    super::settings_runtimes::open_key_field(w.state_mut(), &provider).unwrap();
+    w.run_steps(4);
+    assert!(!w.state().ai.settings.focus_key, "the request is taken once");
+    let key = w.state().hit.rect("aiKey", 0).expect("the Key field is drawn");
+    assert!(key.min.y >= 0.0 && key.max.y <= 900.0, "the Key field is in the window: {key:?}");
+    assert!(w.ctx.memory(|m| m.focused()).is_some(), "the Key field has the keyboard");
+}
+
+/// A negative control: opening Options without Add Key takes no keyboard and asks no scroll.
+#[test]
+fn neg_options_alone_doesnt_take_the_keyboard_for_the_key() {
+    let host = Host::default();
+    let mut w = window_with(&host);
+    w.state_mut().execute("ui.aiSettings", json!({})).unwrap();
+    w.run_steps(3);
+    assert!(!w.state().ai.settings.focus_key);
+    assert!(w.ctx.memory(|m| m.focused()).is_none());
 }

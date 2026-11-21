@@ -1,0 +1,1 @@
+| 2026-11-19 | minor | Runtimes beyond model servers: the ChatGPT plan, Claude Code, Codex and the Universal Agent Runtime, where each sends text, under whose account, what MailCraft holds, consent, tool stops and fallback, pointing to PRIVACY.md and the threat model; agents can't touch them |

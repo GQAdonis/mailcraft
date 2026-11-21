@@ -18,6 +18,9 @@ pub trait Backend {
     fn has_ui(&self) -> bool;
     /// Short human description ("headless", "connected to 127.0.0.1:7981").
     fn describe(&self) -> String;
+    /// What the MCP client reported about itself in `initialize` (`None`: nothing), for the
+    /// window to show as reported. It decides nothing; a backend without a window ignores it.
+    fn set_client(&mut self, _client: Option<crate::ClientInfo>) {}
 }
 
 /// The longest line read from a program that has not proved it holds the control key (the
@@ -50,6 +53,9 @@ pub struct Remote {
     /// `agent` field, set here and never from a tool's arguments: the app knows the request is
     /// an agent's, and asks the owner about the rest.
     allow: Vec<mailcraft_engine::agent::Class>,
+    /// What the MCP client reported about itself (`clientInfo`, cleaned): every request carries
+    /// it as `agent.client`, for the window to show as reported. It decides nothing.
+    client: Option<crate::ClientInfo>,
 }
 
 /// The control key: `env` (`MAILCRAFT_CONTROL_KEY`) when set, else the app's key file for
@@ -147,7 +153,17 @@ impl Remote {
     }
 
     fn connect_with(addr: &str, find_key: KeyFinder) -> std::io::Result<Self> {
-        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1, send_key: false, key: None, verified: false, find_key, allow: Vec::new() };
+        let mut r = Self {
+            addr: addr.to_string(),
+            conn: None,
+            next_id: 1,
+            send_key: false,
+            key: None,
+            verified: false,
+            find_key,
+            allow: Vec::new(),
+            client: None,
+        };
         r.reconnect()?;
         if let Some(w) = r.key_warning() {
             log::warn!("{w}");
@@ -253,6 +269,9 @@ impl Remote {
         // Marked as an agent's (`docs/control-protocol.md`, Agents).
         let allow: Vec<&str> = self.allow.iter().map(|c| c.as_str()).collect();
         let mut req = json!({"id": id, "method": method, "params": params, "agent": {"allow": allow}});
+        if let Some(client) = &self.client {
+            req["agent"]["client"] = client.to_value();
+        }
         if self.send_key {
             let Some(key) = &self.key else { return Err("the control key was not read".to_string()) };
             req["key"] = json!(key);
@@ -371,6 +390,10 @@ impl Backend for Remote {
 
     fn describe(&self) -> String {
         format!("connected to the MailCraft app at {}", self.addr)
+    }
+
+    fn set_client(&mut self, client: Option<crate::ClientInfo>) {
+        self.client = client;
     }
 }
 
