@@ -302,7 +302,7 @@ fn the_proposal_and_use_this_search_are_drawn_inside_the_panel() {
         assert!(shown.contains_rect(use_it), "Use This Search {use_it:?} is inside the panel {shown:?}");
         let field = w
             .query_all_by_role(Role::TextInput)
-            .find(|f| f.value().as_deref() == Some("from:ada has:attachment invoice"))
+            .find(|f| f.value().as_deref() == Some("from:Ada attachment:pdf invoice"))
             .map(|f| f.rect())
             .expect("the proposal's field");
         assert!(shown.contains_rect(field), "the field {field:?} is inside the panel {shown:?}");

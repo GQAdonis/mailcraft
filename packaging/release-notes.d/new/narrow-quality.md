@@ -1,0 +1,1 @@
+- AI assistance: narrowing the list in words finds what you meant far more often on a small on-device model: a sender, dates (`since 21 June`, `last Tuesday`), attachments, unread and flagged are read from your own words on this computer, and words like "mail" or "notes that mention" are no longer searched for.

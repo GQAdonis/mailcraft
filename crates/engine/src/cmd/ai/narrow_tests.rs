@@ -53,7 +53,7 @@ fn a_valid_proposal_is_offered_and_the_list_doesnt_change() {
 }
 
 #[test]
-fn an_invalid_proposal_is_asked_for_again_once_then_refused() {
+fn an_invalid_proposal_is_asked_for_again_once_then_the_owners_words_or_refused() {
     let (mut s, _) = corpus();
     let id = narrow(&mut s, "urgent mail from ada");
     answer(&mut s, id, r#"{"query": "sender:ada is:urgent"}"#);
@@ -67,11 +67,19 @@ fn an_invalid_proposal_is_asked_for_again_once_then_refused() {
     let last = t.request.messages.last().unwrap().content.clone();
     assert!(last.contains("sender:") && !last.contains("is:urgent\""), "{last}");
     assert_eq!(t.request.messages[1].content, "urgent mail from ada");
-    // The retry's answer is no better: refused, no more retries.
+    // The retry's answer is no better: the owner's own words are the search, no more retries.
+    answer(&mut s, retry, "I can't do that.");
+    let v = result(&mut s, retry);
+    assert_eq!((v["valid"].as_bool(), v["query"].as_str()), (Some(true), Some("urgent ada")));
+    assert!(v.get("retry").is_none());
+    // With nothing of the owner's to search for either: refused.
+    let id = narrow(&mut s, "find me all the mail");
+    answer(&mut s, id, "no");
+    let retry = result(&mut s, id)["retry"]["id"].as_u64().unwrap();
     answer(&mut s, retry, "I can't do that.");
     let v = result(&mut s, retry);
     assert_eq!(v["valid"], false);
-    assert!(v.get("retry").is_none());
+    assert!(v["query"].is_null() && v.get("retry").is_none());
 }
 
 #[test]

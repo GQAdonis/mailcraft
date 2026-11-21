@@ -68,13 +68,14 @@ fn a_proposal_changes_nothing_until_it_is_accepted() {
     w.run_steps(3);
     let panel = w.state().ai.narrow.clone().expect("open");
     assert_eq!(panel.stage, super::narrow::Stage::Proposal);
-    assert_eq!(panel.query, "from:ada has:attachment");
+    // What the owner's words say plainly wins: "from Ada", "with a PDF".
+    assert_eq!(panel.query, "from:Ada attachment:pdf");
     assert_eq!(w.state().session.view.search, before, "the list is as it was");
     // Accepted: the search, in place of the one there was.
     w.state_mut().execute("ui.findByDescription", json!({"accept": true})).unwrap();
     w.run_steps(2);
     assert!(w.state().ai.narrow.is_none());
-    assert_eq!(w.state().session.view.search, "from:ada has:attachment");
+    assert_eq!(w.state().session.view.search, "from:Ada attachment:pdf");
 }
 
 #[test]

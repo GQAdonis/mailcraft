@@ -53,6 +53,12 @@ If a server rejects the requested format (HTTP 400), MailCraft steps down on the
 
 An answer that names no message is shown as "No message was named as the source". One whose citations can't be read keeps its text, marked "MailCraft couldn't read which messages this came from".
 
+## Narrowing the list in words
+
+Narrowing sends your words, a description of MailCraft's query language with a few worked examples, and today's date: never any mail. The model is asked for `{"query": "..."}`.
+
+What your words say plainly is read by fixed rules on this computer and wins over the model's reading: a sender (`from Ada Abernathy`, `Greta sent me`, `Dmitri's emails`, `not from Tom`), a recipient (`sent to Bob`), dates (`since 21 June`, `last Tuesday`, `in March`, `between 1 May and 3 June`, `last week`), attachments (`with an attachment`, `with a PDF`, `without attachments`), and `unread` and `flagged`. Words that only describe the asking (`mail`, `anything`, `notes that mention`, `sent me`) are dropped from the model's search. A name must be written with a capital (or be an address); a month, a day of the week or a date with no word before it saying how it bounds the mail is left to the model. When nothing of the model's search is left, or it gives no search MailCraft can read twice, your own remaining words are the search. Whatever is offered is checked against the query language, and nothing changes in the list until you accept it.
+
 ## When something fails
 
 Every failure has a kind: `not_configured`, `no_consent`, `unreachable`, `refused` (with the HTTP status), `timed_out` (before or after the first byte), `certificate`, `settings`, `credential_store`, `malformed`, `too_large`, `cancelled`. The window's message comes from the kind, never from the server's wording. What the server said is kept under **Details** as text, never followed or run.

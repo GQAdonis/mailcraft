@@ -1,0 +1,1 @@
+| 2026-11-21 | minor | Narrowing the list in words: what the owner's words say plainly (a sender, dates, attachments, unread, flagged) is read by fixed rules on this computer and wins over the model's reading, words that only describe the asking are dropped, and the owner's own words are the search when nothing of the model's is left; nothing more is sent |

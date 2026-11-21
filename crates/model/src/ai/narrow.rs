@@ -11,12 +11,18 @@
 //!   one line of at most [`MAX_PROPOSAL_CHARS`] characters, no control characters, every
 //!   `keyword:` one the search box knows with a value it takes, and asking for something.
 //!   Nothing of it runs: the owner sees it and accepts it, or not.
+//! - **What the owner's words say plainly wins** ([`settle`]): the proposal is refined by the
+//!   fixed rules of [`super::narrow_cues`] (a sender, dates, attachments read from the owner's
+//!   words, and the words that only describe the asking dropped) and then checked; when nothing
+//!   of it is left, or the last try failed, the owner's own words are the search. Either way the
+//!   search offered is one [`check_query`] takes, or a typed refusal.
 
 use super::AiError;
 use super::call::{ChatMessage, Role, clean_text};
+use super::narrow_cues::Cues;
 use crate::search::Query;
 use crate::words::ALL;
-use mailcraft_time::Date;
+use mailcraft_time::{Date, month_name};
 
 /// Longest description the owner may type, in characters.
 pub const MAX_NARROW_CHARS: usize = 1_000;
@@ -67,12 +73,23 @@ The query language:\n\
 - Dates are YYYY-MM-DD: before:DATE, after:DATE, on:DATE; received:DATE, received:DATE..DATE, received:>=DATE, received:<=DATE.\n\
 - received: also takes today, yesterday, \"this week\", \"last week\", \"this month\", \"last month\", \"this year\".\n\
 - A value with spaces goes in double quotes: from:\"ada byron\".\n\
-Use only these keywords. Example: invoices from Ada last month with a PDF -> {\"query\": \"invoice from:ada received:\\\"last month\\\" attachment:pdf\"}";
+Use only these keywords.\n\
+Put in the query only what the mail must match. Leave out the words that only describe the asking: mail, messages, emails, anything, notes that mention, about, sent me, I, me.\n\
+Examples:\n\
+invoices from Ada last month with a PDF -> {\"query\": \"invoice from:ada received:\\\"last month\\\" attachment:pdf\"}\n\
+emails from Rosa Lind -> {\"query\": \"from:\\\"Rosa Lind\\\"\"}\n\
+anything Nora sent me with an attachment -> {\"query\": \"from:nora has:attachment\"}\n\
+notes that mention the harbour budget -> {\"query\": \"harbour budget\"}\n\
+unread mail to bob@example.org without attachments -> {\"query\": \"to:bob@example.org is:unread -has:attachment\"}\n\
+messages about the offsite, not from Tom -> {\"query\": \"offsite -from:tom\"}";
 
 /// The instructions with `today`, so that a date without a year is read as the latest such date
 /// that is not after it.
 fn system(today: Date) -> String {
-    format!("{SYSTEM}\nToday is {}. A date written without a year is the latest such date that is not after today.", today.iso())
+    let since = today.add_days(-40);
+    let example =
+        format!("messages from Tomas since {} {} -> {{\"query\": \"from:tomas received:>={}\"}}", since.day, month_name(since.month), since.iso());
+    format!("{SYSTEM}\n{example}\nToday is {}. A date written without a year is the latest such date that is not after today.", today.iso())
 }
 
 /// The conversation that asks for a search: the instructions with `today` (the owner's date),
@@ -157,4 +174,29 @@ pub fn check_query(query: &str) -> Result<(), AiError> {
         return Err(AiError::Invalid("the proposed search asks for nothing".into()));
     }
     Ok(())
+}
+
+/// The search to offer for `answer` (what a model wrote for `description` on `today`), or why
+/// there is none: the model's proposal refined by what the owner's words say plainly
+/// ([`Cues::refine`]), and checked ([`check_query`]). When the refined proposal is empty, the
+/// owner's own words are the search ([`Cues::fallback`]); on the `last_try` they are also the
+/// search when the proposal can't be read or checked. Nothing offered is unchecked.
+pub fn settle(answer: &str, description: &str, today: Date, last_try: bool) -> Result<String, AiError> {
+    let cues = Cues::read(description, today);
+    let checked = |q: String| check_query(&q).map(|()| q);
+    let fallback = || checked(cues.fallback());
+    let why = match proposed_query(answer) {
+        Ok(query) => {
+            let refined = cues.refine(&query);
+            if refined.trim().is_empty() {
+                return fallback().or_else(|_| checked(query));
+            }
+            match checked(refined) {
+                Ok(q) => return Ok(q),
+                Err(why) => why,
+            }
+        }
+        Err(why) => why,
+    };
+    if last_try { fallback().map_err(|_| why) } else { Err(why) }
 }

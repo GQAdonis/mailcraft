@@ -39,6 +39,7 @@ pub mod chunk;
 pub mod citation;
 pub mod extract;
 pub mod narrow;
+pub mod narrow_cues;
 pub mod prompt;
 pub mod retrieval;
 pub mod runtime;
@@ -55,7 +56,8 @@ pub use call::{
 pub use chunk::{Chunk, MAX_CHUNK_CHARS, MAX_CHUNKS, MAX_TEXT_BYTES, chunks, searchable_text};
 pub use citation::{Citation, MAX_CITATIONS, validate_citations};
 pub use extract::{AnswerExtractor, extract_answer};
-pub use narrow::{MAX_NARROW_CHARS, MAX_PROPOSAL_CHARS, NARROW_SCHEMA, check_query, narrow_messages, narrow_retry_messages, proposed_query};
+pub use narrow::{MAX_NARROW_CHARS, MAX_PROPOSAL_CHARS, NARROW_SCHEMA, check_query, narrow_messages, narrow_retry_messages, proposed_query, settle};
+pub use narrow_cues::Cues;
 pub use prompt::{
     AnswerInput, AnswerPrompt, Budget, DEFAULT_ANSWER_TOKENS, DEFAULT_CONTEXT_WINDOW, MAX_MARKER_BYTES, MAX_PASSAGES, MAX_QUESTION_CHARS, Passage,
     answer_prompt, answer_tokens_for, cited_numbers, estimate_tokens, marker,
@@ -100,6 +102,8 @@ mod chunk_tests;
 mod citation_tests;
 #[cfg(test)]
 mod extract_tests;
+#[cfg(test)]
+mod narrow_cues_tests;
 #[cfg(test)]
 mod narrow_tests;
 #[cfg(test)]

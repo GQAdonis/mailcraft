@@ -7,12 +7,14 @@
 //! - **Only the owner's words go**, with a description of the query language and today's date
 //!   in the owner's zone ([`mailcraft_model::ai::narrow`]): no mail. The answer is asked for as JSON (`{"query": …}`,
 //!   [`NARROW_SCHEMA`]) at temperature 0.
-//! - **The proposal is checked** against the query language before it is offered
-//!   ([`check_query`]). One that isn't a search MailCraft can read is asked for again once, with
+//! - **The proposal is refined and checked** before it is offered ([`settle`]): what the owner's
+//!   words say plainly (a sender, dates, attachments) wins over the model's reading, words that
+//!   only describe the asking are dropped, and what is left must be a search MailCraft can read;
+//!   when nothing is left, or the last try fails, the owner's own words are the search. One that isn't a search MailCraft can read is asked for again once, with
 //!   what was wrong in the engine's own words; a second is an error.
 //! - The owner's and the host's alone, never an agent's (`crate::agent`).
 
-use mailcraft_model::ai::{AiKind, ModelRequest, NARROW_SCHEMA, RequestState, check_query, narrow_messages, narrow_retry_messages, proposed_query};
+use mailcraft_model::ai::{AiKind, ModelRequest, NARROW_SCHEMA, RequestState, narrow_messages, narrow_retry_messages, settle};
 use serde_json::{Value, json};
 
 use super::requests::{as_json, failed, request_id};
@@ -61,14 +63,13 @@ pub fn narrow_result(s: &mut Session, v: &Value) -> CmdResult {
         RequestState::Cancelled => return Err(bad(format!("model request {id} was called off"))),
         RequestState::Failed => return Ok(failed(t)),
     }
-    let proposal = proposed_query(&t.text).and_then(|q| check_query(&q).map(|()| q));
-    let why = match proposal {
-        Ok(query) => return Ok(json!({"query": query, "valid": true})),
-        Err(why) => why,
-    };
     let retries = t.retries;
     // The owner's words: the message after the instructions ([`narrow_messages`]).
     let description = t.request.messages.get(1).map(|m| m.content.clone());
+    let why = match settle(&t.text, description.as_deref().unwrap_or(""), s.today(), retries >= MAX_RETRIES) {
+        Ok(query) => return Ok(json!({"query": query, "valid": true})),
+        Err(why) => why,
+    };
     if retries >= MAX_RETRIES {
         return Ok(json!({"query": null, "valid": false, "error": why.to_string()}));
     }
