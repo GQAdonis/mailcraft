@@ -35,6 +35,7 @@ pub const WORKING: &[&str] = &[
     crate::auth_results::AUTH_AS,
     crate::auth_results::DIRECTIONALITY,
     // A mailing list, whose name a member's name may carry (`sender_warnings`).
+    "Auto-Submitted",
     "List-Id",
     "List-Post",
     // How a list says it is left (`unsubscribe`), and the signatures that say whether those

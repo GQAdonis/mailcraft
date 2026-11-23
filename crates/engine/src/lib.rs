@@ -35,6 +35,8 @@ mod digital_signature;
 #[cfg(test)]
 mod digital_signature_tests;
 pub mod gmail;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod header_reader;
 pub mod import_pst;
 pub mod import_tree;
 pub mod io;

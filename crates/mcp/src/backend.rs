@@ -20,6 +20,19 @@ pub trait Backend {
     fn describe(&self) -> String;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl Backend for mailcraft_engine::header_reader::HeaderReader {
+    fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        self.query(method, params).map_err(String::from)
+    }
+    fn has_ui(&self) -> bool {
+        false
+    }
+    fn describe(&self) -> String {
+        "scoped read-only mailbox snapshot".into()
+    }
+}
+
 /// The longest line read from a program that has not proved it holds the control key (the
 /// answer to the challenge, and every answer when the key is not sent): 1 MiB, as the app's own
 /// control port reads requests.

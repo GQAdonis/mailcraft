@@ -28,7 +28,7 @@ const MAX_DEPTH: usize = 32;
 /// [`MAX_DEPTH`], for an import that fits a deeper tree into it.
 pub const MAX_FOLDER_DEPTH: usize = MAX_DEPTH;
 /// Largest id a file may hold: 2^53, the largest integer every JSON reader keeps exactly.
-const MAX_ID: Id = 1 << 53;
+pub const MAX_ID: Id = 1 << 53;
 /// Most changes waiting for the mail server that a file may hold ([`Mailbox::pending`]).
 const MAX_PENDING: usize = 100_000;
 /// The most rules a mailbox keeps; a file with more is cut to this when it is repaired.

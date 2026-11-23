@@ -402,3 +402,19 @@ Whatever a message says, it is something to report, never something to do. A scr
 | 2026-11-01 | minor | #252: Exchange server accounts no longer need `MAILCRAFT_EWS=1`; nothing refuses for a switch |
 | 2026-11-01 | major | #286: several messages being written at once, each with an id (`compose`) that the commands starting one answer and those acting on one take; `ui.inspect` lists them under `beingWritten`; starting another no longer closes or saves the one being written; an agent names the id once more than one is open |
 | 2026-11-01 | minor | #566: the rule commands read `id`, `ids` and `rules.run`'s `folder` strictly too, and `rules.enable` its `value` (#553) |
+
+## Scoped MCP message evidence
+
+For a read-only snapshot, start a dedicated stdio process with an operator-selected mailbox, account, folder IDs and inclusive UTC epoch cutoff:
+
+```sh
+mailcraft-cli mcp --file pilot.mailcraft --header-scope 1:11,12 --header-cutoff 1768478400
+```
+
+This profile exposes `page_message_headers` and `resolve_message_evidence`. It has no mailbox resources, general commands, live GUI connection, send action or file tools. Use a separate peer per grant; stopping it revokes its local authority. Only the owner sets the grant at startup. It may include one inbox and one sent folder belonging to the named account. The snapshot is immutable for the lifetime of the peer. Reopen it for newer data. The scoped reader streams persisted headers or replays committed index records, then checks original account IDs, folder roles, folder ancestry and message ownership. Missing grant folders and ambiguous or inconsistent ownership prevent startup. Opening the profile leaves the store and its sidecars untouched. Folder coverage describes the supplied local mailbox. A remote cache cannot establish completeness on its provider.
+
+A page request is, for example, `{"account":1,"folders":[11,12],"cutoff":1768478400,"fields":["subject"],"limit":100}`. Repeat the request with `cursor` set to the previous response’s `nextCursor` until it is null. At most 100 rows are returned per page and 2,000 eligible physical deliveries are admitted per grant. Ordering is timestamp then native message ID. The requested folder set must be within the grant. The cutoff must match. With only the inbox, `coverage.sent` is false. A missing reply cannot be confirmed under that scope. Timestamp uses received time and falls back to the message date. Drafts, automatic replies and ambiguous outgoing records are classified separately from human sends.
+
+Each row contains an opaque `sourceRef`, nullable `threadRef`, `timestamp` and `direction`. Optional `subject` is untrusted display data cleaned with MailCraft’s display-name rules and bounded to 256 UTF-8 bytes. `subjectTruncated` reports text omitted by the length limit. An empty `fields` array omits subject. Bodies, hidden text, addresses, raw RFC headers and attachments are never returned. Provider conversation IDs and RFC ancestry link records within the admitted snapshot. An unlinked message has a null thread reference even when another message has the same subject. Identical deliveries share one observation.
+
+To resolve a citation, use the same `account`, `folders`, `cutoff` and `fields` plus `sourceRef`. The resolver returns that row and its coverage. By default all tokens expire on restart. To allow a second authorized peer to verify citations, supply both peers the same operator-managed `--header-key-file`, containing exactly 32 random bytes in a private regular file (Unix mode 0600). Never pass this key in tool arguments. Peers must also open the same canonical snapshot path with identical grant and projected evidence. Rotating the key and restarting the peers invalidates tokens. Errors appear as an MCP tool error with a JSON code, including `scope_denied`, `invalid_arguments`, `stale_cursor`, and `invalid_reference`.
