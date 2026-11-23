@@ -1,9 +1,12 @@
 """Exercise the installed stdio protocol with disposable synthetic mailbox files."""
 import argparse
+import copy
+import hashlib
 import json
 from pathlib import Path
 import secrets
 import subprocess
+import struct
 import tempfile
 
 CUTOFF = 10000
@@ -32,6 +35,71 @@ def call(cli, mailbox, key, name, args, error=None, scope="1:11,12"):
     else:
         assert reply["isError"] and body["code"] == error, body
     return body
+
+
+def snapshot_bytes(native, version):
+    """Encode synthetic persisted inputs with the native index framing and checksums."""
+    if version <= 2:
+        return json.dumps(dict(native, version=version)).encode()
+    def record(kind, payload):
+        body = struct.pack("<IB", len(payload), kind) + payload
+        return body + hashlib.sha256(body).digest()[:16]
+    parts = [record(1, json.dumps(dict(native, version=version, messages={})).encode())]
+    for key, value in native["messages"].items():
+        content = json.dumps(value).encode()
+        parts.append(record(2, struct.pack("<BQI", 0, int(key), len(content)) + content))
+    return b"MailCraft index\n" + struct.pack("<II", version, 0) + b"".join(parts) + record(4, struct.pack("<I", len(parts)))
+
+
+def check_original_scope(binary, mailbox, key, native, query):
+    page = "page_message_headers"
+    def rejected(data, reason):
+        mailbox.write_bytes(data)
+        try:
+            invoke(binary, mailbox, key, [("tools/list", {})])
+        except subprocess.CalledProcessError as exc:
+            assert reason in exc.stderr and not exc.stdout, (exc.returncode, exc.stderr, exc.stdout)
+        else:
+            raise AssertionError("connector admitted an invalid persisted snapshot")
+        assert mailbox.read_bytes() == data and set(mailbox.parent.iterdir()) == {key, mailbox}
+
+    clean = copy.deepcopy(native)
+    clean["messages"]["1"].update(subject="  A\u00ad\u061c\u200b\u2063\u034f\ufeff\U000e0073\u2800B  ",
+                                  body={"text": "private inline body " * 8192})
+    clean["messages"]["2"]["subject"] = "界" * 86
+    clean["messages"]["3"]["subject"] = "x" * 256 + "\u200b"
+    cases = [
+        lambda n: n["messages"]["1"].update(account=2),
+        lambda n: n["messages"]["1"].update(folder=999),
+        lambda n: n["messages"]["1"].update(id=999),
+        lambda n: n["accounts"].append(dict(n["accounts"][0])),
+        lambda n: n["folders"].append(dict(n["folders"][0])),
+        lambda n: n["folders"].append(dict(n["folders"][0], id=999)),
+        lambda n: n["folders"][0].update(account=999),
+        lambda n: n["folders"][0].update(parent=21),
+        lambda n: n["folders"][0].update(kind="custom", parent=11),
+    ]
+    for version in (1, 2, 3, 4):
+        data = snapshot_bytes(clean, version)
+        mailbox.write_bytes(data)
+        rows = call(binary, mailbox, key, page, query)["rows"]
+        assert rows[0]["subject"] == "A B" and not rows[0]["subjectTruncated"]
+        assert rows[1]["subject"] == "界" * 85 and rows[1]["subjectTruncated"]
+        assert rows[2]["subject"] == "x" * 256 and not rows[2]["subjectTruncated"]
+        assert mailbox.read_bytes() == data and set(mailbox.parent.iterdir()) == {key, mailbox}
+        for change in cases:
+            damaged = copy.deepcopy(clean)
+            change(damaged)
+            rejected(snapshot_bytes(damaged, version), "invalid_snapshot_provenance")
+        absent = copy.deepcopy(clean)
+        absent["messages"] = {k: m for k, m in absent["messages"].items() if m["folder"] != 12}
+        absent["folders"] = [f for f in absent["folders"] if f["id"] != 12]
+        rejected(snapshot_bytes(absent, version), "scope_denied")
+        if version <= 2:
+            # serde maps can otherwise silently overwrite an earlier record at the same ID.
+            rejected(data.replace(b'"messages": {', b'"messages": {"1": {},', 1), "invalid_snapshot_provenance")
+        else:
+            rejected(data + b"unfinished frame", "incomplete_snapshot")
 
 
 def main():
@@ -107,6 +175,8 @@ def main():
         mailbox.write_text(json.dumps(native))
         tool(page, dict(query,cursor=first["nextCursor"]), "stale_cursor")
         tool(resolve, dict(query,sourceRef=rows[0]["sourceRef"]), "invalid_reference")
+        check_original_scope(binary, mailbox, key, native, query)
+    print("Original ownership, unchanged stores and sanitized UTF-8 bounds passed on formats 1, 2, 3 and 4.")
     print("Scoped MailCraft stdio paging, independent resolution, denials, freshness and write observations passed.")
 
 

@@ -78,6 +78,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::io::{BackgroundSave, ContentSource, MAX_FILE, MAX_MAILBOX_JSON, OpenProgress, SaveProgress, SaveReport, SaveStage};
 
+#[path = "store_header_snapshot.rs"]
+pub(crate) mod header_snapshot;
 #[path = "store_index.rs"]
 mod index;
 #[path = "store_pack.rs"]

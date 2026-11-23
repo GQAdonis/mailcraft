@@ -77,24 +77,23 @@ fn direction(m: &Message, folder: FolderKind) -> &'static str {
 }
 
 fn subject(value: &str) -> (String, bool) {
-    let mut text = String::new();
-    for c in value.chars() {
-        if text.len() + c.len_utf8() > 256 {
-            return (text, true);
-        }
-        if c.is_control() || matches!(c, '\u{061c}' | '\u{200e}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}') {
-            text.push(' ');
-        } else {
-            text.push(c);
-        }
+    const LIMIT: usize = 256;
+    // The cleaner can emit up to three scalars together (space, joiner, character).
+    let text = mailcraft_names::incoming(value, LIMIT + 3).unwrap_or_default();
+    if text.len() <= LIMIT {
+        return (text, false);
     }
-    (text, false)
+    let mut end = LIMIT;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    (mailcraft_names::incoming(&text[..end], LIMIT).unwrap_or_default(), true)
 }
 
 impl HeaderReader {
     /// Snapshot the explicitly named folders of an already-opened mailbox. Only an inbox and a
     /// sent folder are supported by v1. Each subset has its own thread graph and handle namespace.
-    pub fn new(mailbox: &Mailbox, account: Id, mut folders: Vec<Id>, cutoff: i64, identity: &str, secret: &[u8; 32]) -> Result<Self, &'static str> {
+    fn new(mailbox: &Mailbox, account: Id, mut folders: Vec<Id>, cutoff: i64, identity: &str, secret: &[u8; 32]) -> Result<Self, &'static str> {
         folders.sort_unstable();
         if !(1..=2).contains(&folders.len()) || folders.windows(2).any(|w| w.first() == w.last()) {
             return Err("invalid_grant");
@@ -246,11 +245,8 @@ pub fn open(path: &std::path::Path, scope: &str, cutoff: i64, key_file: Option<&
     };
     let canonical = path.canonicalize().map_err(|_| "snapshot_unavailable")?;
     let identity = canonical.to_str().ok_or("unsupported_snapshot_path")?;
-    let opened = crate::store::open(&canonical)?;
-    if opened.notice().is_some() {
-        return Err("incomplete_snapshot".into());
-    }
-    HeaderReader::new(&opened.mailbox, account, folders, cutoff, identity, &secret).map_err(String::from)
+    let original = crate::store::header_snapshot::read(&canonical)?;
+    HeaderReader::new(&original, account, folders, cutoff, identity, &secret).map_err(String::from)
 }
 
 fn private_key(path: &std::path::Path) -> Result<[u8; 32], &'static str> {
