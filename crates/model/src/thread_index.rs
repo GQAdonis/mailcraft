@@ -159,30 +159,7 @@ impl ThreadIndex {
 
     /// Link the messages `same`, all of one account and one topic, into their conversations.
     fn join(&mut self, same: &[&Message]) {
-        let mut sets = Sets::new(same.len());
-        let mut named: HashMap<&str, usize> = HashMap::new();
-        let mut threads: HashMap<String, usize> = HashMap::new();
-        for (i, m) in same.iter().enumerate() {
-            for id in links(m) {
-                self.work = self.work.saturating_add(1);
-                match named.get(id) {
-                    Some(j) => sets.union(i, *j),
-                    None => {
-                        named.insert(id, i);
-                    }
-                }
-            }
-            let thread = m.server.as_ref().map(|s| thread_id(&s.thread)).unwrap_or_default();
-            if !thread.is_empty() {
-                self.work = self.work.saturating_add(1);
-                match threads.get(&thread) {
-                    Some(j) => sets.union(i, *j),
-                    None => {
-                        threads.insert(thread, i);
-                    }
-                }
-            }
-        }
+        let mut sets = Self::known_links(same, &mut self.work);
         // Then the unknowns, among themselves, and only those still linked to nothing: one that a
         // reply names is of that reply's conversation, and joining it to the other unknowns would
         // join two threads through it (#795).
@@ -206,6 +183,70 @@ impl ThreadIndex {
             }
             self.members.insert(key, ids);
         }
+    }
+
+    /// Provider and RFC links among the already authorized messages of one account.
+    /// The evidence reader uses only hard links. Unlike the UI, it cannot assume that
+    /// matching subjects imply a conversation, or that a reply kept the original subject.
+    pub fn evidence_keys(messages: &[&Message]) -> HashMap<Id, ThreadKey> {
+        let mut accounts: HashMap<Id, Vec<&Message>> = HashMap::new();
+        for &m in messages {
+            accounts.entry(m.account).or_default().push(m);
+        }
+        let mut out = HashMap::new();
+        for group in accounts.into_values() {
+            let mut work = 0;
+            let mut sets = Self::known_links(&group, &mut work);
+            let mut roots: HashMap<usize, Id> = HashMap::new();
+            for (i, m) in group.iter().enumerate() {
+                // A standalone Message-ID identifies a message, not an observed conversation.
+                // At least one member must supply a provider thread or an actual RFC link.
+                let parent = m
+                    .references
+                    .iter()
+                    .rev()
+                    .take(MAX_REFERENCES)
+                    .chain(std::iter::once(&m.in_reply_to))
+                    .any(|s| !s.trim().trim_matches(['<', '>']).is_empty() && s.len() <= MAX_LINK_ID);
+                if parent || m.server.as_ref().is_some_and(|s| !thread_id(&s.thread).is_empty()) {
+                    roots.entry(sets.find(i)).and_modify(|id| *id = (*id).min(m.id)).or_insert(m.id);
+                }
+            }
+            for (i, m) in group.iter().enumerate() {
+                if let Some(&key) = roots.get(&sets.find(i)) {
+                    out.insert(m.id, ThreadKey(key));
+                }
+            }
+        }
+        out
+    }
+
+    fn known_links(same: &[&Message], work: &mut u64) -> Sets {
+        let mut sets = Sets::new(same.len());
+        let mut named: HashMap<&str, usize> = HashMap::new();
+        let mut threads: HashMap<String, usize> = HashMap::new();
+        for (i, m) in same.iter().enumerate() {
+            for id in links(m) {
+                *work = work.saturating_add(1);
+                match named.get(id) {
+                    Some(j) => sets.union(i, *j),
+                    None => {
+                        named.insert(id, i);
+                    }
+                }
+            }
+            let thread = m.server.as_ref().map(|s| thread_id(&s.thread)).unwrap_or_default();
+            if !thread.is_empty() {
+                *work = work.saturating_add(1);
+                match threads.get(&thread) {
+                    Some(j) => sets.union(i, *j),
+                    None => {
+                        threads.insert(thread, i);
+                    }
+                }
+            }
+        }
+        sets
     }
 
     /// The conversation of the message `id`: its own when it is linked to no other (or isn't

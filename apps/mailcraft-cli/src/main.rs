@@ -67,6 +67,7 @@ USAGE:
                                                 Leaving or throwing away what the owner is writing
                                                 or changing is asked about in the app every time
                                                 (with input, the agent clicks as the owner does)
+  mailcraft-cli mcp --file MAILBOX --header-scope ACCOUNT:FOLDER[,FOLDER] --header-cutoff UNIX_SECONDS [--header-key-file FILE]
   mailcraft-cli --version
 ";
 
@@ -611,7 +612,38 @@ fn run(args: &[String]) -> Result<(), Failure> {
             }
         }
         "mcp" => {
-            positionals("mcp", &rest, &[value("--connect"), value("--file"), flag("--sample"), value("--files"), value("--allow")])?;
+            positionals(
+                "mcp",
+                &rest,
+                &[
+                    value("--connect"),
+                    value("--file"),
+                    flag("--sample"),
+                    value("--files"),
+                    value("--allow"),
+                    value("--header-scope"),
+                    value("--header-cutoff"),
+                    value("--header-key-file"),
+                ],
+            )?;
+            if let Some(scope) = arg_value(&rest, "--header-scope") {
+                if rest.iter().any(|v| matches!(v.as_str(), "--connect" | "--allow" | "--files" | "--sample")) {
+                    return Err("mcp: scoped header mode takes an explicit read-only snapshot file".into());
+                }
+                let file = arg_value(&rest, "--file").ok_or("mcp: --header-scope requires --file")?;
+                let cutoff = arg_value(&rest, "--header-cutoff")
+                    .ok_or("mcp: --header-scope requires --header-cutoff")?
+                    .parse()
+                    .map_err(|_| "mcp: invalid --header-cutoff (Unix seconds)")?;
+                let key = arg_value(&rest, "--header-key-file");
+                let reader =
+                    mailcraft_engine::header_reader::open(std::path::Path::new(&file), &scope, cutoff, key.as_deref().map(std::path::Path::new))?;
+                mailcraft_mcp::Server::scoped_headers(reader).serve(std::io::stdin().lock(), std::io::stdout().lock())?;
+                return Ok(());
+            }
+            if rest.iter().any(|v| matches!(v.as_str(), "--header-key-file" | "--header-cutoff")) {
+                return Err("mcp: header options require --header-scope".into());
+            }
             let allow = allow_classes(&rest)?;
             let files = match arg_value(&rest, "--files") {
                 Some(dir) => Some(mailcraft_mcp::files::FilesDir::new(std::path::Path::new(&dir)).map_err(|e| format!("mcp: {e}"))?),
